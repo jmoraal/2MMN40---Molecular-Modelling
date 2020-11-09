@@ -1,0 +1,5 @@
+here is the data: bicycle
+here is the data: koala
+here is the data: [1, 2, 3]
+here is the data: 4
+here is the data: 5.0

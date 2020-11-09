@@ -1,0 +1,4 @@
+Some comment that is not very useful
+temperature: 20 
+distance: 100
+coordinates 1 2 3.0

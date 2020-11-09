@@ -1,0 +1,8 @@
+<options>
+    <mode help="can be: growseason, specificmoment, monthly or hourly">monthly</mode>
+    <outputPath>../output</outputPath>
+    <latitude>51.9269</latitude>
+    <longitude>6.5697</longitude>
+    <timezone>2.0</timezone>
+    <setting>absolutely</setting>
+</options>

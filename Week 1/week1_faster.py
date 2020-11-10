@@ -8,20 +8,49 @@ Created on Mon Nov  9 16:30:44 2020
 import numpy as np
 
 
+lines = []
+firstColumn = []
+#NDlines = np.empty([1])
 
 with open("Hydrogen.xyz", "r") as inputFile:
-    lines = inputFile.readlines()
+    for line in inputFile: 
+        splittedLine = line.split()
+        firstColumn.append(splittedLine[0])
+        lines.append(splittedLine[1:4])
+        #NDlines = np.append(NDlines,np.asarray(line.split()))
     
-nrOfAtoms = int(lines[0])
+nrOfAtoms = int(firstColumn[0])
 timeSteps = int(np.floor(len(lines)/ nrOfAtoms))
 #This works because nr of lines not describing positions is much smaller than nrOfAtoms
 
-atomTypes = empty([])
-atomPositions = np.empty([nrOfAtoms,3,timeSteps])
 
-for i in range(timeSteps)
+
+
+#atomPositions = np.empty([nrOfAtoms,timeSteps])
+atomPositions = []
+
+for i in range(timeSteps):
+    #atomPositions[:,:,i] = extractPosToNDarray(lines[(2+nrOfAtoms*i):(nrOfAtoms*(i+1)+2)])
+    atomPositions.append(lines[(2+(2+nrOfAtoms)*i):((2+nrOfAtoms)*(i+1))])
     
+
+
+     
+
+    
+     
 '''    
+
+
+def extractPosToNDarray(linesVar,nrOfAtoms):
+    array = np.empty([nrOfAtoms,3])
+    for k in range(nrOfAtoms):
+        temp = linesVar[k].split()
+    
+    return array
+
+
+
   nrOfAtoms = int(inputFile.readline()) # now still assuming this is constant throughout the file
   atomType = []
   atomPosition = np.empty([nrOfAtoms,3])

@@ -8,28 +8,41 @@ Created on Mon Nov  9 16:30:44 2020
 import numpy as np
 
 
-lines = []
-firstColumn = []
 
-with open("Methane.xyz", "r") as inputFile:
-    for line in inputFile: 
-        splittedLine = line.split()
-        firstColumn.append(splittedLine[0])
-        lines.append(splittedLine[1:4])
+
+def readXYZfile(fileName): 
+    """Read a .xyz file.
     
-nrOfAtoms = int(firstColumn[0])
-timeSteps = int(np.floor(len(lines)/ nrOfAtoms))
-#This works because nr of lines not describing positions is much smaller than nrOfAtoms
+    Reads entire file for arbitrary number of timesteps
+    INPUT: .xyz file 
+    OUTPUT:  atom types and array of xyz-coord for every atom at every timestep.
+    """
+    lines = []
+    firstColumn = []
 
-
-atomPositions = []
-atomTypes = []
-
-for i in range(timeSteps):
-    atomTypes.append(firstColumn[(2+(2+nrOfAtoms)*i):((2+nrOfAtoms)*(i+1))])
-    atomPositions.append(lines[(2+(2+nrOfAtoms)*i):((2+nrOfAtoms)*(i+1))])
+    with open(fileName, "r") as inputFile:
+        for line in inputFile: 
+            splittedLine = line.split()
+            firstColumn.append(splittedLine[0])
+            lines.append(splittedLine[1:4])
+        
+    nrOfAtoms = int(firstColumn[0])
+    timeSteps = int(np.floor(len(lines)/ nrOfAtoms))
+    #This works because nr of lines not describing positions is much smaller than nrOfAtoms
     
-atomPositions = np.asarray(atomPositions).astype(np.float)
+    
+    atomPositions = []
+    atomTypes = []
+    
+    for i in range(timeSteps):
+        atomTypes.append(firstColumn[(2+(2+nrOfAtoms)*i):((2+nrOfAtoms)*(i+1))])
+        atomPositions.append(lines[(2+(2+nrOfAtoms)*i):((2+nrOfAtoms)*(i+1))])
+        
+    atomPositions = np.asarray(atomPositions).astype(np.float)
+    return(atomTypes,atomPositions)
+
+methanePositions = readXYZfile("Methane.xyz")[1]
+
 '''
 vragen:
     - lijkt me handig alles van een tijdstip in een keer als

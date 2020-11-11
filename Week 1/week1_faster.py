@@ -69,9 +69,5 @@ vragen:
     - Liever functies van position of positionAtTime?
 '''
 
-'''
-Test!
-'''
-
 
 

@@ -44,21 +44,24 @@ def readXYZfile(fileName):
 
 
 def distAtTime(positions,timestep):
+    """ Computes distances between all atoms at given timestep """
     posAtTime = positions[timestep]
     diff = posAtTime - posAtTime[:,np.newaxis]
     dist = np.linalg.norm(diff,axis = 2)
     return(dist)
 
+testPos = readXYZfile("Methane.xyz")[1]
+testDist = distAtTime(testPos,1)
 
+""" Also an option, but now still inefficient because it reads
+    the entire file and then takes one slice of the resulting array
 def distAtTimeFromFile(fileName,timestep):
     posAtTime = readXYZfile(fileName)[1][timestep]
     diff = posAtTime - posAtTime[:,np.newaxis]
     dist = np.linalg.norm(diff,axis = 2)
     return(dist)
+"""
 
-#waterSmallPos = readXYZfile("waterSmall.xyz")[1]
-#print(distAtTime(waterSmallPos,0))
-print(distAtTimeFromFile("waterSmall.xyz",0))
 '''
 vragen:
     - Is atomtypes of nrOfAtoms ooit niet constant?

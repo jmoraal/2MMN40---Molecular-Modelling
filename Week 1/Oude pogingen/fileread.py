@@ -9,7 +9,7 @@ import numpy as np
 
 timeSteps = 0
 
-with open("Hydrogen.xyz", "r") as inputFile:
+with open("HydrogenSmall.xyz", "r") as inputFile:
   nrOfAtoms = int(inputFile.readline()) # now still assuming this is constant throughout the file
   atomType = []
   atomPosition = np.empty([nrOfAtoms,3])
@@ -28,8 +28,7 @@ with open("Hydrogen.xyz", "r") as inputFile:
               break
          
       
-      
-     
+ 
 atomPosition = atomPosition.reshape(nrOfAtoms,3,timeSteps)
 
 '''

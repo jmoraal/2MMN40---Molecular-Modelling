@@ -1,16 +1,35 @@
 # -*- coding: utf-8 -*-
 """
-Created on Mon Nov  9 16:30:44 2020
+Created on Tue Nov 10 10:37:52 2020
 
 @author: s161981
 """
 
+
 import numpy as np
 
-atomType = []
-timeSteps = 0
 
-with open("Hydrogen.xyz", "r") as inputFile:
+lines = []
+
+with open("HydrogenSmall.xyz", "r") as inputFile:
+    for line in inputFile: 
+        lines.append(line)
+    
+nrOfAtoms = int(lines[0])
+timeSteps = int(np.floor(len(lines)/ nrOfAtoms))
+#This works because nr of lines not describing positions is much smaller than nrOfAtoms
+
+
+atomPositions = np.empty([nrOfAtoms,3,timeSteps])
+
+for i in range(timeSteps):
+    for j in range(nrOfAtoms):
+        temp = lines[i * nrOfAtoms + j + 2]
+        splittedLine = temp.split()
+        atomPositions[j,:,i] = float(splittedLine)
+
+#atomPositions[:,:,i] = lines[(2+nrOfAtoms*i):(nrOfAtoms*(i+1)+2)]#[1:4]    
+'''    
   nrOfAtoms = int(inputFile.readline()) # now still assuming this is constant throughout the file
   atomType = []
   atomPosition = np.empty([nrOfAtoms,3])
@@ -32,6 +51,8 @@ with open("Hydrogen.xyz", "r") as inputFile:
       
      
 atomPosition = atomPosition.reshape(nrOfAtoms,3,timeSteps)
+'''
+
 
 '''
 vragen:

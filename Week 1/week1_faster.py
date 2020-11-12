@@ -9,10 +9,20 @@ NOTE: using tab for indentation
 
 import numpy as np
 
+"""
+To do: 
+    Adapt readXYZfile: 
+    - read 1st line of file separately to obtain array dimensions 
+    - take timeStep as argument and only return one [nrOfAtoms, 3] array
+    - reduce memory usage
+"""    
+def readXYZnrAtoms(fileName): 
+    with open(fileName, "r") as inputFile:
+        firstString = inputFile.readline().split()
+        nrOfAtoms = int(firstString[0])
+    return nrOfAtoms
 
-
-
-def readXYZfile(fileName): 
+def readXYZfile(fileName, timeStep): 
     """Read a .xyz file.
     
     Reads entire file for arbitrary number of timesteps
@@ -29,29 +39,24 @@ def readXYZfile(fileName):
             lines.append(splittedLine[1:4])
         
     nrOfAtoms = int(firstColumn[0])
-    timesteps = int(len(lines)/(nrOfAtoms + 2))
+    #timesteps = int(len(lines)/(nrOfAtoms + 2))
     #This works because for every block of nrOfAtoms positions, there are two other lines
     
-    atomPositions = []
-    atomTypes = []
-    
-    for i in range(timesteps):
-        atomTypes.append(firstColumn[(2+(2+nrOfAtoms)*i):((2+nrOfAtoms)*(i+1))])
-        atomPositions.append(lines[(2+(2+nrOfAtoms)*i):((2+nrOfAtoms)*(i+1))])
+    atomTypes = firstColumn[(2+(2+nrOfAtoms)*timeStep):((2+nrOfAtoms)*(timeStep+1))]
+    atomPositions = lines[(2+(2+nrOfAtoms)*timeStep):((2+nrOfAtoms)*(timeStep+1))]
         
     atomPositions = np.asarray(atomPositions).astype(np.float)
     return(atomTypes,atomPositions)
 
 
-def distAtTime(positions,timestep):
+def distAtTime(positions):
     """ Computes distances between all atoms at given timestep """
-    posAtTime = positions[timestep]
-    diff = posAtTime - posAtTime[:,np.newaxis]
+    diff = positions - positions[:,np.newaxis]
     dist = np.linalg.norm(diff,axis = 2)
     return(dist)
 
-testPos = readXYZfile("Methane.xyz")[1]
-testDist = distAtTime(testPos,1)
+#testPos = readXYZfile("Methane.xyz", 1)[1]
+#testDist = distAtTime(testPos)
 
 """ Also an option, but now still inefficient because it reads
     the entire file and then takes one slice of the resulting array
@@ -62,12 +67,6 @@ def distAtTimeFromFile(fileName,timestep):
     return(dist)
 """
 
-'''
-vragen:
-    - Is atomtypes of nrOfAtoms ooit niet constant?
-    - Comments worden genegeerd; moeten we <t = ...> kunnen lezen?
-    - Liever functies van position of positionAtTime?
-'''
 
 
 

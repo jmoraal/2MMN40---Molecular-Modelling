@@ -71,8 +71,8 @@ def Fbond(r):
     return(-k*(r-r0))
 
 def FBondOnAtoms(a,b):
-    r = np.linalg.norm(a-b)
-    Fa = Fbond(r)*(a-b)/np.linalg.norm(a-b)
+    r = np.linalg.norm(b-a)
+    Fa = Fbond(r)*(b-a)/np.linalg.norm(b-a)
     return(np.asarray([Fa, -Fa]))
 
 # print(FBondOnAtoms(xyzs[0],xyzs[1]))
@@ -81,9 +81,9 @@ def FBondOnAtoms(a,b):
 types, xyzs = readXYZfile("WaterExampleWeek2.xyz", 0)
 
 k = 502416/100
-r0 = 0.9572
+r0 = 0.9572 # in Angstrom
 kt = 628.02
-t0 = 104.52
+t0 = np.deg2rad(104.52)
 
 def Vangle(t):
     return 1/2*kt*(t-t0)**2
@@ -92,15 +92,20 @@ def Fangle(t):
     return -kt*(t-t0)
 
 def FAngleOnAtoms(a,b,c):
-    t = np.dot((a-b),(b-c))/(np.linalg.norm(a-b)*np.linalg.norm(b-c))
-    rAB = np.linalg.norm(a-b)
-    rBC = np.linalg.norm(b-c)
+    t = np.arccos(np.dot((b-a),(c-b))/(np.linalg.norm(b-a)*np.linalg.norm(c-b)))
+    rAB = np.linalg.norm(b-a)
+    rBC = np.linalg.norm(c-b)
     # print(a-b)
     # print(b-c)
-    # print(t)
     # print(rAB)
-    normalVecA = np.cross(b-a,np.cross(b-a,b-c))
-    normalVecC = np.cross(c-b,np.cross(b-a,b-c))
+    # print(rBC)
+    # print(Fangle(t))
+    normalVecA = np.cross(b-a,np.cross(b-a,c-b))
+    normalVecC = np.cross(c-b,np.cross(b-a,c-b))
+    # print(np.cross(b-a,c-b))
+    # print(np.dot(np.cross(b-a,c-b),c-b))
+    # print(normalVecA)
+    # print(normalVecC)
     Fa = Fangle(t)*normalVecA/(np.linalg.norm(normalVecA)*rAB)
     Fc = Fangle(t)*normalVecC/(np.linalg.norm(normalVecC)*rBC)
     forces = np.asarray([Fa, -Fa-Fc, Fc])
@@ -108,15 +113,13 @@ def FAngleOnAtoms(a,b,c):
 
 # print(FBondOnAtoms(xyzs[0],xyzs[1]))
 # print("...")
-print(FAngleOnAtoms(xyzs[0], xyzs[1], xyzs[2]))
-# FAngleOnAtoms(xyzs[0], xyzs[1], xyzs[2])
+# print(FAngleOnAtoms(xyzs[0], xyzs[1], xyzs[2]))
+f = FAngleOnAtoms(xyzs[1], xyzs[0], xyzs[2]) # mind order
 
+print(FBondOnAtoms(xyzs[1], xyzs[0]))
+print(FBondOnAtoms(xyzs[0], xyzs[2]))
 
-
-
-
-
-
+print(FBondOnAtoms(xyzs[1], xyzs[0])[0] + FAngleOnAtoms(xyzs[1], xyzs[0], xyzs[2])[0])
 
 
 

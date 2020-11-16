@@ -57,22 +57,12 @@ def distAtTime(positions):
 
 #testDist = distAtTime(testPos)
 
-""" Also an option, but now still inefficient because it reads
-    the entire file and then takes one slice of the resulting array
-def distAtTimeFromFile(fileName,timestep):
-    posAtTime = readXYZfile(fileName)[1][timestep]
-    diff = posAtTime - posAtTime[:,np.newaxis]
-    dist = np.linalg.norm(diff,axis = 2)
-    return(dist)
-"""
-
+# hydrogen example
 types, xyzs = readXYZfile("hydrogenSmall.xyz", 1)
-print(xyzs)
 
-k = 24531
-r0 = 0.074 # in nm
-xyzs = xyzs/10 # in nm
-print(xyzs)
+k = 24531/100
+r0 = 0.74 
+xyzs = xyzs
 
 def Vbond(r):
     return(1/2*k*(r-r0)**2)
@@ -82,13 +72,10 @@ def Fbond(r):
 
 def FBondOnAtoms(a,b):
     r = np.linalg.norm(a-b)
-    print(r)
-    print(a-b)
-    print(np.linalg.norm(a-b))
     Fa = Fbond(r)*(a-b)/np.linalg.norm(a-b)
-    return(Fa, -Fa)
+    return(np.asarray([Fa, -Fa]))
 
-print(FBondOnAtoms(xyzs[0],xyzs[1]))
+# print(FBondOnAtoms(xyzs[0],xyzs[1]))
 
 # water example
 types, xyzs = readXYZfile("WaterExampleWeek2.xyz", 0)
@@ -108,8 +95,8 @@ def FAngleOnAtoms(a,b,c):
     t = np.dot((a-b),(b-c))/(np.linalg.norm(a-b)*np.linalg.norm(b-c))
     rAB = np.linalg.norm(a-b)
     rBC = np.linalg.norm(b-c)
-    print(a-b)
-    print(b-c)
+    # print(a-b)
+    # print(b-c)
     # print(t)
     # print(rAB)
     normalVecA = np.cross(b-a,np.cross(b-a,b-c))

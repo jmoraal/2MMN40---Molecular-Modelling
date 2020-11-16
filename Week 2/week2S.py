@@ -91,7 +91,7 @@ def FBondOnAtoms(a,b):
 print(FBondOnAtoms(xyzs[0],xyzs[1]))
 
 # water example
-types, xyzs = readXYZfile("test.xyz", 0)
+types, xyzs = readXYZfile("WaterExampleWeek2.xyz", 0)
 
 k = 502416/100
 r0 = 0.9572

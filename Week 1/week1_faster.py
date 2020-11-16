@@ -3,8 +3,6 @@
 Created on Mon Nov  9 16:30:44 2020
 
 @author: s161981
-
-NOTE: using tab for indentation
 """
 
 import numpy as np
@@ -13,7 +11,6 @@ import numpy as np
 To do: 
     Adapt readXYZfile: 
     - read 1st line of file separately to obtain array dimensions 
-    - take timeStep as argument and only return one [nrOfAtoms, 3] array
     - reduce memory usage
 """    
 def readXYZnrAtoms(fileName): 
@@ -27,7 +24,7 @@ def readXYZfile(fileName, timeStep):
     
     Reads entire file for arbitrary number of timesteps
     INPUT: .xyz file 
-    OUTPUT:  atom types and array of xyz-coord for every atom at every timestep.
+    OUTPUT:  atom types and array of xyz-coord for every atom at given timestep.
     """
     lines = []
     firstColumn = []
@@ -49,14 +46,14 @@ def readXYZfile(fileName, timeStep):
     return(atomTypes,atomPositions)
 
 
-def distAtTime(positions):
+def atomDistances(positions):
     """ Computes distances between all atoms at given timestep """
     diff = positions - positions[:,np.newaxis]
     dist = np.linalg.norm(diff,axis = 2)
     return(dist)
 
-#testPos = readXYZfile("Methane.xyz", 1)[1]
-#testDist = distAtTime(testPos)
+testTypes, testPos = readXYZfile("Methane.xyz", 1)
+testDist = atomDistances(testPos)
 
 """ Also an option, but now still inefficient because it reads
     the entire file and then takes one slice of the resulting array

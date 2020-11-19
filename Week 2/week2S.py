@@ -73,27 +73,31 @@ def Fangle(t):
     return -kt*(t-t0)
 
 def FAngleOnAtoms(a,b,c):
+    """Compute angular forces on 3-body atom.
+    
+    Mind the order of the arguments. The middle argument is supposed to be the middle atom (O in water).
+    INPUT: positions of atoms a,b,c
+    OUTPUT: angular force acting on each of the atoms
+    """
     t = np.arccos(np.dot((a-b),(c-b))/(np.linalg.norm(a-b)*np.linalg.norm(c-b)))
-    # print(np.rad2deg(t))
-    rAB = np.linalg.norm(a-b)
-    rBC = np.linalg.norm(c-b)
-    # print(a-b)
-    # print(b-c)
-    # print(rAB)
-    # print(rBC)
-    # print(Fangle(t))
     normalVecA = np.cross(a-b,np.cross(a-b,c-b))
-    # print(normalVecA)
     normalVecC = np.cross(c-b,np.cross(a-b,c-b))
-    # print(np.cross(b-a,c-b))
-    # print(np.dot(np.cross(b-a,c-b),c-b))
-    # print(normalVecA)
-    # print(normalVecC)
-    Fa = Fangle(t)/rAB * normalVecA/np.linalg.norm(normalVecA)
-    Fc = Fangle(t)/rBC * normalVecC/np.linalg.norm(normalVecC)
-    forces = np.asarray([Fa, -Fa-Fc, Fc])
-    return(forces)
+    Fa = Fangle(t)/np.linalg.norm(a-b) * normalVecA/np.linalg.norm(normalVecA)
+    Fc = Fangle(t)/np.linalg.norm(c-b) * normalVecC/np.linalg.norm(normalVecC)
+    return(np.asarray([Fa, -Fa-Fc, Fc]))
 
+def FTotalOnAtoms(a,b,c):
+    """Compute total forces on 3-body atom."""
+    FBondAB = FBondOnAtoms(a, b)
+    FBondBC = FBondOnAtoms(b, c)
+    FAngle = FAngleOnAtoms(a, b, c)
+    print(FBondAB)
+    print(FBondBC)
+    print(FAngle)
+    Fa = FBondAB[0] + FAngle[0]
+    Fc = FBondBC[1] + FAngle[2]
+    Fb = FBondAB[1] + FBondBC[0] + FAngle[1]
+    return(np.asarray([Fb, Fa, Fc]))
 
 # hydrogen example
 types, xyzs = readXYZfile("HydrogenSingle.xyz", 0)
@@ -102,7 +106,6 @@ r0 = 0.74 # in Angstrom
 
 # print(FBondOnAtoms(xyzs[0],xyzs[1]))
 
-
 # water example
 types, xyzs = readXYZfile("WaterSingle.xyz", 0)
 k = 502416/(10**2) # in kJ / (mol A^2)
@@ -110,12 +113,13 @@ r0 = 0.9572 # in Angstrom
 kt = 628.02
 t0 = np.deg2rad(104.52)
 
+print(FTotalOnAtoms(xyzs[1], xyzs[0], xyzs[2]))
 # print(FBondOnAtoms(xyzs[0],xyzs[1]))
-print(FBondOnAtoms(xyzs[1], xyzs[0]))
-print("...")
-print(FAngleOnAtoms(xyzs[1], xyzs[0], xyzs[2])[0])
-print("...")
-print(FAngleOnAtoms(xyzs[1], xyzs[0], xyzs[2])[0] + FBondOnAtoms(xyzs[1], xyzs[0])[0])
+# print(FBondOnAtoms(xyzs[1], xyzs[0]))
+# print("...")
+# print(FAngleOnAtoms(xyzs[1], xyzs[0], xyzs[2]))
+# print("...")
+# print(FAngleOnAtoms(xyzs[1], xyzs[0], xyzs[2])[0] + FBondOnAtoms(xyzs[1], xyzs[0])[1])
 # f = FAngleOnAtoms(xyzs[1], xyzs[0], xyzs[2]) # mind order
 
 # print(FBondOnAtoms(xyzs[1], xyzs[0]))

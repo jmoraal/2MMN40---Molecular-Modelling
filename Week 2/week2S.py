@@ -9,13 +9,7 @@ NOTE: using tab for indentation
 
 import numpy as np
 
-"""
-To do: 
-    Adapt readXYZfile: 
-    - read 1st line of file separately to obtain array dimensions 
-    - take timeStep as argument and only return one [nrOfAtoms, 3] array
-    - reduce memory usage
-"""    
+### WEEK 1 ###
 def readXYZnrAtoms(fileName): 
     with open(fileName, "r") as inputFile:
         firstString = inputFile.readline().split()
@@ -57,13 +51,9 @@ def distAtTime(positions):
 
 #testDist = distAtTime(testPos)
 
-# hydrogen example
-types, xyzs = readXYZfile("hydrogenSmall.xyz", 1)
+### WEEK 2 ###
 
-k = 24531/100
-r0 = 0.74 
-xyzs = xyzs
-
+# BOND
 def Vbond(r):
     return(1/2*k*(r-r0)**2)
 
@@ -75,16 +65,7 @@ def FBondOnAtoms(a,b):
     Fa = Fbond(r)*(b-a)/np.linalg.norm(b-a)
     return(np.asarray([Fa, -Fa]))
 
-# print(FBondOnAtoms(xyzs[0],xyzs[1]))
-
-# water example
-types, xyzs = readXYZfile("WaterSingle.xyz", 0)
-
-k = 5.02416
-r0 = 0.9572 # in Angstrom
-kt = 628.02
-t0 = np.deg2rad(104.52)
-
+# ANGLE
 def Vangle(t):
     return 1/2*kt*(t-t0)**2
 
@@ -92,34 +73,55 @@ def Fangle(t):
     return -kt*(t-t0)
 
 def FAngleOnAtoms(a,b,c):
-    t = np.arccos(np.dot((b-a),(c-b))/(np.linalg.norm(b-a)*np.linalg.norm(c-b)))
-    rAB = np.linalg.norm(b-a)
+    t = np.arccos(np.dot((a-b),(c-b))/(np.linalg.norm(a-b)*np.linalg.norm(c-b)))
+    # print(np.rad2deg(t))
+    rAB = np.linalg.norm(a-b)
     rBC = np.linalg.norm(c-b)
     # print(a-b)
     # print(b-c)
     # print(rAB)
     # print(rBC)
     # print(Fangle(t))
-    normalVecA = np.cross(b-a,np.cross(b-a,c-b))
-    normalVecC = np.cross(c-b,np.cross(b-a,c-b))
+    normalVecA = np.cross(a-b,np.cross(a-b,c-b))
+    # print(normalVecA)
+    normalVecC = np.cross(c-b,np.cross(a-b,c-b))
     # print(np.cross(b-a,c-b))
     # print(np.dot(np.cross(b-a,c-b),c-b))
     # print(normalVecA)
     # print(normalVecC)
-    Fa = Fangle(t)*normalVecA/(np.linalg.norm(normalVecA)*rAB)
-    Fc = Fangle(t)*normalVecC/(np.linalg.norm(normalVecC)*rBC)
+    Fa = Fangle(t)/rAB * normalVecA/np.linalg.norm(normalVecA)
+    Fc = Fangle(t)/rBC * normalVecC/np.linalg.norm(normalVecC)
     forces = np.asarray([Fa, -Fa-Fc, Fc])
     return(forces)
 
+
+# hydrogen example
+types, xyzs = readXYZfile("HydrogenSingle.xyz", 0)
+k = 24531/(10**2) # in kJ / (mol A^2)
+r0 = 0.74 # in Angstrom
+
 # print(FBondOnAtoms(xyzs[0],xyzs[1]))
-# print("...")
-# print(FAngleOnAtoms(xyzs[0], xyzs[1], xyzs[2]))
-f = FAngleOnAtoms(xyzs[1], xyzs[0], xyzs[2]) # mind order
 
+
+# water example
+types, xyzs = readXYZfile("WaterSingle.xyz", 0)
+k = 502416/(10**2) # in kJ / (mol A^2)
+r0 = 0.9572 # in Angstrom
+kt = 628.02
+t0 = np.deg2rad(104.52)
+
+# print(FBondOnAtoms(xyzs[0],xyzs[1]))
 print(FBondOnAtoms(xyzs[1], xyzs[0]))
-print(FBondOnAtoms(xyzs[0], xyzs[2]))
+print("...")
+print(FAngleOnAtoms(xyzs[1], xyzs[0], xyzs[2])[0])
+print("...")
+print(FAngleOnAtoms(xyzs[1], xyzs[0], xyzs[2])[0] + FBondOnAtoms(xyzs[1], xyzs[0])[0])
+# f = FAngleOnAtoms(xyzs[1], xyzs[0], xyzs[2]) # mind order
 
-print(FBondOnAtoms(xyzs[1], xyzs[0])[0] + FAngleOnAtoms(xyzs[1], xyzs[0], xyzs[2])[0])
+# print(FBondOnAtoms(xyzs[1], xyzs[0]))
+# print(FBondOnAtoms(xyzs[0], xyzs[2]))
+
+# print(FBondOnAtoms(xyzs[1], xyzs[0])[0] + FAngleOnAtoms(xyzs[1], xyzs[0], xyzs[2])[0])
 
 
 

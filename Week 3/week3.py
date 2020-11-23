@@ -144,9 +144,9 @@ u1 /= np.linalg.norm(u1) # normalize
 u2 /= np.linalg.norm(u2)
 v1 = 0.01*u1
 v2 = 0.01*u2
-v = np.array(v1,v2)
+v = np.asarray([v1,v2])
 m = 1.00784
-a = FBondOnAtoms(x[0],x[1])/m
+a = FBondOnAtoms(x[0],x[1], k, r0)/m
 dt = 1
 
 while(time<=endTime):

@@ -106,7 +106,7 @@ types, xyzs = readXYZfile("HydrogenSingle.xyz", 0)
 k = 24531/(10**2) # in kJ / (mol A^2)
 r0 = 0.74 # in Angstrom
 
-print(FBondOnAtoms(xyzs[0],xyzs[1], k, r0))
+# print(FBondOnAtoms(xyzs[0],xyzs[1], k, r0))
 
 # water example
 types, xyzs = readXYZfile("WaterSingle.xyz", 0)
@@ -115,16 +115,16 @@ r0 = 0.9572 # in Angstrom
 kt = 628.02
 t0 = np.deg2rad(104.52)
 
-print(FTotalOnAtoms(xyzs[1] , xyzs[0], xyzs[2], k, r0, kt, t0))
+# print(FTotalOnAtoms(xyzs[1] , xyzs[0], xyzs[2], k, r0, kt, t0))
 
 
 
 ### WEEK 3 ###
 
-def integratorEuler(x, v, a, m, k, r0, dt):
+def integratorEuler(x, v, a, m, k, r0, kt, t0, dt):
     """ Implementation of a single step for this integrator. """ 
     x = x + dt*v + (dt**2)/2*FBondOnAtoms(x[0], x[1], k, r0)/m
-    v = v + dt*(dt**2)/2*FBondOnAtoms(x[0], x[1], k, r0)/m
+    v = v + dt*FBondOnAtoms(x[0], x[1], k, r0)/m
     return(x, v, a)
 
 # Generate a random velocity:
@@ -133,11 +133,10 @@ def integratorEuler(x, v, a, m, k, r0, dt):
 
 # H2 example
 time = 0
-endTime = 10
+endTime = 5
 types, x = readXYZfile("HydrogenSingle.xyz", 0)
 k = 24531/(10**2) # in kJ / (mol A^2)
 r0 = 0.74 # in Angstrom
-x = xyzs
 u1 = np.random.uniform(size=3)
 u2 = np.random.uniform(size=3)
 u1 /= np.linalg.norm(u1) # normalize
@@ -147,10 +146,13 @@ v2 = 0.01*u2
 v = np.asarray([v1,v2])
 m = 1.00784
 a = FBondOnAtoms(x[0],x[1], k, r0)/m
+kt = 0
+t0 = 0
 dt = 1
 
 while(time<=endTime):
-    x, v, a = integratorEuler(x, v, a, m, k, r0, dt) 
+    print(x)
+    x, v, a = integratorEuler(x, v, a, m, k, r0, kt, t0, dt) 
     time += dt
 
 

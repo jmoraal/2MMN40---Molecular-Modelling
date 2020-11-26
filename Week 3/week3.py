@@ -143,10 +143,17 @@ def integratorEuler(x, v, a, m, k, r0, kt, t0, dt):
 
 def integratorVerlet(x, x1, a, m, k, r0, kt, t0, dt):
     """ Implementation of a single step for Verlet integrator. """ 
-    x = 2*x - x1  + (dt**2) * FBondOnAtoms(x[0], x[1], k, r0)[1]/m
+    x = 2*x - x1  + (dt**2) * FBondOnAtoms(x[0], x[1], k, r0)/m
     v = 1/(2*dt) * (x - x1)
     return(x, v, a)
 
+def integratorVerlocity(x, x1, a, m, k, r0, kt, t0, dt):
+    """ Implementation of a single step for Verlet integrator. """ 
+    x = 2*x - x1  + (dt**2) * FBondOnAtoms(x[0], x[1], k, r0)/m
+    v = 1/(2*dt) * (x - x1)
+    return(x, v, a)
+
+# Add RK4?
 
 # Generate a random velocity:
 # first get a random unit vector (direction) 
@@ -165,8 +172,9 @@ u2 /= np.linalg.norm(u2)
 v1 = 0.01*u1
 v2 = 0.01*u2
 
-v1 = np.array([0,0,0])
-v2 = np.array([0,0,0])
+# To make initial velocity zero, uncomment these lines:
+# v1 = np.array([0,0,0])
+# v2 = np.array([0,0,0])
 
 v = np.asarray([v1,v2])
 m = 1.00784
@@ -174,20 +182,22 @@ a = FBondOnAtoms(x[0],x[1], k, r0)/m
 kt = 0
 t0 = 0
 dt = 0.1 * 2*np.pi*np.sqrt(m/k)
+# Might need other estimate for larger molecules
+
 with open("output.txt", "w") as outputFile: # clear output file 
         outputFile.write("")
 
-while(time<=endTime):
-    # print(x)
-    x, v, a = integratorEuler(x, v, a, m, k, r0, kt, t0, dt) 
-    time += dt
+# while(time<=endTime):
+#     # print(x)
+#     x, v, a = integratorEuler(x, v, a, m, k, r0, kt, t0, dt) 
+#     time += dt
     
-    with open("output.txt", "a") as outputFile:
-        outputFile.write(f"{time}\n")
-        outputFile.write("This is a comment\n")
-        np.savetxt(outputFile, x, fmt='%1.3f')
-        stacked = np.hstack((np.asarray(types)[:,np.newaxis],x))
-        print(stacked)
+#     with open("output.txt", "a") as outputFile:
+#         outputFile.write(f"{time}\n")
+#         outputFile.write("This is a comment\n")
+#         np.savetxt(outputFile, x, fmt='%1.3f')
+#         stacked = np.hstack((np.asarray(types)[:,np.newaxis],x))
+#         print(stacked)
 
 # Euler example: 
 # while(time<=endTime):
@@ -198,11 +208,13 @@ while(time<=endTime):
 
 #Verlet example: (should use Euler as first step)
 nrTimeSteps = int(endTime/dt)
-types, x1 = readXYZfile("HydrogenSingle.xyz", 0)
-x, v, a = integratorEuler(x1, v, a, m, k, r0, kt, t0, dt) 
+types, xmin1 = readXYZfile("HydrogenSingle.xyz", 0)
+x, v, a = integratorEuler(xmin1, v, a, m, k, r0, kt, t0, dt) 
 for i in range(nrTimeSteps):
     print(x)
-    x, v, a = integratorVerlet(x, x1, a, m, k, r0, kt, t0, dt) 
+    x1_temp = xmin1 
+    xmin1 = x # to store x[(i+1)-1] for next iteration
+    x, v, a = integratorVerlet(x, x1_temp, a, m, k, r0, kt, t0, dt) 
 
 
 

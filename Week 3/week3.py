@@ -55,8 +55,10 @@ def distAtTime(positions):
 
 # TODO
 # - in de instructie staat dat er een betere oplossing is voor dot product in FAngleOnAtoms
+#       Update: alternatieve uitdrukking voor t, is die beter?
 # - waarschijnlijk zijn er efficientere methodes voor FTotalOnAtoms en dat ding printen
 # - wat Ruben zei in Teams over volgorde van atomen (in group X donderdag 19 nov)
+#       maar dat komt dus volgende week
 
 # BOND
 def Vbond(r, k, r0):
@@ -85,6 +87,12 @@ def FAngleOnAtoms(a, b, c, kt, t0):
     OUTPUT: angular force acting on each of the atoms
     """
     t = np.arccos(np.dot((a-b),(c-b))/(np.linalg.norm(a-b)*np.linalg.norm(c-b)))
+    """ Alternative computation of t using cosine rule:
+    ab = np.linalg.norm(a-b)
+    bc = np.linalg.norm(c-b)
+    ac = np.linalg.norm(a-c)
+    t = np.arccos((ab**2 + bc**2 - ac**2)/(2*ab*bc))
+    """
     normalVecA = np.cross(a-b,np.cross(a-b,c-b))
     normalVecC = np.cross(b-c,np.cross(a-b,c-b))
     Fa = Fangle(t, kt, t0)/np.linalg.norm(a-b) * normalVecA/np.linalg.norm(normalVecA)
@@ -120,6 +128,7 @@ t0 = np.deg2rad(104.52)
 
 
 ### WEEK 3 ###
+# Do integrators need a? Don't think so, if force and mass are known
 
 def integratorEuler(x, v, a, m, k, r0, kt, t0, dt):
     """ Implementation of a single step for this integrator. """ 
@@ -127,13 +136,21 @@ def integratorEuler(x, v, a, m, k, r0, kt, t0, dt):
     v = v + dt*FBondOnAtoms(x[0], x[1], k, r0)/m
     return(x, v, a)
 
+
+def integratorVerlet(x, i, a, m, k, r0, kt, t0, dt):
+    """ Implementation of a single step for this integrator. """ 
+    x[i+1] = 2*x[i] - x[i-1]  + (dt**2) * FBondOnAtoms(x[0], x[1], k, r0)[1]/m
+    v = 1/(2*dt) * (x[i] + x[i-1])
+    return(x, v, a)
+
+
 # Generate a random velocity:
 # first get a random unit vector (direction) 
 
 
 # H2 example
 time = 0
-endTime = 5
+endTime = 1
 types, x = readXYZfile("HydrogenSingle.xyz", 0)
 k = 24531/(10**2) # in kJ / (mol A^2)
 r0 = 0.74 # in Angstrom
@@ -150,15 +167,18 @@ kt = 0
 t0 = 0
 dt = 1
 
+# Euler example: 
 while(time<=endTime):
     print(x)
     x, v, a = integratorEuler(x, v, a, m, k, r0, kt, t0, dt) 
     time += dt
+print(x)
 
-
-
-
-
+#Verlet example: (should use Euler as first step)
+nrTimeSteps = int(endTime/dt)
+for i in range(nrTimeSteps):
+    print(x)
+    x, v, a = integratorVerlet(x, i, a, m, k, r0, kt, t0, dt) 
 
 
 

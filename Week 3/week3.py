@@ -10,7 +10,9 @@ NOTE: using tab for indentation
 import numpy as np
 
 ### WEEK 1 ###
+# To do (misschien): geheugen-efficiënter maken
 def readXYZnrAtoms(fileName): 
+    """Reads number of atoms given in xyz file """
     with open(fileName, "r") as inputFile:
         firstString = inputFile.readline().split()
         nrOfAtoms = int(firstString[0])
@@ -110,20 +112,20 @@ def FTotalOnAtoms(a,b,c, k, r0, kt, t0):
     return(np.asarray([Fb, Fa, Fc]))
 
 # hydrogen example
-types, xyzs = readXYZfile("HydrogenSingle.xyz", 0)
-k = 24531/(10**2) # in kJ / (mol A^2)
-r0 = 0.74 # in Angstrom
-
-# print(FBondOnAtoms(xyzs[0],xyzs[1], k, r0))
+def hydrogenForcesExample():
+    types, xyzs = readXYZfile("HydrogenSingle.xyz", 0)
+    k = 24531/(10**2) # in kJ / (mol A^2)
+    r0 = 0.74 # in Angstrom
+    print(FBondOnAtoms(xyzs[0],xyzs[1], k, r0))
 
 # water example
-types, xyzs = readXYZfile("WaterSingle.xyz", 0)
-k = 502416/(10**2) # in kJ / (mol A^2)
-r0 = 0.9572 # in Angstrom
-kt = 628.02
-t0 = np.deg2rad(104.52)
-
-# print(FTotalOnAtoms(xyzs[1] , xyzs[0], xyzs[2], k, r0, kt, t0))
+def waterForcesExample():
+    types, xyzs = readXYZfile("WaterSingle.xyz", 0)
+    k = 502416/(10**2) # in kJ / (mol A^2)
+    r0 = 0.9572 # in Angstrom
+    kt = 628.02
+    t0 = np.deg2rad(104.52)
+    print(FTotalOnAtoms(xyzs[1] , xyzs[0], xyzs[2], k, r0, kt, t0))
 
 
 
@@ -164,7 +166,7 @@ def integratorVerlocity(x, v, a, m, k, r0, kt, t0, dt):
 def setParametersH2 (velocityZero =False) :
     global time, endTime
     global types, x
-    global k
+    global k, r0
     global v1, v2, v
     global m
     global a
@@ -174,7 +176,7 @@ def setParametersH2 (velocityZero =False) :
  
     
     time = 0
-    endTime = 10
+    endTime = 1
     types, x = readXYZfile("HydrogenSingle.xyz", 0)
     k = 24531/(10**2) # in kJ / (mol A^2)
     r0 = 0.74 # in Angstrom
@@ -277,10 +279,10 @@ def writeExampleToXYZ(integrator, velocityZero =False):
 
 
 #EulerH2Example()    
-VerletH2Example(velocityZero = True)
+#VerletH2Example(velocityZero = True)
 #VerlocityH2Example()
 
-#writeExampleToXYZ('Verlocity')
+writeExampleToXYZ('Verlocity')
 
 
 

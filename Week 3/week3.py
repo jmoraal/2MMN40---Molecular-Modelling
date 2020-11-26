@@ -165,8 +165,8 @@ u2 /= np.linalg.norm(u2)
 v1 = 0.01*u1
 v2 = 0.01*u2
 
-v1 = np.array([0,0,0])
-v2 = np.array([0,0,0])
+# v1 = np.array([0,0,0])
+# v2 = np.array([0,0,0])
 
 v = np.asarray([v1,v2])
 m = 1.00784
@@ -182,12 +182,11 @@ while(time<=endTime):
     x, v, a = integratorEuler(x, v, a, m, k, r0, kt, t0, dt) 
     time += dt
     
-    with open("output.txt", "a") as outputFile:
-        outputFile.write(f"{time}\n")
-        outputFile.write("This is a comment\n")
-        np.savetxt(outputFile, x, fmt='%1.3f')
-        stacked = np.hstack((np.asarray(types)[:,np.newaxis],x))
-        print(stacked)
+    with open("output.xyz", "a") as outputFile:
+        outputFile.write(f"{len(types)}\n")
+        outputFile.write(f"This is a comment and the time is {time:5.4f}\n")
+        for i, atom in enumerate(x):
+            outputFile.write(f"{types[i]} {x[i,0]:10.5f} {x[i,1]:10.5f} {x[i,2]:10.5f}\n")
 
 # Euler example: 
 # while(time<=endTime):
@@ -201,7 +200,7 @@ nrTimeSteps = int(endTime/dt)
 types, x1 = readXYZfile("HydrogenSingle.xyz", 0)
 x, v, a = integratorEuler(x1, v, a, m, k, r0, kt, t0, dt) 
 for i in range(nrTimeSteps):
-    print(x)
+    # print(x)
     x, v, a = integratorVerlet(x, x1, a, m, k, r0, kt, t0, dt) 
 
 

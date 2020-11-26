@@ -135,6 +135,7 @@ t0 = np.deg2rad(104.52)
 def integratorEuler(x, v, a, m, k, r0, kt, t0, dt):
     """ Implementation of a single step for this integrator. """ 
     # print(dt*FBondOnAtoms(x[0], x[1], k, r0)/m)
+    """ Implementation of a single step for Euler integrator. """ 
     x = x + dt*v + (dt**2)/2*FBondOnAtoms(x[0], x[1], k, r0)/m
     v = v + dt*FBondOnAtoms(x[0], x[1], k, r0)/m
     return(x, v, a)
@@ -203,7 +204,6 @@ q[1], v, a = integratorEuler(x, v, a, m, k, r0, kt, t0, dt)
 for i in range(nrTimeSteps):
     print(q)
     q[i], v, a = integratorVerlet(q, i, a, m, k, r0, kt, t0, dt) 
-
 
 
 

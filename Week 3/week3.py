@@ -192,12 +192,11 @@ with open("output.txt", "w") as outputFile: # clear output file
 #     x, v, a = integratorEuler(x, v, a, m, k, r0, kt, t0, dt) 
 #     time += dt
     
-#     with open("output.txt", "a") as outputFile:
-#         outputFile.write(f"{time}\n")
-#         outputFile.write("This is a comment\n")
-#         np.savetxt(outputFile, x, fmt='%1.3f')
-#         stacked = np.hstack((np.asarray(types)[:,np.newaxis],x))
-#         print(stacked)
+    with open("output.xyz", "a") as outputFile:
+        outputFile.write(f"{len(types)}\n")
+        outputFile.write(f"This is a comment and the time is {time:5.4f}\n")
+        for i, atom in enumerate(x):
+            outputFile.write(f"{types[i]} {x[i,0]:10.5f} {x[i,1]:10.5f} {x[i,2]:10.5f}\n")
 
 # Euler example: 
 # while(time<=endTime):

@@ -147,11 +147,12 @@ def integratorVerlet(x, x1, a, m, k, r0, kt, t0, dt):
     v = 1/(2*dt) * (x - x1)
     return(x, v, a)
 
-def integratorVerlocity(x, x1, a, m, k, r0, kt, t0, dt):
-    """ Implementation of a single step for Verlet integrator. """ 
-    x = 2*x - x1  + (dt**2) * FBondOnAtoms(x[0], x[1], k, r0)/m
-    v = 1/(2*dt) * (x - x1)
-    return(x, v, a)
+def integratorVerlocity(x, v, a, m, k, r0, kt, t0, dt):
+    """ Implementation of a single step for Velocty Verlet integrator. """ 
+    x_new = x + v*dt +0.5*(dt**2)*FBondOnAtoms(x[0], x[1], k, r0)/m 
+    v = v + 0.5*dt*(FBondOnAtoms(x[0], x[1], k, r0)/m + FBondOnAtoms(x_new[0], x_new[1], k, r0)/m)
+    return(x_new, v, a)
+
 
 # Add RK4?
 
@@ -160,29 +161,43 @@ def integratorVerlocity(x, x1, a, m, k, r0, kt, t0, dt):
 
 
 # H2 example
-time = 0
-endTime = 1
-types, x = readXYZfile("HydrogenSingle.xyz", 0)
-k = 24531/(10**2) # in kJ / (mol A^2)
-r0 = 0.74 # in Angstrom
-u1 = np.random.uniform(size=3)
-u2 = np.random.uniform(size=3)
-u1 /= np.linalg.norm(u1) # normalize
-u2 /= np.linalg.norm(u2)
-v1 = 0.01*u1
-v2 = 0.01*u2
+def setParametersH2 (velocity_zero) :
+    global time, endTime
+    global types, x
+    global k
+    global v1, v2, v
+    global m
+    global a
+    global kt
+    global t0
+    global dt  
+ 
+    
+    time = 0
+    endTime = 1
+    types, x = readXYZfile("HydrogenSingle.xyz", 0)
+    k = 24531/(10**2) # in kJ / (mol A^2)
+    r0 = 0.74 # in Angstrom
+    u1 = np.random.uniform(size=3)
+    u2 = np.random.uniform(size=3)
+    u1 /= np.linalg.norm(u1) # normalize
+    u2 /= np.linalg.norm(u2)
+    v1 = 0.01*u1
+    v2 = 0.01*u2
+    
+    if velocity_zero : 
+        v1 = np.array([0,0,0])
+        v2 = np.array([0,0,0])
+    
+    v = np.asarray([v1,v2])
+    m = 1.00784
+    a = FBondOnAtoms(x[0],x[1], k, r0)/m
+    kt = 0
+    t0 = 0
+    dt = 0.1 * 2*np.pi*np.sqrt(m/k)
+    # Might need other estimate for larger molecules
 
-# To make initial velocity zero, uncomment these lines:
-# v1 = np.array([0,0,0])
-# v2 = np.array([0,0,0])
-
-v = np.asarray([v1,v2])
-m = 1.00784
-a = FBondOnAtoms(x[0],x[1], k, r0)/m
-kt = 0
-t0 = 0
-dt = 0.1 * 2*np.pi*np.sqrt(m/k)
-# Might need other estimate for larger molecules
+setParametersH2(False)    
 
 with open("output.txt", "w") as outputFile: # clear output file 
         outputFile.write("")
@@ -198,26 +213,55 @@ with open("output.xyz", "a") as outputFile:
     for i, atom in enumerate(x):
         outputFile.write(f"{types[i]} {x[i,0]:10.5f} {x[i,1]:10.5f} {x[i,2]:10.5f}\n")
 
-# Euler example: 
-# while(time<=endTime):
-#     print(x)
-#     x, v, a = integratorEuler(x, v, a, m, k, r0, kt, t0, dt) 
-#     time += dt
-# print(x)
-
-#Verlet example: (should use Euler as first step)
-nrTimeSteps = int(endTime/dt)
-types, xmin1 = readXYZfile("HydrogenSingle.xyz", 0)
-x, v, a = integratorEuler(xmin1, v, a, m, k, r0, kt, t0, dt) 
-for i in range(nrTimeSteps):
-    print(x)
-    x1_temp = xmin1 
-    xmin1 = x # to store x[(i+1)-1] for next iteration
-    x, v, a = integratorVerlet(x, x1_temp, a, m, k, r0, kt, t0, dt) 
+def EulerH2Example() : 
+    setParametersH2(False)
+    x_loc = x
+    v_loc = v
+    a_loc = a
+    time_loc = time
+    
+    while(time_loc<=endTime):
+        print(x_loc)
+        x_loc, v_loc, a_loc = integratorEuler(x_loc, v_loc, a_loc, m, k, r0, kt, t0, dt) 
+        time_loc += dt
+    print(x_loc)
 
 
+def VerletH2Example() : 
+    setParametersH2(False)
+    x_loc = x
+    v_loc = v
+    a_loc = a
+    time_loc = time
+    
+    types, xmin1 = readXYZfile("HydrogenSingle.xyz", 0)
+    x_loc, v_loc, a_loc = integratorEuler(xmin1, v, a, m, k, r0, kt, t0, dt) 
+    
+    while(time_loc<=endTime):
+        print(x_loc)
+        x1_temp = xmin1 
+        xmin1 = x_loc # to store x[(i+1)-1] for next iteration
+        x_loc, v_loc, a_loc = integratorVerlet(x_loc, x1_temp, a_loc, m, k, r0, kt, t0, dt) 
+        time_loc += dt
 
 
+def VerlocityH2Example() : 
+    setParametersH2(False)
+    x_loc = x
+    v_loc = v
+    a_loc = a
+    time_loc = time
+    
+    while(time_loc<=endTime):
+        print(x_loc)
+        x_loc, v_loc, a_loc = integratorVerlocity(x_loc, v_loc, a_loc, m, k, r0, kt, t0, dt)
+        time_loc += dt
+
+  
+#EulerH2Example()    
+#VerletH2Example()
+VerlocityH2Example()
+    
 
 
 

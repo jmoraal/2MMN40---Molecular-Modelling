@@ -161,7 +161,7 @@ def integratorVerlocity(x, v, a, m, k, r0, kt, t0, dt):
 
 
 # H2 example
-def setParametersH2 (velocity_zero) :
+def setParametersH2 (velocityZero =False) :
     global time, endTime
     global types, x
     global k
@@ -185,7 +185,7 @@ def setParametersH2 (velocity_zero) :
     v1 = 0.01*u1
     v2 = 0.01*u2
     
-    if velocity_zero : 
+    if velocityZero : 
         v1 = np.array([0,0,0])
         v2 = np.array([0,0,0])
     
@@ -197,24 +197,10 @@ def setParametersH2 (velocity_zero) :
     dt = 0.1 * 2*np.pi*np.sqrt(m/k)
     # Might need other estimate for larger molecules
 
-setParametersH2(False)    
 
-with open("output.txt", "w") as outputFile: # clear output file 
-        outputFile.write("")
 
-# while(time<=endTime):
-#     # print(x)
-#     x, v, a = integratorEuler(x, v, a, m, k, r0, kt, t0, dt) 
-#     time += dt
-    
-with open("output.xyz", "a") as outputFile:
-    outputFile.write(f"{len(types)}\n")
-    outputFile.write(f"This is a comment and the time is {time:5.4f}\n")
-    for i, atom in enumerate(x):
-        outputFile.write(f"{types[i]} {x[i,0]:10.5f} {x[i,1]:10.5f} {x[i,2]:10.5f}\n")
-
-def EulerH2Example() : 
-    setParametersH2(False)
+def EulerH2Example(velocityZero =False) : 
+    setParametersH2(velocityZero)
     x_loc = x
     v_loc = v
     a_loc = a
@@ -225,10 +211,12 @@ def EulerH2Example() :
         x_loc, v_loc, a_loc = integratorEuler(x_loc, v_loc, a_loc, m, k, r0, kt, t0, dt) 
         time_loc += dt
     print(x_loc)
+    
+    return x_loc, v_loc, a_loc
 
 
-def VerletH2Example() : 
-    setParametersH2(False)
+def VerletH2Example(velocityZero =False) : 
+    setParametersH2(velocityZero)
     x_loc = x
     v_loc = v
     a_loc = a
@@ -243,10 +231,11 @@ def VerletH2Example() :
         xmin1 = x_loc # to store x[(i+1)-1] for next iteration
         x_loc, v_loc, a_loc = integratorVerlet(x_loc, x1_temp, a_loc, m, k, r0, kt, t0, dt) 
         time_loc += dt
+    
+    return x_loc, v_loc, a_loc
 
-
-def VerlocityH2Example() : 
-    setParametersH2(False)
+def VerlocityH2Example(velocityZero =False) : 
+    setParametersH2(velocityZero)
     x_loc = x
     v_loc = v
     a_loc = a
@@ -256,20 +245,42 @@ def VerlocityH2Example() :
         print(x_loc)
         x_loc, v_loc, a_loc = integratorVerlocity(x_loc, v_loc, a_loc, m, k, r0, kt, t0, dt)
         time_loc += dt
-
-  
-#EulerH2Example()    
-#VerletH2Example()
-VerlocityH2Example()
     
+    return x_loc, v_loc, a_loc
+  
+
+    
+x_write, v_write, a_write = VerlocityH2Example()
+
+def writeExampleToXYZ(integrator, velocityZero =False):
+    with open("output.xyz", "w") as outputFile: # clear output file 
+            outputFile.write("")
+    setParametersH2(velocityZero)   
+    time_loc = time
+    
+    while (time_loc <= endTime) : 
+        if (integrator == 'Euler') : 
+            x_write, v_write, a_write = EulerH2Example(velocityZero)
+        elif (integrator == 'Verlet') : 
+            x_write, v_write, a_write = VerletH2Example(velocityZero)
+        elif (integrator == 'Verlocity') : 
+            x_write, v_write, a_write = VerlocityH2Example(velocityZero)
+        else: print("This integrator is not implemented")
+        
+        time_loc += dt
+            
+        with open("output.xyz", "a") as outputFile:
+            outputFile.write(f"{len(types)}\n")
+            outputFile.write(f"This is a comment and the time is {time_loc:5.4f}\n")
+            for i, atom in enumerate(x_write):
+                outputFile.write(f"{types[i]} {x_write[i,0]:10.5f} {x_write[i,1]:10.5f} {x_write[i,2]:10.5f}\n")
 
 
+#EulerH2Example()    
+VerletH2Example(velocityZero = True)
+#VerlocityH2Example()
 
-
-
-
-
-
+#writeExampleToXYZ('Verlocity')
 
 
 

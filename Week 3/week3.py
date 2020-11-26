@@ -123,6 +123,7 @@ t0 = np.deg2rad(104.52)
 
 def integratorEuler(x, v, a, m, k, r0, kt, t0, dt):
     """ Implementation of a single step for this integrator. """ 
+    # print(dt*FBondOnAtoms(x[0], x[1], k, r0)/m)
     x = x + dt*v + (dt**2)/2*FBondOnAtoms(x[0], x[1], k, r0)/m
     v = v + dt*FBondOnAtoms(x[0], x[1], k, r0)/m
     return(x, v, a)
@@ -133,7 +134,7 @@ def integratorEuler(x, v, a, m, k, r0, kt, t0, dt):
 
 # H2 example
 time = 0
-endTime = 5
+endTime = 1
 types, x = readXYZfile("HydrogenSingle.xyz", 0)
 k = 24531/(10**2) # in kJ / (mol A^2)
 r0 = 0.74 # in Angstrom
@@ -143,25 +144,30 @@ u1 /= np.linalg.norm(u1) # normalize
 u2 /= np.linalg.norm(u2)
 v1 = 0.01*u1
 v2 = 0.01*u2
+
+v1 = np.array([0,0,0])
+v2 = np.array([0,0,0])
+
 v = np.asarray([v1,v2])
 m = 1.00784
 a = FBondOnAtoms(x[0],x[1], k, r0)/m
 kt = 0
 t0 = 0
-dt = 1
+dt = 0.1 * 2*np.pi*np.sqrt(m/k)
+with open("output.txt", "w") as outputFile: # clear output file 
+        outputFile.write("")
 
 while(time<=endTime):
-    print(x)
+    # print(x)
     x, v, a = integratorEuler(x, v, a, m, k, r0, kt, t0, dt) 
     time += dt
-
-
-
-
-
-
-
-
+    
+    with open("output.txt", "a") as outputFile:
+        outputFile.write(f"{time}\n")
+        outputFile.write("This is a comment\n")
+        np.savetxt(outputFile, x, fmt='%1.3f')
+        stacked = np.hstack((np.asarray(types)[:,np.newaxis],x))
+        print(stacked)
 
 
 

@@ -55,6 +55,7 @@ def distAtTime(positions):
 
 # TODO
 # - in de instructie staat dat er een betere oplossing is voor dot product in FAngleOnAtoms
+#    Update: alternatieve uitdrukking voor t, is die beter?
 # - waarschijnlijk zijn er efficientere methodes voor FTotalOnAtoms en dat ding printen
 # - wat Ruben zei in Teams over volgorde van atomen (in group X donderdag 19 nov)
 
@@ -85,6 +86,12 @@ def FAngleOnAtoms(a,b,c):
     OUTPUT: angular force acting on each of the atoms
     """
     t = np.arccos(np.dot((a-b),(c-b))/(np.linalg.norm(a-b)*np.linalg.norm(c-b)))
+    """ Alternative computation of t using cosine rule:
+    ab = np.linalg.norm(a-b)
+    bc = np.linalg.norm(c-b)
+    ac = np.linalg.norm(a-c)
+    t = np.arccos((ab**2 + bc**2 - ac**2)/(2*ab*bc))
+    """
     normalVecA = np.cross(a-b,np.cross(a-b,c-b))
     normalVecC = np.cross(b-c,np.cross(a-b,c-b))
     Fa = Fangle(t)/np.linalg.norm(a-b) * normalVecA/np.linalg.norm(normalVecA)

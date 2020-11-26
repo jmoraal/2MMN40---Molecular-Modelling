@@ -133,12 +133,9 @@ t0 = np.deg2rad(104.52)
 #   - Verlet not yet working. Using two timesteps back seems to be a problem
 
 def integratorEuler(x, v, a, m, k, r0, kt, t0, dt):
-<<<<<<< HEAD
     """ Implementation of a single step for this integrator. """ 
     # print(dt*FBondOnAtoms(x[0], x[1], k, r0)/m)
-=======
     """ Implementation of a single step for Euler integrator. """ 
->>>>>>> ed3395993e3bb705ed6161d2413e15e017d82b10
     x = x + dt*v + (dt**2)/2*FBondOnAtoms(x[0], x[1], k, r0)/m
     v = v + dt*FBondOnAtoms(x[0], x[1], k, r0)/m
     return(x, v, a)
@@ -177,7 +174,7 @@ a = FBondOnAtoms(x[0],x[1], k, r0)/m
 kt = 0
 t0 = 0
 dt = 0.1 * 2*np.pi*np.sqrt(m/k)
-<<<<<<< HEAD
+
 with open("output.txt", "w") as outputFile: # clear output file 
         outputFile.write("")
 
@@ -192,7 +189,6 @@ while(time<=endTime):
         np.savetxt(outputFile, x, fmt='%1.3f')
         stacked = np.hstack((np.asarray(types)[:,np.newaxis],x))
         print(stacked)
-=======
 
 # # Euler example: 
 # while(time<=endTime):
@@ -209,11 +205,6 @@ q[1], v, a = integratorEuler(x, v, a, m, k, r0, kt, t0, dt)
 for i in range(nrTimeSteps):
     print(q)
     q[i], v, a = integratorVerlet(q, i, a, m, k, r0, kt, t0, dt) 
-
-
-
->>>>>>> ed3395993e3bb705ed6161d2413e15e017d82b10
-
 
 
 

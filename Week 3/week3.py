@@ -55,8 +55,10 @@ def distAtTime(positions):
 
 # TODO
 # - in de instructie staat dat er een betere oplossing is voor dot product in FAngleOnAtoms
+#       Update: alternatieve uitdrukking voor t, is die beter?
 # - waarschijnlijk zijn er efficientere methodes voor FTotalOnAtoms en dat ding printen
 # - wat Ruben zei in Teams over volgorde van atomen (in group X donderdag 19 nov)
+#       maar dat komt dus volgende week
 
 # BOND
 def Vbond(r, k, r0):
@@ -85,6 +87,12 @@ def FAngleOnAtoms(a, b, c, kt, t0):
     OUTPUT: angular force acting on each of the atoms
     """
     t = np.arccos(np.dot((a-b),(c-b))/(np.linalg.norm(a-b)*np.linalg.norm(c-b)))
+    """ Alternative computation of t using cosine rule:
+    ab = np.linalg.norm(a-b)
+    bc = np.linalg.norm(c-b)
+    ac = np.linalg.norm(a-c)
+    t = np.arccos((ab**2 + bc**2 - ac**2)/(2*ab*bc))
+    """
     normalVecA = np.cross(a-b,np.cross(a-b,c-b))
     normalVecC = np.cross(b-c,np.cross(a-b,c-b))
     Fa = Fangle(t, kt, t0)/np.linalg.norm(a-b) * normalVecA/np.linalg.norm(normalVecA)
@@ -120,13 +128,28 @@ t0 = np.deg2rad(104.52)
 
 
 ### WEEK 3 ###
+# TODO: 
+#   - Do integrators need a? Don't think so, if force and mass are known
+#   - Verlet not yet working. Using two timesteps back seems to be a problem
 
 def integratorEuler(x, v, a, m, k, r0, kt, t0, dt):
+<<<<<<< HEAD
     """ Implementation of a single step for this integrator. """ 
     # print(dt*FBondOnAtoms(x[0], x[1], k, r0)/m)
+=======
+    """ Implementation of a single step for Euler integrator. """ 
+>>>>>>> ed3395993e3bb705ed6161d2413e15e017d82b10
     x = x + dt*v + (dt**2)/2*FBondOnAtoms(x[0], x[1], k, r0)/m
     v = v + dt*FBondOnAtoms(x[0], x[1], k, r0)/m
     return(x, v, a)
+
+
+def integratorVerlet(x, i, a, m, k, r0, kt, t0, dt):
+    """ Implementation of a single step for Verlet integrator. """ 
+    x[i+1] = 2*x[i] - x[i-1]  + (dt**2) * FBondOnAtoms(x[0], x[1], k, r0)[1]/m
+    v = 1/(2*dt) * (x[i] + x[i-1])
+    return(x, v, a)
+
 
 # Generate a random velocity:
 # first get a random unit vector (direction) 
@@ -154,6 +177,7 @@ a = FBondOnAtoms(x[0],x[1], k, r0)/m
 kt = 0
 t0 = 0
 dt = 0.1 * 2*np.pi*np.sqrt(m/k)
+<<<<<<< HEAD
 with open("output.txt", "w") as outputFile: # clear output file 
         outputFile.write("")
 
@@ -168,6 +192,27 @@ while(time<=endTime):
         np.savetxt(outputFile, x, fmt='%1.3f')
         stacked = np.hstack((np.asarray(types)[:,np.newaxis],x))
         print(stacked)
+=======
+
+# # Euler example: 
+# while(time<=endTime):
+#     print(x)
+#     x, v, a = integratorEuler(x, v, a, m, k, r0, kt, t0, dt) 
+#     time += dt
+# print(x)
+
+#Verlet example: (should use Euler as first step)
+nrTimeSteps = int(endTime/dt)
+q = [None] * nrTimeSteps
+q[0] = readXYZfile("HydrogenSingle.xyz", 0)
+q[1], v, a = integratorEuler(x, v, a, m, k, r0, kt, t0, dt) 
+for i in range(nrTimeSteps):
+    print(q)
+    q[i], v, a = integratorVerlet(q, i, a, m, k, r0, kt, t0, dt) 
+
+
+
+>>>>>>> ed3395993e3bb705ed6161d2413e15e017d82b10
 
 
 

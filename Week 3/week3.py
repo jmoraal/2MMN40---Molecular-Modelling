@@ -141,10 +141,10 @@ def integratorEuler(x, v, a, m, k, r0, kt, t0, dt):
     return(x, v, a)
 
 
-def integratorVerlet(x, i, a, m, k, r0, kt, t0, dt):
+def integratorVerlet(x, x1, a, m, k, r0, kt, t0, dt):
     """ Implementation of a single step for Verlet integrator. """ 
-    x[i+1] = 2*x[i] - x[i-1]  + (dt**2) * FBondOnAtoms(x[0], x[1], k, r0)[1]/m
-    v = 1/(2*dt) * (x[i] + x[i-1])
+    x = 2*x - x1  + (dt**2) * FBondOnAtoms(x[0], x[1], k, r0)[1]/m
+    v = 1/(2*dt) * (x - x1)
     return(x, v, a)
 
 
@@ -189,7 +189,7 @@ while(time<=endTime):
         stacked = np.hstack((np.asarray(types)[:,np.newaxis],x))
         print(stacked)
 
-# # Euler example: 
+# Euler example: 
 # while(time<=endTime):
 #     print(x)
 #     x, v, a = integratorEuler(x, v, a, m, k, r0, kt, t0, dt) 
@@ -198,12 +198,11 @@ while(time<=endTime):
 
 #Verlet example: (should use Euler as first step)
 nrTimeSteps = int(endTime/dt)
-q = [None] * nrTimeSteps
-q[0] = readXYZfile("HydrogenSingle.xyz", 0)
-q[1], v, a = integratorEuler(x, v, a, m, k, r0, kt, t0, dt) 
+types, x1 = readXYZfile("HydrogenSingle.xyz", 0)
+x, v, a = integratorEuler(x1, v, a, m, k, r0, kt, t0, dt) 
 for i in range(nrTimeSteps):
-    print(q)
-    q[i], v, a = integratorVerlet(q, i, a, m, k, r0, kt, t0, dt) 
+    print(x)
+    x, v, a = integratorVerlet(x, x1, a, m, k, r0, kt, t0, dt) 
 
 
 

@@ -174,7 +174,7 @@ def setParametersH2 (velocityZero =False) :
  
     
     time = 0
-    endTime = 1
+    endTime = 10
     types, x = readXYZfile("HydrogenSingle.xyz", 0)
     k = 24531/(10**2) # in kJ / (mol A^2)
     r0 = 0.74 # in Angstrom
@@ -182,7 +182,7 @@ def setParametersH2 (velocityZero =False) :
     u2 = np.random.uniform(size=3)
     u1 /= np.linalg.norm(u1) # normalize
     u2 /= np.linalg.norm(u2)
-    v1 = 0.01*u1
+    v1 = 0.01*u1 
     v2 = 0.01*u2
     
     if velocityZero : 
@@ -207,9 +207,9 @@ def EulerH2Example(velocityZero =False) :
     time_loc = time
     
     while(time_loc<=endTime):
-        print(x_loc)
         x_loc, v_loc, a_loc = integratorEuler(x_loc, v_loc, a_loc, m, k, r0, kt, t0, dt) 
         time_loc += dt
+        
     print(x_loc)
     
     return x_loc, v_loc, a_loc

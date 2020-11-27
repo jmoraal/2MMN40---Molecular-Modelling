@@ -56,8 +56,6 @@ def distAtTime(positions):
 ### WEEK 2 ###
 
 # TODO
-# - in de instructie staat dat er een betere oplossing is voor dot product in FAngleOnAtoms
-#       Update: alternatieve uitdrukking voor t, is die beter?
 # - waarschijnlijk zijn er efficientere methodes voor FTotalOnAtoms en dat ding printen
 # - wat Ruben zei in Teams over volgorde van atomen (in group X donderdag 19 nov)
 #       maar dat komt dus volgende week

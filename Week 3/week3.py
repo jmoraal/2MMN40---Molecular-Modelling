@@ -85,7 +85,7 @@ def Fangle(t, kt, t0):
 
 
 def FAngleOnAtoms(o, h1, h2, kt, t0):
-    """Compute angular forces on 3-body atom.
+    """ Compute angular forces on 3-body atom.
     
     Mind the order of the arguments. The middle argument is supposed to be the middle atom (O in water).
     INPUT: positions of atoms a,b,c
@@ -105,7 +105,7 @@ def FAngleOnAtoms(o, h1, h2, kt, t0):
     return(np.asarray([-Fh1-Fh2, Fh1, Fh2]))
 
 def FTotalOnAtoms(o, h1, h2, k, r0, kt, t0):
-    """Compute total forces on 3-body atom."""
+    """ Compute total forces on 3-body atom. """
     FBondh1o = FBondOnAtoms(h1,o,k,r0)
     FBondoh2 = FBondOnAtoms(o,h2,k,r0)
     FAngle = FAngleOnAtoms(o,h1,h2,kt,t0)
@@ -136,6 +136,8 @@ def waterForcesExample():
 # TODO: 
 #   - Do integrators need a? Don't think so at the moment
 #   - Add anglular forces into integrators
+#   - Generalise integrators
+#   - Make examples more efficient
 
 def integratorEuler(x, v, a, m, k, r0, kt, t0, dt):
     """ Implementation of a single step for Euler integrator. """ 
@@ -147,7 +149,7 @@ def integratorEuler(x, v, a, m, k, r0, kt, t0, dt):
         v = v + dt*FTotalOnAtoms(x[0], x[1], x[2], k, r0, kt, t0)/m
     return(x, v, a)
 
-
+# Verlet was also implemented out of curiosity, but turned out to be inconvenient to handle. 
 def integratorVerlet(x, x1, a, m, k, r0, kt, t0, dt):
     """ Implementation of a single step for Verlet integrator. """ 
     if len(types) == 2:
@@ -204,15 +206,7 @@ def integratorRK4(x, v, a, m, k, r0, kt, t0, dt):
 
 # H2 example
 def setParametersH2 (velocityZero =False) :
-    global time, endTime
-    global types, x
-    global k, r0
-    global v1, v2, v
-    global m
-    global a
-    global kt
-    global t0
-    global dt  
+    global time, endTime, types, x, k, r0, v1, v2, v, m, a, kt, t0, dt
  
     time = 0
     endTime = 1
@@ -239,122 +233,8 @@ def setParametersH2 (velocityZero =False) :
     # Might need other estimate for larger molecules
 
 
-
-def EulerH2Example(velocityZero =False) : 
-    setParametersH2(velocityZero)
-    x_loc = x
-    v_loc = v
-    a_loc = a
-    time_loc = time
-    
-    with open("EulerH2Example.xyz", "w") as outputFile: # clear output file 
-        outputFile.write("")
-    
-    while(time_loc<=endTime):
-        with open("EulerH2Example.xyz", "a") as outputFile:
-            outputFile.write(f"{len(types)}\n")
-            outputFile.write(f"This is a comment and the time is {time_loc:5.4f}\n")
-            for i, atom in enumerate(x_loc):
-                outputFile.write(f"{types[i]} {x_loc[i,0]:10.5f} {x_loc[i,1]:10.5f} {x_loc[i,2]:10.5f}\n")
-                
-        x_loc, v_loc, a_loc = integratorEuler(x_loc, v_loc, a_loc, m, k, r0, kt, t0, dt) 
-        time_loc += dt
-
-    # print(x_loc)
-    
-    return x_loc, v_loc, a_loc
-
-
-def VerletH2Example(velocityZero =False) : 
-    setParametersH2(velocityZero)
-    x_loc = x
-    v_loc = v
-    a_loc = a
-    time_loc = time
-    
-    types, xmin1 = readXYZfile("HydrogenSingle.xyz", 0)
-    x_loc, v_loc, a_loc = integratorEuler(xmin1, v, a, m, k, r0, kt, t0, dt) 
-    
-    with open("VerletH2Example.xyz", "w") as outputFile: # clear output file 
-        outputFile.write("")
-    
-    while(time_loc<=endTime):
-        with open("VerletH2Example.xyz", "a") as outputFile:
-            outputFile.write(f"{len(types)}\n")
-            outputFile.write(f"This is a comment and the time is {time_loc:5.4f}\n")
-            for i, atom in enumerate(x_loc):
-                outputFile.write(f"{types[i]} {x_loc[i,0]:10.5f} {x_loc[i,1]:10.5f} {x_loc[i,2]:10.5f}\n")
-                
-        # print(x_loc)
-        x1_temp = xmin1 
-        xmin1 = x_loc # to store x[(i+1)-1] for next iteration
-        x_loc, v_loc, a_loc = integratorVerlet(x_loc, x1_temp, a_loc, m, k, r0, kt, t0, dt) 
-        time_loc += dt
-        
-    return x_loc, v_loc, a_loc
-
-def VerlocityH2Example(velocityZero =False) : 
-    setParametersH2(velocityZero)
-    x_loc = x
-    v_loc = v
-    a_loc = a
-    time_loc = time
-    with open("VerlocityH2Example.xyz", "w") as outputFile: # clear output file 
-        outputFile.write("")
-    
-    while(time_loc<=endTime):
-        with open("VerlocityH2Example.xyz", "a") as outputFile:
-            outputFile.write(f"{len(types)}\n")
-            outputFile.write(f"This is a comment and the time is {time_loc:5.4f}\n")
-            for i, atom in enumerate(x_loc):
-                outputFile.write(f"{types[i]} {x_loc[i,0]:10.5f} {x_loc[i,1]:10.5f} {x_loc[i,2]:10.5f}\n")
-                
-        # print(x_loc)
-        x_loc, v_loc, a_loc = integratorVerlocity(x_loc, v_loc, a_loc, m, k, r0, kt, t0, dt)
-        time_loc += dt
-    
-    return x_loc, v_loc, a_loc
-
-def RK4H2Example(velocityZero =False) : 
-    setParametersH2(velocityZero)
-    x_loc = x
-    v_loc = v
-    a_loc = a
-    time_loc = time
-    with open("RK4H2Example.xyz", "w") as outputFile: # clear output file 
-        outputFile.write("")
-    
-    while(time_loc<=endTime):
-        with open("RK4H2Example.xyz", "a") as outputFile:
-            outputFile.write(f"{len(types)}\n")
-            outputFile.write(f"This is a comment and the time is {time_loc:5.4f}\n")
-            for i, atom in enumerate(x_loc):
-                outputFile.write(f"{types[i]} {x_loc[i,0]:10.5f} {x_loc[i,1]:10.5f} {x_loc[i,2]:10.5f}\n")
-                
-        # print(x_loc)
-        x_loc, v_loc, a_loc = integratorRK4(x_loc, v_loc, a_loc, m, k, r0, kt, t0, dt)
-        time_loc += dt
-    
-    return x_loc, v_loc, a_loc
-
-
-EulerH2Example()    
-VerletH2Example()
-VerlocityH2Example()
-RK4H2Example()
-
-
-# H2O example
 def setParametersH2O (velocityZero =False) :
-    global time, endTime
-    global types, x
-    global k, r0
-    global v1, v2, v
-    global m
-    global a
-    global kt
-    global t0
-    global dt  
+    global time, endTime, types, x, k, r0, v1, v2, v, m, a, kt, t0, dt
  
     time = 0
     endTime = 3
@@ -383,29 +263,50 @@ def setParametersH2O (velocityZero =False) :
     m = np.asarray([15.999,1.00784,1.00784])
     a = FTotalOnAtoms(x[0], x[1], x[2], k, r0, kt, t0)/m
     dt = 0.1 * 2*np.pi*np.sqrt(np.amin(m)/k)
-    # Might need other estimate for larger molecules
+    # Might need other estimate for larger molecules?
 
-def EulerH2OExample(velocityZero =False) : 
-    setParametersH2O(velocityZero)
+
+def writeExampleToXYZ(molecule, integrator, velocityZero =False):
+    """ Write examples of molecule movements to xyz
+    
+    Important: does not work for (standard) Verlet! Only Euler, Verlocity, RK4
+    INPUT: molecule type (string), integrator (function), and possibly whether initial velocity should be zero
+    OUTPUT: movement of given molecule as computed by specified integrator, as xyz-fle
+    """
+    with open("example.xyz", "w") as outputFile: # clear output file 
+            outputFile.write("") #Can we let the file name depend on molecule and integrator?
+    
+    if (molecule == 'H2') : 
+        setParametersH2(velocityZero)   
+    elif (molecule == 'H2O'):
+        setParametersH2O(velocityZero) 
+    else :
+        print("No settings for this molecule")
+        # Maybe a nicer error catch?
+        
     x_loc = x
     v_loc = v
     a_loc = a
     time_loc = time
-    
-    with open("EulerH2OExample.xyz", "w") as outputFile: # clear output file 
-        outputFile.write("")
-    
-    while(time_loc<=endTime):
-        with open("EulerH2OExample.xyz", "a") as outputFile:
+
+    while (time_loc <= endTime) : 
+        with open("example.xyz", "a") as outputFile:
             outputFile.write(f"{len(types)}\n")
             outputFile.write(f"This is a comment and the time is {time_loc:5.4f}\n")
             for i, atom in enumerate(x_loc):
-                outputFile.write(f"{types[i]} {x_loc[i,0]:10.5f} {x_loc[i,1]:10.5f} {x_loc[i,2]:10.5f}\n")
-                
-        x_loc, v_loc, a_loc = integratorEuler(x_loc, v_loc, a_loc, m, k, r0, kt, t0, dt) 
-        time_loc += dt
+                outputFile.write(f"{types[i]} {x_loc[i,0]:10.5f} {x_loc[i,1]:10.5f} {x_loc[i,2]:10.5f}\n")  
         
-    # return x_loc, v_loc, a_loc
+        x_loc, v_loc, a_loc = integrator(x_loc, v_loc, a_loc, m, k, r0, kt, t0, dt) 
+        time_loc += dt
+
+    #return x_loc, v_loc, a_loc
+ 
+
+
+
+
+writeExampleToXYZ('H2O', integratorRK4)
+
 
 def VerletH2OExample(velocityZero =False) : 
     setParametersH2O(velocityZero)
@@ -427,64 +328,12 @@ def VerletH2OExample(velocityZero =False) :
             for i, atom in enumerate(x_loc):
                 outputFile.write(f"{types[i]} {x_loc[i,0]:10.5f} {x_loc[i,1]:10.5f} {x_loc[i,2]:10.5f}\n")
                 
-        # print(x_loc)
         x1_temp = xmin1 
         xmin1 = x_loc # to store x[(i+1)-1] for next iteration
         x_loc, v_loc, a_loc = integratorVerlet(x_loc, x1_temp, a_loc, m, k, r0, kt, t0, dt) 
         time_loc += dt
     
-    # return x_loc, v_loc, a_loc
-
-def VerlocityH2OExample(velocityZero =False) : 
-    setParametersH2O(velocityZero)
-    x_loc = x
-    v_loc = v
-    a_loc = a
-    time_loc = time
-    with open("VerlocityH2OExample.xyz", "w") as outputFile: # clear output file 
-        outputFile.write("")
-    
-    while(time_loc<=endTime):
-        with open("VerlocityH2OExample.xyz", "a") as outputFile:
-            outputFile.write(f"{len(types)}\n")
-            outputFile.write(f"This is a comment and the time is {time_loc:5.4f}\n")
-            for i, atom in enumerate(x_loc):
-                outputFile.write(f"{types[i]} {x_loc[i,0]:10.5f} {x_loc[i,1]:10.5f} {x_loc[i,2]:10.5f}\n")
-                
-        # print(x_loc)
-        x_loc, v_loc, a_loc = integratorVerlocity(x_loc, v_loc, a_loc, m, k, r0, kt, t0, dt)
-        time_loc += dt
-        
     return x_loc, v_loc, a_loc
-
-def RK4H2OExample(velocityZero =False) : 
-    setParametersH2O(velocityZero)
-    x_loc = x
-    v_loc = v
-    a_loc = a
-    time_loc = time
-    with open("RK4H2OExample.xyz", "w") as outputFile: # clear output file 
-        outputFile.write("")
-    
-    while(time_loc<=endTime):
-        with open("RK4H2OExample.xyz", "a") as outputFile:
-            outputFile.write(f"{len(types)}\n")
-            outputFile.write(f"This is a comment and the time is {time_loc:5.4f}\n")
-            for i, atom in enumerate(x_loc):
-                outputFile.write(f"{types[i]} {x_loc[i,0]:10.5f} {x_loc[i,1]:10.5f} {x_loc[i,2]:10.5f}\n")
-                
-        # print(x_loc)
-        x_loc, v_loc, a_loc = integratorRK4(x_loc, v_loc, a_loc, m, k, r0, kt, t0, dt)
-        time_loc += dt
-        
-    return x_loc, v_loc, a_loc
-
-
-EulerH2OExample(velocityZero = False)
-VerletH2OExample(velocityZero = False)
-VerlocityH2OExample(velocityZero = False)
-RK4H2OExample(velocityZero = False)
-
 
 
 

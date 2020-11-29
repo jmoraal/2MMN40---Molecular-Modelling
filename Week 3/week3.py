@@ -104,15 +104,15 @@ def FAngleOnAtoms(o, h1, h2, kt, t0):
     Fh2 = Fangle(t, kt, t0)/np.linalg.norm(h2-o) * normalVech2/np.linalg.norm(normalVech2)
     return(np.asarray([-Fh1-Fh2, Fh1, Fh2]))
 
-def FTotalOnAtoms(o, h1, h2, k, r0, kt, t0):
+def FTotalOnAtoms(centre, outer1, outer2, k, r0, kt, t0):
     """ Compute total forces on 3-body atom. """
-    FBondh1o = FBondOnAtoms(h1,o,k,r0)
-    FBondoh2 = FBondOnAtoms(o,h2,k,r0)
-    FAngle = FAngleOnAtoms(o,h1,h2,kt,t0)
-    Fh1 = FBondh1o[0] + FAngle[1]
-    Fh2 = FBondoh2[1] + FAngle[2]
-    Fo = FBondh1o[1] + FBondoh2[0] + FAngle[0]
-    return(np.asarray([Fo, Fh1, Fh2]))
+    FBondouter1centre = FBondOnAtoms(outer1,centre,k,r0)
+    FBondcentreouter2 = FBondOnAtoms(centre,outer2,k,r0)
+    FAngle = FAngleOnAtoms(centre,outer1,outer2,kt,t0)
+    Fouter1 = FBondouter1centre[0] + FAngle[1]
+    Fouter2 = FBondcentreouter2[1] + FAngle[2]
+    Fcentre = FBondouter1centre[1] + FBondcentreouter2[0] + FAngle[0]
+    return(np.asarray([Fcentre, Fouter1, Fouter2]))
 
 # hydrogen example
 def hydrogenForcesExample():
@@ -148,6 +148,7 @@ def integratorEuler(x, v, a, m, k, r0, kt, t0, dt):
         x = x + dt*v + (dt**2)/2*FTotalOnAtoms(x[0], x[1], x[2], k, r0, kt, t0)/m
         v = v + dt*FTotalOnAtoms(x[0], x[1], x[2], k, r0, kt, t0)/m
     return(x, v, a)
+
 
 # Verlet was also implemented out of curiosity, but turned out to be inconvenient to handle. 
 def integratorVerlet(x, x1, a, m, k, r0, kt, t0, dt):
@@ -273,9 +274,6 @@ def writeExampleToXYZ(molecule, integrator, velocityZero =False):
     INPUT: molecule type (string), integrator (function), and possibly whether initial velocity should be zero
     OUTPUT: movement of given molecule as computed by specified integrator, as xyz-fle
     """
-    with open("example.xyz", "w") as outputFile: # clear output file 
-            outputFile.write("") #Can we let the file name depend on molecule and integrator?
-    
     if (molecule == 'H2') : 
         setParametersH2(velocityZero)   
     elif (molecule == 'H2O'):
@@ -289,6 +287,10 @@ def writeExampleToXYZ(molecule, integrator, velocityZero =False):
     a_loc = a
     time_loc = time
 
+    with open("example.xyz", "w") as outputFile: # clear output file 
+            outputFile.write("") #Can we let the file name depend on molecule and integrator?
+    
+    
     while (time_loc <= endTime) : 
         with open("example.xyz", "a") as outputFile:
             outputFile.write(f"{len(types)}\n")

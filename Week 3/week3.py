@@ -79,35 +79,71 @@ def Vangle(t, kt, t0):
 def Fangle(t, kt, t0):
     return -kt*(t-t0)
 
-def FAngleOnAtoms(a, b, c, kt, t0):
+# def FAngleOnAtoms(a, b, c, kt, t0):
+#     """Compute angular forces on 3-body atom.
+    
+#     Mind the order of the arguments. The middle argument is supposed to be the middle atom (O in water).
+#     INPUT: positions of atoms a,b,c
+#     OUTPUT: angular force acting on each of the atoms
+#     """
+#     t = np.arccos(np.dot((a-b),(c-b))/(np.linalg.norm(a-b)*np.linalg.norm(c-b)))
+#     """ Alternative computation of t using cosine rule:
+#     ab = np.linalg.norm(a-b)
+#     bc = np.linalg.norm(c-b)
+#     ac = np.linalg.norm(a-c)
+#     t = np.arccos((ab**2 + bc**2 - ac**2)/(2*ab*bc))
+#     """
+#     normalVecA = np.cross(a-b,np.cross(a-b,c-b))
+#     print("normalVecA")
+#     print(normalVecA)
+    
+#     normalVecC = np.cross(b-c,np.cross(a-b,c-b))
+#     print("normalVecC")
+#     print(normalVecC)
+#     Fa = Fangle(t, kt, t0)/np.linalg.norm(a-b) * normalVecA/np.linalg.norm(normalVecA)
+#     Fc = Fangle(t, kt, t0)/np.linalg.norm(c-b) * normalVecC/np.linalg.norm(normalVecC)
+#     return(np.asarray([Fa, -Fa-Fc, Fc]))
+
+# def FTotalOnAtoms(a,b,c, k, r0, kt, t0):
+#     """Compute total forces on 3-body atom."""
+#     FBondAB = FBondOnAtoms(a,b,k,r0)
+#     FBondBC = FBondOnAtoms(b,c,k,r0)
+#     FAngle = FAngleOnAtoms(a,b,c,kt,t0)
+#     print(FAngle)
+#     Fa = FBondAB[0] + FAngle[0]
+#     Fc = FBondBC[1] + FAngle[2]
+#     Fb = FBondAB[1] + FBondBC[0] + FAngle[1]
+#     return(np.asarray([Fb, Fa, Fc]))
+
+def FAngleOnAtoms(o, h1, h2, kt, t0):
     """Compute angular forces on 3-body atom.
     
     Mind the order of the arguments. The middle argument is supposed to be the middle atom (O in water).
     INPUT: positions of atoms a,b,c
     OUTPUT: angular force acting on each of the atoms
     """
-    t = np.arccos(np.dot((a-b),(c-b))/(np.linalg.norm(a-b)*np.linalg.norm(c-b)))
+    t = np.arccos(np.dot((h1-o),(h2-o))/(np.linalg.norm(h1-o)*np.linalg.norm(h2-o)))
     """ Alternative computation of t using cosine rule:
     ab = np.linalg.norm(a-b)
     bc = np.linalg.norm(c-b)
     ac = np.linalg.norm(a-c)
     t = np.arccos((ab**2 + bc**2 - ac**2)/(2*ab*bc))
     """
-    normalVecA = np.cross(a-b,np.cross(a-b,c-b))
-    normalVecC = np.cross(b-c,np.cross(a-b,c-b))
-    Fa = Fangle(t, kt, t0)/np.linalg.norm(a-b) * normalVecA/np.linalg.norm(normalVecA)
-    Fc = Fangle(t, kt, t0)/np.linalg.norm(c-b) * normalVecC/np.linalg.norm(normalVecC)
-    return(np.asarray([Fa, -Fa-Fc, Fc]))
+    normalVech1 = np.cross(h1-o,np.cross(h1-o,h2-o))
+    normalVech2 = np.cross(o-h2,np.cross(h1-o,h2-o))
+    Fh1 = Fangle(t, kt, t0)/np.linalg.norm(h1-o) * normalVech1/np.linalg.norm(normalVech1)
+    Fh2 = Fangle(t, kt, t0)/np.linalg.norm(h2-o) * normalVech2/np.linalg.norm(normalVech2)
+    return(np.asarray([-Fh1-Fh2, Fh1, Fh2]))
 
-def FTotalOnAtoms(a,b,c, k, r0, kt, t0):
+def FTotalOnAtoms(o, h1, h2, k, r0, kt, t0):
     """Compute total forces on 3-body atom."""
-    FBondAB = FBondOnAtoms(a,b,k,r0)
-    FBondBC = FBondOnAtoms(b,c,k,r0)
-    FAngle = FAngleOnAtoms(a,b,c,kt,t0)
-    Fa = FBondAB[0] + FAngle[0]
-    Fc = FBondBC[1] + FAngle[2]
-    Fb = FBondAB[1] + FBondBC[0] + FAngle[1]
-    return(np.asarray([Fb, Fa, Fc]))
+    FBondh1o = FBondOnAtoms(h1,o,k,r0)
+    FBondoh2 = FBondOnAtoms(o,h2,k,r0)
+    FAngle = FAngleOnAtoms(o,h1,h2,kt,t0)
+    Fh1 = FBondh1o[0] + FAngle[1]
+    Fh2 = FBondoh2[1] + FAngle[2]
+    Fo = FBondh1o[1] + FBondoh2[0] + FAngle[0]
+    return(np.asarray([Fo, Fh1, Fh2]))
 
 # hydrogen example
 def hydrogenForcesExample():
@@ -123,9 +159,9 @@ def waterForcesExample():
     r0 = 0.9572 # in Angstrom
     kt = 628.02
     t0 = np.deg2rad(104.52)
-    print(FTotalOnAtoms(xyzs[1], xyzs[0], xyzs[2], k, r0, kt, t0))
+    print(FTotalOnAtoms(xyzs[0], xyzs[1], xyzs[2], k, r0, kt, t0))
 
-
+waterForcesExample()
 
 ### WEEK 3 ###
 # TODO: 
@@ -146,14 +182,23 @@ def integratorEuler(x, v, a, m, k, r0, kt, t0, dt):
 
 def integratorVerlet(x, x1, a, m, k, r0, kt, t0, dt):
     """ Implementation of a single step for Verlet integrator. """ 
-    x = 2*x - x1  + (dt**2) * FBondOnAtoms(x[0], x[1], k, r0)/m
-    v = 1/(2*dt) * (x - x1)
+    if len(types) == 2:
+        x = 2*x - x1  + (dt**2) * FBondOnAtoms(x[0], x[1], k, r0)/m
+        v = 1/(2*dt) * (x - x1)
+    elif len(types) == 3:
+        x = 2*x - x1  + (dt**2) * FTotalOnAtoms(x[1], x[0], x[2], k, r0, kt, t0)/m
+        v = 1/(2*dt) * (x - x1)
     return(x, v, a)
 
 def integratorVerlocity(x, v, a, m, k, r0, kt, t0, dt):
     """ Implementation of a single step for Velocty Verlet integrator. """ 
-    x_new = x + v*dt +0.5*(dt**2)*FBondOnAtoms(x[0], x[1], k, r0)/m 
-    v = v + 0.5*dt*(FBondOnAtoms(x[0], x[1], k, r0)/m + FBondOnAtoms(x_new[0], x_new[1], k, r0)/m)
+    if len(types) == 2:
+        x_new = x + v*dt + (dt**2)/2*FBondOnAtoms(x[0], x[1], k, r0)/m 
+        v = v + dt/2*(FBondOnAtoms(x[0], x[1], k, r0)/m + FBondOnAtoms(x_new[0], x_new[1], k, r0)/m)
+    elif len(types) == 3:
+        x_new = x + v*dt + (dt**2)/2*FTotalOnAtoms(x[1], x[0], x[2], k, r0, kt, t0)/m 
+        v = v + dt/2*(FTotalOnAtoms(x[1], x[0], x[2], k, r0, kt, t0)/m + FTotalOnAtoms(x[1], x[0], x[2], k, r0, kt, t0)/m)
+    
     return(x_new, v, a)
 
 
@@ -209,19 +254,19 @@ def EulerH2Example(velocityZero =False) :
     time_loc = time
     
     with open("EulerH2Example.xyz", "w") as outputFile: # clear output file 
-            outputFile.write("")
+        outputFile.write("")
     
     while(time_loc<=endTime):
-        x_loc, v_loc, a_loc = integratorEuler(x_loc, v_loc, a_loc, m, k, r0, kt, t0, dt) 
-        time_loc += dt
-        
         with open("EulerH2Example.xyz", "a") as outputFile:
             outputFile.write(f"{len(types)}\n")
             outputFile.write(f"This is a comment and the time is {time_loc:5.4f}\n")
             for i, atom in enumerate(x_loc):
                 outputFile.write(f"{types[i]} {x_loc[i,0]:10.5f} {x_loc[i,1]:10.5f} {x_loc[i,2]:10.5f}\n")
-        
-    print(x_loc)
+                
+        x_loc, v_loc, a_loc = integratorEuler(x_loc, v_loc, a_loc, m, k, r0, kt, t0, dt) 
+        time_loc += dt
+
+    # print(x_loc)
     
     return x_loc, v_loc, a_loc
 
@@ -237,21 +282,21 @@ def VerletH2Example(velocityZero =False) :
     x_loc, v_loc, a_loc = integratorEuler(xmin1, v, a, m, k, r0, kt, t0, dt) 
     
     with open("VerletH2Example.xyz", "w") as outputFile: # clear output file 
-            outputFile.write("")
+        outputFile.write("")
     
     while(time_loc<=endTime):
-        print(x_loc)
-        x1_temp = xmin1 
-        xmin1 = x_loc # to store x[(i+1)-1] for next iteration
-        x_loc, v_loc, a_loc = integratorVerlet(x_loc, x1_temp, a_loc, m, k, r0, kt, t0, dt) 
-        time_loc += dt
-        
         with open("VerletH2Example.xyz", "a") as outputFile:
             outputFile.write(f"{len(types)}\n")
             outputFile.write(f"This is a comment and the time is {time_loc:5.4f}\n")
             for i, atom in enumerate(x_loc):
                 outputFile.write(f"{types[i]} {x_loc[i,0]:10.5f} {x_loc[i,1]:10.5f} {x_loc[i,2]:10.5f}\n")
-    
+                
+        # print(x_loc)
+        x1_temp = xmin1 
+        xmin1 = x_loc # to store x[(i+1)-1] for next iteration
+        x_loc, v_loc, a_loc = integratorVerlet(x_loc, x1_temp, a_loc, m, k, r0, kt, t0, dt) 
+        time_loc += dt
+        
     return x_loc, v_loc, a_loc
 
 def VerlocityH2Example(velocityZero =False) : 
@@ -261,18 +306,18 @@ def VerlocityH2Example(velocityZero =False) :
     a_loc = a
     time_loc = time
     with open("VerlocityH2Example.xyz", "w") as outputFile: # clear output file 
-            outputFile.write("")
+        outputFile.write("")
     
     while(time_loc<=endTime):
-        print(x_loc)
-        x_loc, v_loc, a_loc = integratorVerlocity(x_loc, v_loc, a_loc, m, k, r0, kt, t0, dt)
-        time_loc += dt
-        
         with open("VerlocityH2Example.xyz", "a") as outputFile:
             outputFile.write(f"{len(types)}\n")
             outputFile.write(f"This is a comment and the time is {time_loc:5.4f}\n")
             for i, atom in enumerate(x_loc):
                 outputFile.write(f"{types[i]} {x_loc[i,0]:10.5f} {x_loc[i,1]:10.5f} {x_loc[i,2]:10.5f}\n")
+                
+        # print(x_loc)
+        x_loc, v_loc, a_loc = integratorVerlocity(x_loc, v_loc, a_loc, m, k, r0, kt, t0, dt)
+        time_loc += dt
     
     return x_loc, v_loc, a_loc
 
@@ -295,7 +340,7 @@ def setParametersH2O (velocityZero =False) :
     global dt  
  
     time = 0
-    endTime = 1
+    endTime = 2
     types, x = readXYZfile("WaterSingle.xyz", 0)
     k = 502416/(10**2) # in kJ / (mol A^2)
     r0 = 0.9572 # in Angstrom
@@ -318,38 +363,86 @@ def setParametersH2O (velocityZero =False) :
     
     v = np.asarray([v1,v2,v3])
     m = np.asarray([1.00784,15.999,1.00784])
-    a = FTotalOnAtoms(x[1] , x[0], x[2], k, r0, kt, t0)/m
-    dt = 0.1 * 2*np.pi*np.sqrt(np.minimum(m)/k)
+    a = FTotalOnAtoms(x[1], x[0], x[2], k, r0, kt, t0)/m
+    dt = 0.1 * 2*np.pi*np.sqrt(np.amin(m)/k)
     # Might need other estimate for larger molecules
 
-
-
 def EulerH2OExample(velocityZero =False) : 
-    setParametersH2(velocityZero)
+    setParametersH2O(velocityZero)
     x_loc = x
     v_loc = v
     a_loc = a
     time_loc = time
     
     with open("EulerH2OExample.xyz", "w") as outputFile: # clear output file 
-            outputFile.write("")
+        outputFile.write("")
     
     while(time_loc<=endTime):
-        x_loc, v_loc, a_loc = integratorEuler(x_loc, v_loc, a_loc, m, k, r0, kt, t0, dt) 
-        time_loc += dt
-        
         with open("EulerH2OExample.xyz", "a") as outputFile:
             outputFile.write(f"{len(types)}\n")
             outputFile.write(f"This is a comment and the time is {time_loc:5.4f}\n")
             for i, atom in enumerate(x_loc):
                 outputFile.write(f"{types[i]} {x_loc[i,0]:10.5f} {x_loc[i,1]:10.5f} {x_loc[i,2]:10.5f}\n")
+                
+        x_loc, v_loc, a_loc = integratorEuler(x_loc, v_loc, a_loc, m, k, r0, kt, t0, dt) 
+        time_loc += dt
         
-    print(x_loc)
+    # return x_loc, v_loc, a_loc
+
+def VerletH2OExample(velocityZero =False) : 
+    setParametersH2O(velocityZero)
+    x_loc = x
+    v_loc = v
+    a_loc = a
+    time_loc = time
     
+    types, xmin1 = readXYZfile("WaterSingle.xyz", 0)
+    x_loc, v_loc, a_loc = integratorEuler(xmin1, v, a, m, k, r0, kt, t0, dt) 
+    
+    with open("VerletH2OExample.xyz", "w") as outputFile: # clear output file 
+        outputFile.write("")
+    
+    while(time_loc<=endTime):
+        with open("VerletH2OExample.xyz", "a") as outputFile:
+            outputFile.write(f"{len(types)}\n")
+            outputFile.write(f"This is a comment and the time is {time_loc:5.4f}\n")
+            for i, atom in enumerate(x_loc):
+                outputFile.write(f"{types[i]} {x_loc[i,0]:10.5f} {x_loc[i,1]:10.5f} {x_loc[i,2]:10.5f}\n")
+                
+        # print(x_loc)
+        x1_temp = xmin1 
+        xmin1 = x_loc # to store x[(i+1)-1] for next iteration
+        x_loc, v_loc, a_loc = integratorVerlet(x_loc, x1_temp, a_loc, m, k, r0, kt, t0, dt) 
+        time_loc += dt
+    
+    # return x_loc, v_loc, a_loc
+
+def VerlocityH2OExample(velocityZero =False) : 
+    setParametersH2O(velocityZero)
+    x_loc = x
+    v_loc = v
+    a_loc = a
+    time_loc = time
+    with open("VerlocityH2OExample.xyz", "w") as outputFile: # clear output file 
+        outputFile.write("")
+    
+    while(time_loc<=endTime):
+        with open("VerlocityH2OExample.xyz", "a") as outputFile:
+            outputFile.write(f"{len(types)}\n")
+            outputFile.write(f"This is a comment and the time is {time_loc:5.4f}\n")
+            for i, atom in enumerate(x_loc):
+                outputFile.write(f"{types[i]} {x_loc[i,0]:10.5f} {x_loc[i,1]:10.5f} {x_loc[i,2]:10.5f}\n")
+                
+        # print(x_loc)
+        x_loc, v_loc, a_loc = integratorVerlocity(x_loc, v_loc, a_loc, m, k, r0, kt, t0, dt)
+        time_loc += dt
+        
     return x_loc, v_loc, a_loc
 
-EulerH2OExample(False)
 
+# EulerH2OExample(False)
+# VerletH2OExample(False)
+# VerlocityH2OExample(False)
 
 
 

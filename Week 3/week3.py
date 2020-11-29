@@ -123,7 +123,7 @@ def waterForcesExample():
     r0 = 0.9572 # in Angstrom
     kt = 628.02
     t0 = np.deg2rad(104.52)
-    print(FTotalOnAtoms(xyzs[1] , xyzs[0], xyzs[2], k, r0, kt, t0))
+    print(FTotalOnAtoms(xyzs[1], xyzs[0], xyzs[2], k, r0, kt, t0))
 
 
 
@@ -135,10 +135,12 @@ def waterForcesExample():
 
 def integratorEuler(x, v, a, m, k, r0, kt, t0, dt):
     """ Implementation of a single step for this integrator. """ 
-    # print(dt*FBondOnAtoms(x[0], x[1], k, r0)/m)
-    """ Implementation of a single step for Euler integrator. """ 
-    x = x + dt*v + (dt**2)/2*FBondOnAtoms(x[0], x[1], k, r0)/m
-    v = v + dt*FBondOnAtoms(x[0], x[1], k, r0)/m
+    if len(types) == 2:
+        x = x + dt*v + (dt**2)/2*FBondOnAtoms(x[0], x[1], k, r0)/m
+        v = v + dt*FBondOnAtoms(x[0], x[1], k, r0)/m
+    elif len(types) == 3:
+        x = x + dt*v + (dt**2)/2*FTotalOnAtoms(x[1], x[0], x[2], k, r0, kt, t0)/m
+        v = v + dt*FTotalOnAtoms(x[1], x[0], x[2], k, r0, kt, t0)/m
     return(x, v, a)
 
 
@@ -173,7 +175,6 @@ def setParametersH2 (velocityZero =False) :
     global t0
     global dt  
  
-    
     time = 0
     endTime = 1
     types, x = readXYZfile("HydrogenSingle.xyz", 0)
@@ -281,8 +282,73 @@ VerletH2Example(velocityZero = False)
 VerlocityH2Example(velocityZero = False)
 
 
+# H2O example
+def setParametersH2O (velocityZero =False) :
+    global time, endTime
+    global types, x
+    global k, r0
+    global v1, v2, v
+    global m
+    global a
+    global kt
+    global t0
+    global dt  
+ 
+    time = 0
+    endTime = 1
+    types, x = readXYZfile("WaterSingle.xyz", 0)
+    k = 502416/(10**2) # in kJ / (mol A^2)
+    r0 = 0.9572 # in Angstrom
+    kt = 628.02
+    t0 = np.deg2rad(104.52)
+    u1 = np.random.uniform(size=3)
+    u2 = np.random.uniform(size=3)
+    u3 = np.random.uniform(size=3)
+    u1 /= np.linalg.norm(u1) # normalize
+    u2 /= np.linalg.norm(u2)
+    u3 /= np.linalg.norm(u3)
+    v1 = 0.01*u1 
+    v2 = 0.01*u2
+    v3 = 0.01*u3
+    
+    if velocityZero : 
+        v1 = np.array([0,0,0])
+        v2 = np.array([0,0,0])
+        v3 = np.array([0,0,0])
+    
+    v = np.asarray([v1,v2,v3])
+    m = np.asarray([1.00784,15.999,1.00784])
+    a = FTotalOnAtoms(x[1] , x[0], x[2], k, r0, kt, t0)/m
+    dt = 0.1 * 2*np.pi*np.sqrt(np.minimum(m)/k)
+    # Might need other estimate for larger molecules
 
 
+
+def EulerH2OExample(velocityZero =False) : 
+    setParametersH2(velocityZero)
+    x_loc = x
+    v_loc = v
+    a_loc = a
+    time_loc = time
+    
+    with open("EulerH2OExample.xyz", "w") as outputFile: # clear output file 
+            outputFile.write("")
+    
+    while(time_loc<=endTime):
+        x_loc, v_loc, a_loc = integratorEuler(x_loc, v_loc, a_loc, m, k, r0, kt, t0, dt) 
+        time_loc += dt
+        
+        with open("EulerH2OExample.xyz", "a") as outputFile:
+            outputFile.write(f"{len(types)}\n")
+            outputFile.write(f"This is a comment and the time is {time_loc:5.4f}\n")
+            for i, atom in enumerate(x_loc):
+                outputFile.write(f"{types[i]} {x_loc[i,0]:10.5f} {x_loc[i,1]:10.5f} {x_loc[i,2]:10.5f}\n")
+        
+    print(x_loc)
+    
+    return x_loc, v_loc, a_loc
+
+EulerH2OExample(False)
 
 
 

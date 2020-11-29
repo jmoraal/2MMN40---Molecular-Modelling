@@ -202,7 +202,33 @@ def integratorVerlocity(x, v, a, m, k, r0, kt, t0, dt):
     return(x_new, v, a)
 
 
-# Add RK4?
+def integratorRK4(x, v, a, m, k, r0, kt, t0, dt):
+    """ Implementation of a single step for Runge-Kutta order 4 integrator. """ 
+    if len(types) == 2:
+        x1 = x + dt*v + (dt**2)/2*FBondOnAtoms(x[0], x[1], k, r0)/m 
+        v1 = dt*FBondOnAtoms(x1[0], x1[1], k, r0)/m 
+        x2 = x + dt/2*(v+v1/2) + (dt**2)/2*FBondOnAtoms(x[0], x[1], k, r0)/m 
+        v2 = dt*FBondOnAtoms(x2[0], x2[1], k, r0)/m 
+        x3 = x + dt/2*(v+v2/2) + (dt**2)/2*FBondOnAtoms(x[0], x[1], k, r0)/m 
+        v3 = dt*FBondOnAtoms(x3[0], x3[1], k, r0)/m 
+        x4 = x + dt*(v+v3) + (dt**2)/2*FBondOnAtoms(x[0], x[1], k, r0)/m 
+        v4 = dt*FBondOnAtoms(x4[0], x4[1], k, r0)/m 
+        
+        x = x + dt*v + (dt**2)/2*FBondOnAtoms(x[0], x[1], k, r0)/m 
+        v = v + (v1+2*v2+2*v3+v4)/6
+    elif len(types) == 3:
+        x1 = x + dt*v + (dt**2)/2*FTotalOnAtoms(x[0], x[1], x[2], k, r0, kt, t0)/m 
+        v1 = dt*FTotalOnAtoms(x1[0], x1[1], x1[2], k, r0, kt, t0)/m 
+        x2 = x + dt/2*(v+v1/2) + (dt**2)/2*FTotalOnAtoms(x[0], x[1], x[2], k, r0, kt, t0)/m 
+        v2 = dt*FTotalOnAtoms(x2[0], x2[1], x2[2], k, r0, kt, t0)/m 
+        x3 = x + dt/2*(v+v2/2) + (dt**2)/2*FTotalOnAtoms(x[0], x[1], x[2], k, r0, kt, t0)/m 
+        v3 = dt*FTotalOnAtoms(x3[0], x3[1], x3[2], k, r0, kt, t0)/m 
+        x4 = x + dt*(v+v3) + (dt**2)/2*FTotalOnAtoms(x[0], x[1], x[2], k, r0, kt, t0)/m 
+        v4 = dt*FTotalOnAtoms(x4[0], x4[1], x4[2], k, r0, kt, t0)/m 
+        
+        x = x + dt*v + (dt**2)/2*FTotalOnAtoms(x[0], x[1], x[2], k, r0, kt, t0)/m 
+        v = v + (v1+2*v2+2*v3+v4)/6
+    return(x, v, a)
 
 # Generate a random velocity:
 # first get a random unit vector (direction) 
@@ -321,10 +347,33 @@ def VerlocityH2Example(velocityZero =False) :
     
     return x_loc, v_loc, a_loc
 
+def RK4H2Example(velocityZero =False) : 
+    setParametersH2(velocityZero)
+    x_loc = x
+    v_loc = v
+    a_loc = a
+    time_loc = time
+    with open("RK4H2Example.xyz", "w") as outputFile: # clear output file 
+        outputFile.write("")
+    
+    while(time_loc<=endTime):
+        with open("RK4H2Example.xyz", "a") as outputFile:
+            outputFile.write(f"{len(types)}\n")
+            outputFile.write(f"This is a comment and the time is {time_loc:5.4f}\n")
+            for i, atom in enumerate(x_loc):
+                outputFile.write(f"{types[i]} {x_loc[i,0]:10.5f} {x_loc[i,1]:10.5f} {x_loc[i,2]:10.5f}\n")
+                
+        # print(x_loc)
+        x_loc, v_loc, a_loc = integratorRK4(x_loc, v_loc, a_loc, m, k, r0, kt, t0, dt)
+        time_loc += dt
+    
+    return x_loc, v_loc, a_loc
+
 
 EulerH2Example(velocityZero = False)    
 VerletH2Example(velocityZero = False)
 VerlocityH2Example(velocityZero = False)
+RK4H2Example(velocityZero = False)
 
 
 # H2O example
@@ -440,11 +489,33 @@ def VerlocityH2OExample(velocityZero =False) :
         
     return x_loc, v_loc, a_loc
 
+def RK4H2OExample(velocityZero =False) : 
+    setParametersH2O(velocityZero)
+    x_loc = x
+    v_loc = v
+    a_loc = a
+    time_loc = time
+    with open("RK4H2OExample.xyz", "w") as outputFile: # clear output file 
+        outputFile.write("")
+    
+    while(time_loc<=endTime):
+        with open("RK4H2OExample.xyz", "a") as outputFile:
+            outputFile.write(f"{len(types)}\n")
+            outputFile.write(f"This is a comment and the time is {time_loc:5.4f}\n")
+            for i, atom in enumerate(x_loc):
+                outputFile.write(f"{types[i]} {x_loc[i,0]:10.5f} {x_loc[i,1]:10.5f} {x_loc[i,2]:10.5f}\n")
+                
+        # print(x_loc)
+        x_loc, v_loc, a_loc = integratorRK4(x_loc, v_loc, a_loc, m, k, r0, kt, t0, dt)
+        time_loc += dt
+        
+    return x_loc, v_loc, a_loc
 
-EulerH2OExample(False)
-VerletH2OExample(False)
-VerlocityH2OExample(False)
 
+EulerH2OExample(velocityZero = False)
+VerletH2OExample(velocityZero = False)
+VerlocityH2OExample(velocityZero = False)
+RK4H2OExample(velocityZero = False)
 
 
 

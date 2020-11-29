@@ -51,7 +51,6 @@ def distAtTime(positions):
     dist = np.linalg.norm(diff,axis = 2)
     return(dist)
 
-#testDist = distAtTime(testPos)
 
 ### WEEK 2 ###
 
@@ -62,58 +61,28 @@ def distAtTime(positions):
 
 # BOND
 def Vbond(r, k, r0):
+    """ Calculates harmonic bond potential """
     return(1/2*k*(r-r0)**2)
 
 def Fbond(r, k, r0):
+    """ Calculates bond force magnitude """
     return(-k*(r-r0))
 
 def FBondOnAtoms(a, b, k, r0):
+    """ Calculates bond force (with direction) """
     r = np.linalg.norm(a-b)
     Fa = Fbond(r, k, r0)*(a-b)/np.linalg.norm(a-b)
     return(np.asarray([Fa, -Fa]))
 
 # ANGLE
 def Vangle(t, kt, t0):
+    """ Calculates harmonic angular potential """
     return 1/2*kt*(t-t0)**2
 
 def Fangle(t, kt, t0):
+    """ Calculates angular force magnitude """
     return -kt*(t-t0)
 
-# def FAngleOnAtoms(a, b, c, kt, t0):
-#     """Compute angular forces on 3-body atom.
-    
-#     Mind the order of the arguments. The middle argument is supposed to be the middle atom (O in water).
-#     INPUT: positions of atoms a,b,c
-#     OUTPUT: angular force acting on each of the atoms
-#     """
-#     t = np.arccos(np.dot((a-b),(c-b))/(np.linalg.norm(a-b)*np.linalg.norm(c-b)))
-#     """ Alternative computation of t using cosine rule:
-#     ab = np.linalg.norm(a-b)
-#     bc = np.linalg.norm(c-b)
-#     ac = np.linalg.norm(a-c)
-#     t = np.arccos((ab**2 + bc**2 - ac**2)/(2*ab*bc))
-#     """
-#     normalVecA = np.cross(a-b,np.cross(a-b,c-b))
-#     print("normalVecA")
-#     print(normalVecA)
-    
-#     normalVecC = np.cross(b-c,np.cross(a-b,c-b))
-#     print("normalVecC")
-#     print(normalVecC)
-#     Fa = Fangle(t, kt, t0)/np.linalg.norm(a-b) * normalVecA/np.linalg.norm(normalVecA)
-#     Fc = Fangle(t, kt, t0)/np.linalg.norm(c-b) * normalVecC/np.linalg.norm(normalVecC)
-#     return(np.asarray([Fa, -Fa-Fc, Fc]))
-
-# def FTotalOnAtoms(a,b,c, k, r0, kt, t0):
-#     """Compute total forces on 3-body atom."""
-#     FBondAB = FBondOnAtoms(a,b,k,r0)
-#     FBondBC = FBondOnAtoms(b,c,k,r0)
-#     FAngle = FAngleOnAtoms(a,b,c,kt,t0)
-#     print(FAngle)
-#     Fa = FBondAB[0] + FAngle[0]
-#     Fc = FBondBC[1] + FAngle[2]
-#     Fb = FBondAB[1] + FBondBC[0] + FAngle[1]
-#     return(np.asarray([Fb, Fa, Fc]))
 
 def FAngleOnAtoms(o, h1, h2, kt, t0):
     """Compute angular forces on 3-body atom.
@@ -165,12 +134,11 @@ def waterForcesExample():
 
 ### WEEK 3 ###
 # TODO: 
-#   - Do integrators need a? Don't think so, if force and mass are known
-#   - Verlet not yet working. Using two timesteps back seems to be a problem
+#   - Do integrators need a? Don't think so at the moment
 #   - Add anglular forces into integrators
 
 def integratorEuler(x, v, a, m, k, r0, kt, t0, dt):
-    """ Implementation of a single step for this integrator. """ 
+    """ Implementation of a single step for Euler integrator. """ 
     if len(types) == 2:
         x = x + dt*v + (dt**2)/2*FBondOnAtoms(x[0], x[1], k, r0)/m
         v = v + dt*FBondOnAtoms(x[0], x[1], k, r0)/m
@@ -370,10 +338,10 @@ def RK4H2Example(velocityZero =False) :
     return x_loc, v_loc, a_loc
 
 
-EulerH2Example(velocityZero = False)    
-VerletH2Example(velocityZero = False)
-VerlocityH2Example(velocityZero = False)
-RK4H2Example(velocityZero = False)
+EulerH2Example()    
+VerletH2Example()
+VerlocityH2Example()
+RK4H2Example()
 
 
 # H2O example

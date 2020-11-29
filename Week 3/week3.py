@@ -131,6 +131,7 @@ def waterForcesExample():
 # TODO: 
 #   - Do integrators need a? Don't think so, if force and mass are known
 #   - Verlet not yet working. Using two timesteps back seems to be a problem
+#   - Add anglular forces into integrators
 
 def integratorEuler(x, v, a, m, k, r0, kt, t0, dt):
     """ Implementation of a single step for this integrator. """ 
@@ -206,9 +207,18 @@ def EulerH2Example(velocityZero =False) :
     a_loc = a
     time_loc = time
     
+    with open("EulerH2Example.xyz", "w") as outputFile: # clear output file 
+            outputFile.write("")
+    
     while(time_loc<=endTime):
         x_loc, v_loc, a_loc = integratorEuler(x_loc, v_loc, a_loc, m, k, r0, kt, t0, dt) 
         time_loc += dt
+        
+        with open("EulerH2Example.xyz", "a") as outputFile:
+            outputFile.write(f"{len(types)}\n")
+            outputFile.write(f"This is a comment and the time is {time_loc:5.4f}\n")
+            for i, atom in enumerate(x_loc):
+                outputFile.write(f"{types[i]} {x_loc[i,0]:10.5f} {x_loc[i,1]:10.5f} {x_loc[i,2]:10.5f}\n")
         
     print(x_loc)
     
@@ -225,12 +235,21 @@ def VerletH2Example(velocityZero =False) :
     types, xmin1 = readXYZfile("HydrogenSingle.xyz", 0)
     x_loc, v_loc, a_loc = integratorEuler(xmin1, v, a, m, k, r0, kt, t0, dt) 
     
+    with open("VerletH2Example.xyz", "w") as outputFile: # clear output file 
+            outputFile.write("")
+    
     while(time_loc<=endTime):
         print(x_loc)
         x1_temp = xmin1 
         xmin1 = x_loc # to store x[(i+1)-1] for next iteration
         x_loc, v_loc, a_loc = integratorVerlet(x_loc, x1_temp, a_loc, m, k, r0, kt, t0, dt) 
         time_loc += dt
+        
+        with open("VerletH2Example.xyz", "a") as outputFile:
+            outputFile.write(f"{len(types)}\n")
+            outputFile.write(f"This is a comment and the time is {time_loc:5.4f}\n")
+            for i, atom in enumerate(x_loc):
+                outputFile.write(f"{types[i]} {x_loc[i,0]:10.5f} {x_loc[i,1]:10.5f} {x_loc[i,2]:10.5f}\n")
     
     return x_loc, v_loc, a_loc
 
@@ -240,47 +259,27 @@ def VerlocityH2Example(velocityZero =False) :
     v_loc = v
     a_loc = a
     time_loc = time
+    with open("VerlocityH2Example.xyz", "w") as outputFile: # clear output file 
+            outputFile.write("")
     
     while(time_loc<=endTime):
         print(x_loc)
         x_loc, v_loc, a_loc = integratorVerlocity(x_loc, v_loc, a_loc, m, k, r0, kt, t0, dt)
         time_loc += dt
-    
-    return x_loc, v_loc, a_loc
-  
-
-    
-x_write, v_write, a_write = VerlocityH2Example()
-
-def writeExampleToXYZ(integrator, velocityZero =False):
-    with open("output.xyz", "w") as outputFile: # clear output file 
-            outputFile.write("")
-    setParametersH2(velocityZero)   
-    time_loc = time
-    
-    while (time_loc <= endTime) : 
-        if (integrator == 'Euler') : 
-            x_write, v_write, a_write = EulerH2Example(velocityZero)
-        elif (integrator == 'Verlet') : 
-            x_write, v_write, a_write = VerletH2Example(velocityZero)
-        elif (integrator == 'Verlocity') : 
-            x_write, v_write, a_write = VerlocityH2Example(velocityZero)
-        else: print("This integrator is not implemented")
         
-        time_loc += dt
-            
-        with open("output.xyz", "a") as outputFile:
+        with open("VerlocityH2Example.xyz", "a") as outputFile:
             outputFile.write(f"{len(types)}\n")
             outputFile.write(f"This is a comment and the time is {time_loc:5.4f}\n")
-            for i, atom in enumerate(x_write):
-                outputFile.write(f"{types[i]} {x_write[i,0]:10.5f} {x_write[i,1]:10.5f} {x_write[i,2]:10.5f}\n")
+            for i, atom in enumerate(x_loc):
+                outputFile.write(f"{types[i]} {x_loc[i,0]:10.5f} {x_loc[i,1]:10.5f} {x_loc[i,2]:10.5f}\n")
+    
+    return x_loc, v_loc, a_loc
 
 
-#EulerH2Example()    
-#VerletH2Example(velocityZero = True)
-#VerlocityH2Example()
+EulerH2Example(velocityZero = False)    
+VerletH2Example(velocityZero = False)
+VerlocityH2Example(velocityZero = False)
 
-writeExampleToXYZ('Verlocity')
 
 
 

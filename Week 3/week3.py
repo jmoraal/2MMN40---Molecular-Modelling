@@ -161,7 +161,7 @@ def waterForcesExample():
     t0 = np.deg2rad(104.52)
     print(FTotalOnAtoms(xyzs[0], xyzs[1], xyzs[2], k, r0, kt, t0))
 
-waterForcesExample()
+# waterForcesExample()
 
 ### WEEK 3 ###
 # TODO: 
@@ -175,8 +175,8 @@ def integratorEuler(x, v, a, m, k, r0, kt, t0, dt):
         x = x + dt*v + (dt**2)/2*FBondOnAtoms(x[0], x[1], k, r0)/m
         v = v + dt*FBondOnAtoms(x[0], x[1], k, r0)/m
     elif len(types) == 3:
-        x = x + dt*v + (dt**2)/2*FTotalOnAtoms(x[1], x[0], x[2], k, r0, kt, t0)/m
-        v = v + dt*FTotalOnAtoms(x[1], x[0], x[2], k, r0, kt, t0)/m
+        x = x + dt*v + (dt**2)/2*FTotalOnAtoms(x[0], x[1], x[2], k, r0, kt, t0)/m
+        v = v + dt*FTotalOnAtoms(x[0], x[1], x[2], k, r0, kt, t0)/m
     return(x, v, a)
 
 
@@ -186,7 +186,7 @@ def integratorVerlet(x, x1, a, m, k, r0, kt, t0, dt):
         x = 2*x - x1  + (dt**2) * FBondOnAtoms(x[0], x[1], k, r0)/m
         v = 1/(2*dt) * (x - x1)
     elif len(types) == 3:
-        x = 2*x - x1  + (dt**2) * FTotalOnAtoms(x[1], x[0], x[2], k, r0, kt, t0)/m
+        x = 2*x - x1  + (dt**2) * FTotalOnAtoms(x[0], x[1], x[2], k, r0, kt, t0)/m
         v = 1/(2*dt) * (x - x1)
     return(x, v, a)
 
@@ -196,8 +196,8 @@ def integratorVerlocity(x, v, a, m, k, r0, kt, t0, dt):
         x_new = x + v*dt + (dt**2)/2*FBondOnAtoms(x[0], x[1], k, r0)/m 
         v = v + dt/2*(FBondOnAtoms(x[0], x[1], k, r0)/m + FBondOnAtoms(x_new[0], x_new[1], k, r0)/m)
     elif len(types) == 3:
-        x_new = x + v*dt + (dt**2)/2*FTotalOnAtoms(x[1], x[0], x[2], k, r0, kt, t0)/m 
-        v = v + dt/2*(FTotalOnAtoms(x[1], x[0], x[2], k, r0, kt, t0)/m + FTotalOnAtoms(x[1], x[0], x[2], k, r0, kt, t0)/m)
+        x_new = x + v*dt + (dt**2)/2*FTotalOnAtoms(x[0], x[1], x[2], k, r0, kt, t0)/m 
+        v = v + dt/2*(FTotalOnAtoms(x[0], x[1], x[2], k, r0, kt, t0)/m + FTotalOnAtoms(x_new[0], x_new[1], x_new[2], k, r0, kt, t0)/m)
     
     return(x_new, v, a)
 
@@ -340,7 +340,7 @@ def setParametersH2O (velocityZero =False) :
     global dt  
  
     time = 0
-    endTime = 2
+    endTime = 3
     types, x = readXYZfile("WaterSingle.xyz", 0)
     k = 502416/(10**2) # in kJ / (mol A^2)
     r0 = 0.9572 # in Angstrom
@@ -355,6 +355,7 @@ def setParametersH2O (velocityZero =False) :
     v1 = 0.01*u1 
     v2 = 0.01*u2
     v3 = 0.01*u3
+    # effect only significant for 0.1*u not for 0.01*u
     
     if velocityZero : 
         v1 = np.array([0,0,0])
@@ -362,8 +363,8 @@ def setParametersH2O (velocityZero =False) :
         v3 = np.array([0,0,0])
     
     v = np.asarray([v1,v2,v3])
-    m = np.asarray([1.00784,15.999,1.00784])
-    a = FTotalOnAtoms(x[1], x[0], x[2], k, r0, kt, t0)/m
+    m = np.asarray([15.999,1.00784,1.00784])
+    a = FTotalOnAtoms(x[0], x[1], x[2], k, r0, kt, t0)/m
     dt = 0.1 * 2*np.pi*np.sqrt(np.amin(m)/k)
     # Might need other estimate for larger molecules
 
@@ -440,9 +441,9 @@ def VerlocityH2OExample(velocityZero =False) :
     return x_loc, v_loc, a_loc
 
 
-# EulerH2OExample(False)
-# VerletH2OExample(False)
-# VerlocityH2OExample(False)
+EulerH2OExample(False)
+VerletH2OExample(False)
+VerlocityH2OExample(False)
 
 
 

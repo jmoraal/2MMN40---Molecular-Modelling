@@ -133,6 +133,7 @@ def waterForcesExample():
 # TODO: 
 #   - Do integrators need a? Don't think so at the moment
 #   - Generalise integrators (remove case distinction 2/3-body)
+#   - Nicer implementation for 'x_loc = x' construction?
 
 def integratorEuler(x, v, a, m, k, r0, kt, t0, dt):
     """ Implementation of a single step for Euler integrator. """ 
@@ -144,6 +145,11 @@ def integratorEuler(x, v, a, m, k, r0, kt, t0, dt):
         v = v + dt*FTotalOnAtoms(x[0], x[1], x[2], k, r0, kt, t0)/m
     return(x, v, a)
 
+def integratorEulerNew(x, v, a):
+    """ Implementation of a single step for Euler integrator. """ 
+    x = x + dt*v + (dt**2)/2*a
+    v = v + dt*a
+    return(x, v, a)
 
 # Verlet was also implemented out of curiosity, but turned out to be inconvenient to handle. 
 def integratorVerlet(x, x1, a, m, k, r0, kt, t0, dt):
@@ -156,6 +162,7 @@ def integratorVerlet(x, x1, a, m, k, r0, kt, t0, dt):
         v = 1/(2*dt) * (x - x1)
     return(x, v, a)
 
+
 def integratorVerlocity(x, v, a, m, k, r0, kt, t0, dt):
     """ Implementation of a single step for Velocty Verlet integrator. """ 
     if len(types) == 2:
@@ -167,6 +174,12 @@ def integratorVerlocity(x, v, a, m, k, r0, kt, t0, dt):
     
     return(x_new, v, a)
 
+def integratorVerlocityNew(x, v, a):
+    """ Implementation of a single step for Velocty Verlet integrator. """ 
+    x_new = x + v*dt + (dt**2)/2*a
+    a_new = 1
+    v = v + dt/2*(a_new +a)
+    return(x_new, v, a)
 
 def integratorRK4(x, v, a, m, k, r0, kt, t0, dt):
     """ Implementation of a single step for Runge-Kutta order 4 integrator. """ 
@@ -196,6 +209,20 @@ def integratorRK4(x, v, a, m, k, r0, kt, t0, dt):
         v = v + (v1+2*v2+2*v3+v4)/6
     return(x, v, a)
 
+def integratorRK4New(x, v, a, a1, a2, a3, a4):
+    """ Implementation of a single step for Runge-Kutta order 4 integrator. """ 
+    x1 = x + dt*v + (dt**2)/2*a 
+    v1 = dt*a1 
+    x2 = x + dt/2*(v+v1/2) + (dt**2)/2*a 
+    v2 = dt*a2
+    x3 = x + dt/2*(v+v2/2) + (dt**2)/2*a
+    v3 = dt*a3
+    x4 = x + dt*(v+v3) + (dt**2)/2*a 
+    v4 = dt*a4 
+    
+    x = x + dt*v + (dt**2)/2*a
+    v = v + (v1+2*v2+2*v3+v4)/6
+    return(x, v, a)
 
 def setParametersH2 (velocityZero =False) :
     """ Sets example parameters for a single hydrogen molecule """
@@ -290,50 +317,93 @@ def writeExampleToXYZ(molecule, integrator, filename, velocityZero =False):
             outputFile.write(f"This is a comment and the time is {time_loc:5.4f}\n")
             for i, atom in enumerate(x_loc):
                 outputFile.write(f"{types[i]} {x_loc[i,0]:10.5f} {x_loc[i,1]:10.5f} {x_loc[i,2]:10.5f}\n")  
-        
-        x_loc, v_loc, a_loc = integrator(x_loc, v_loc, a_loc, m, k, r0, kt, t0, dt) 
-        time_loc += dt
+            x_loc, v_loc, a_loc = integrator(x_loc, v_loc, a_loc, m, k, r0, kt, t0, dt) 
+            time_loc += dt
 
     #return x_loc, v_loc, a_loc
  
-writeExampleToXYZ('H2', integratorEuler, "EulerH2Example.xyz")
-writeExampleToXYZ('H2', integratorVerlocity, "VerlocityH2Example.xyz")
-writeExampleToXYZ('H2', integratorRK4, "RK4H2Example.xyz")
-writeExampleToXYZ('H2O', integratorEuler, "EulerH2OExample.xyz")
-writeExampleToXYZ('H2O', integratorVerlocity, "VerlocityH2OExample.xyz")
-writeExampleToXYZ('H2O', integratorRK4, "RK4H2OExample.xyz")
+#writeExampleToXYZ('H2', integratorEuler, "EulerH2Example.xyz")
+# writeExampleToXYZ('H2', integratorVerlocity, "VerlocityH2Example.xyz")
+# writeExampleToXYZ('H2', integratorRK4, "RK4H2Example.xyz")
+# writeExampleToXYZ('H2O', integratorEuler, "EulerH2OExample.xyz")
+# writeExampleToXYZ('H2O', integratorVerlocity, "VerlocityH2OExample.xyz")
+# writeExampleToXYZ('H2O', integratorRK4, "RK4H2OExample.xyz")
 
-
-# This example is not yet integrated in the above function as it still requires different parameters (x,x1 instead of x,v)
-def VerletH2OExample(velocityZero =False) : 
-    setParametersH2O(velocityZero)
+def eulerNewExample(molecule, filename, velocityZero =False):
+    """ Not working yet for H2O """
+    if (molecule == 'H2') : 
+        setParametersH2(velocityZero)   
+    elif (molecule == 'H2O'):
+        setParametersH2O(velocityZero) 
+    else :
+        print("No settings for this molecule")
+        # Maybe a nicer error catch?
+        
     x_loc = x
     v_loc = v
     a_loc = a
     time_loc = time
+
+    with open(filename, "w") as outputFile: # clear output file 
+            outputFile.write("") #Can we let the file name depend on molecule and integrator?
     
-    types, xmin1 = readXYZfile("WaterSingle.xyz", 0)
-    x_loc, v_loc, a_loc = integratorEuler(xmin1, v, a, m, k, r0, kt, t0, dt) 
     
-    with open("VerletH2OExample.xyz", "w") as outputFile: # clear output file 
-        outputFile.write("")
-    
-    while(time_loc<=endTime):
-        with open("VerletH2OExample.xyz", "a") as outputFile:
+    with open(filename, "a") as outputFile:
+        while (time_loc <= endTime) : 
             outputFile.write(f"{len(types)}\n")
             outputFile.write(f"This is a comment and the time is {time_loc:5.4f}\n")
             for i, atom in enumerate(x_loc):
-                outputFile.write(f"{types[i]} {x_loc[i,0]:10.5f} {x_loc[i,1]:10.5f} {x_loc[i,2]:10.5f}\n")
-                
-        x1_temp = xmin1 
-        xmin1 = x_loc # to store x[(i+1)-1] for next iteration
-        x_loc, v_loc, a_loc = integratorVerlet(x_loc, x1_temp, a_loc, m, k, r0, kt, t0, dt) 
-        time_loc += dt
+                outputFile.write(f"{types[i]} {x_loc[i,0]:10.5f} {x_loc[i,1]:10.5f} {x_loc[i,2]:10.5f}\n")  
+            
+            if len(types) == 2:
+                forces = FBondOnAtoms(x_loc[0], x_loc[1], k, r0)
+            elif len(types) == 3:
+                forces = FTotalOnAtoms(x_loc[0], x_loc[1], x_loc[2], k, r0, kt, t0)
+            
+            accel = forces / m
+            #accel = np.true_divide(forces, m[:,np.newaxis])
+            
+            x_loc, v_loc, a_loc = integratorEulerNew(x_loc, v_loc, accel)
+            time_loc += dt
+
+    #return x_loc, v_loc, a_loc
+eulerNewExample('H2', "EulerH2OExample.xyz")
+
+def verlocityNewExample(molecule, filename, velocityZero =False):
+    """ Write examples of molecule movements to xyz
     
-    return x_loc, v_loc, a_loc
+    NOT WORKING YET
+    """
+    if (molecule == 'H2') : 
+        setParametersH2(velocityZero)   
+    elif (molecule == 'H2O'):
+        setParametersH2O(velocityZero) 
+    else :
+        print("No settings for this molecule")
+        # Maybe a nicer error catch?
+        
+    x_loc = x
+    v_loc = v
+    a_loc = a
+    time_loc = time
 
+    with open(filename, "w") as outputFile: # clear output file 
+            outputFile.write("") #Can we let the file name depend on molecule and integrator?
+    
+    
+    with open(filename, "a") as outputFile:
+        while (time_loc <= endTime) : 
+            outputFile.write(f"{len(types)}\n")
+            outputFile.write(f"This is a comment and the time is {time_loc:5.4f}\n")
+            for i, atom in enumerate(x_loc):
+                outputFile.write(f"{types[i]} {x_loc[i,0]:10.5f} {x_loc[i,1]:10.5f} {x_loc[i,2]:10.5f}\n")  
+            
+            
+            
+            x_loc, v_loc, a_loc = integrator(x_loc, v_loc, a_loc, m, k, r0, kt, t0, dt) 
+            time_loc += dt
 
-
+    #return x_loc, v_loc, a_loc
 
 
 

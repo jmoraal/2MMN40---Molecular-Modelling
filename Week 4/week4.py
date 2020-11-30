@@ -45,19 +45,14 @@ def readXYZfile(fileName, timeStep):
     return(atomTypes,atomPositions)
 
 
-def distAtTime(positions):
-    """ Computes distances between all atoms at given timestep """
+def distAtoms(positions):
+    """ Computes distances between all atoms """
     diff = positions - positions[:,np.newaxis]
     dist = np.linalg.norm(diff,axis = 2)
     return(dist)
 
 
 ### WEEK 2 ###
-
-# TODO
-# - waarschijnlijk zijn er efficientere methodes voor FTotalOnAtoms en dat ding printen
-# - wat Ruben zei in Teams over volgorde van atomen (in group X donderdag 19 nov)
-#       maar dat komt dus volgende week
 
 # BOND
 def Vbond(r, k, r0):
@@ -87,7 +82,7 @@ def Fangle(t, kt, t0):
 def FAngleOnAtoms(o, h1, h2, kt, t0):
     """ Compute angular forces on 3-body atom.
     
-    Mind the order of the arguments. The middle argument is supposed to be the middle atom (O in water).
+    Mind the order of the arguments. The first argument is supposed to be the middle atom (O in water).
     INPUT: positions of atoms a,b,c
     OUTPUT: angular force acting on each of the atoms
     """

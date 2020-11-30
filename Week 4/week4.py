@@ -2,8 +2,9 @@
 """
 Created on Mon Nov  9 16:30:44 2020
 
-@authors: Sanne van Kempen (1017389) & Jan moraal (1016866)
+@author: s161981
 
+NOTE: using tab for indentation
 """
 
 import numpy as np
@@ -34,6 +35,8 @@ def readXYZfile(fileName, timeStep):
             lines.append(splittedLine[1:4])
         
     nrOfAtoms = int(firstColumn[0])
+    #timesteps = int(len(lines)/(nrOfAtoms + 2))
+    #This works because for every block of nrOfAtoms positions, there are two other lines
     
     atomTypes = firstColumn[(2+(2+nrOfAtoms)*timeStep):((2+nrOfAtoms)*(timeStep+1))]
     atomPositions = lines[(2+(2+nrOfAtoms)*timeStep):((2+nrOfAtoms)*(timeStep+1))]
@@ -132,7 +135,9 @@ def waterForcesExample():
 ### WEEK 3 ###
 # TODO: 
 #   - Do integrators need a? Don't think so at the moment
-#   - Generalise integrators (remove case distinction 2/3-body)
+#   - Add anglular forces into integrators
+#   - Generalise integrators
+#   - Make examples more efficient
 
 def integratorEuler(x, v, a, m, k, r0, kt, t0, dt):
     """ Implementation of a single step for Euler integrator. """ 
@@ -196,9 +201,12 @@ def integratorRK4(x, v, a, m, k, r0, kt, t0, dt):
         v = v + (v1+2*v2+2*v3+v4)/6
     return(x, v, a)
 
+# Generate a random velocity:
+# first get a random unit vector (direction) 
 
+
+# H2 example
 def setParametersH2 (velocityZero =False) :
-    """ Sets example parameters for a single hydrogen molecule """
     global time, endTime, types, x, k, r0, v1, v2, v, m, a, kt, t0, dt
  
     time = 0
@@ -227,7 +235,6 @@ def setParametersH2 (velocityZero =False) :
 
 
 def setParametersH2O (velocityZero =False) :
-    """ Sets example parameters for a single water molecule """
     global time, endTime, types, x, k, r0, v1, v2, v, m, a, kt, t0, dt
  
     time = 0
@@ -304,7 +311,6 @@ writeExampleToXYZ('H2O', integratorVerlocity, "VerlocityH2OExample.xyz")
 writeExampleToXYZ('H2O', integratorRK4, "RK4H2OExample.xyz")
 
 
-# This example is not yet integrated in the above function as it still requires different parameters (x,x1 instead of x,v)
 def VerletH2OExample(velocityZero =False) : 
     setParametersH2O(velocityZero)
     x_loc = x
@@ -331,6 +337,7 @@ def VerletH2OExample(velocityZero =False) :
         time_loc += dt
     
     return x_loc, v_loc, a_loc
+
 
 
 

@@ -1,0 +1,13 @@
+# The following function is a bit strange, but we did not yet find another way 
+#  to use one function for diatomic and triatomic molecules
+def FTotalOnAtoms(centre, outer1, outer2, k, r0, kt=0, t0=0):
+    """ Compute total forces on 2 or 3-body molecules. """
+    if (centre == []): # Apparently deprecated
+        return(FBondOnAtoms(outer1, outer2, k, r0))
+    FBondouter1centre = FBondOnAtoms(outer1,centre,k,r0)
+    FBondcentreouter2 = FBondOnAtoms(centre,outer2,k,r0)
+    FAngle = FAngleOnAtoms(centre,outer1,outer2,kt,t0)
+    Fouter1 = FBondouter1centre[0] + FAngle[1]
+    Fouter2 = FBondcentreouter2[1] + FAngle[2]
+    Fcentre = FBondouter1centre[1] + FBondcentreouter2[0] + FAngle[0]
+    return(np.asarray([Fcentre, Fouter1, Fouter2]))

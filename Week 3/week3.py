@@ -267,7 +267,7 @@ def setParametersH2O (velocityZero =False) :
     # Might need other estimate for larger molecules?
 
 
-def writeExampleToXYZ(molecule, integrator, velocityZero =False):
+def writeExampleToXYZ(molecule, integrator, filename, velocityZero =False):
     """ Write examples of molecule movements to xyz
     
     Important: does not work for (standard) Verlet! Only Euler, Verlocity, RK4
@@ -287,12 +287,12 @@ def writeExampleToXYZ(molecule, integrator, velocityZero =False):
     a_loc = a
     time_loc = time
 
-    with open("example.xyz", "w") as outputFile: # clear output file 
+    with open(filename, "w") as outputFile: # clear output file 
             outputFile.write("") #Can we let the file name depend on molecule and integrator?
     
     
     while (time_loc <= endTime) : 
-        with open("example.xyz", "a") as outputFile:
+        with open(filename, "a") as outputFile:
             outputFile.write(f"{len(types)}\n")
             outputFile.write(f"This is a comment and the time is {time_loc:5.4f}\n")
             for i, atom in enumerate(x_loc):
@@ -303,11 +303,12 @@ def writeExampleToXYZ(molecule, integrator, velocityZero =False):
 
     #return x_loc, v_loc, a_loc
  
-
-
-
-
-writeExampleToXYZ('H2O', integratorRK4)
+writeExampleToXYZ('H2', integratorEuler, "EulerH2Example.xyz")
+writeExampleToXYZ('H2', integratorVerlocity, "VerlocityH2Example.xyz")
+writeExampleToXYZ('H2', integratorRK4, "RK4H2Example.xyz")
+writeExampleToXYZ('H2O', integratorEuler, "EulerH2OExample.xyz")
+writeExampleToXYZ('H2O', integratorVerlocity, "VerlocityH2OExample.xyz")
+writeExampleToXYZ('H2O', integratorRK4, "RK4H2OExample.xyz")
 
 
 def VerletH2OExample(velocityZero =False) : 

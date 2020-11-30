@@ -129,10 +129,7 @@ def waterForcesExample():
 
 ### WEEK 3 ###
 # TODO: 
-#   - Do integrators need a? Don't think so at the moment
-#   - Add anglular forces into integrators
 #   - Generalise integrators
-#   - Make examples more efficient
 
 def integratorEuler(x, v, a, m, k, r0, kt, t0, dt):
     """ Implementation of a single step for Euler integrator. """ 

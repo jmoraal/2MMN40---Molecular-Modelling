@@ -404,10 +404,8 @@ eulerNewExample('H2', "EulerH2OExample.xyz")
 
 
 
-def readXYZWithTopologyFile(fileNameXYZ, fileNameTopology, timeStep): 
-    """Read a .xyz file with corresponding topology file."""
-    types, x = readXYZfile(fileNameXYZ, timeStep)
-    
+def readTopologyFile(fileNameTopology): 
+    """Read a topology file."""
     with open(fileNameTopology, "r") as inputFile:
         lines = inputFile.readlines()
         nrOfMolecules = int(lines[0].split()[1])
@@ -427,8 +425,6 @@ def readXYZWithTopologyFile(fileNameXYZ, fileNameTopology, timeStep):
             bondConstants.append([float(lines[i].split()[2]),float(lines[i].split()[3])])
         bonds = np.asarray(bonds).reshape(nrOfBonds,2)
         bondConstants = np.asarray(bondConstants).reshape(nrOfBonds,2)
-        # print(bonds)
-        # print(bondConstants)
     
         nrOfAngles = int(lines[nrOfMolecules+nrOfBonds+2].split()[1])
         angles = []
@@ -438,13 +434,41 @@ def readXYZWithTopologyFile(fileNameXYZ, fileNameTopology, timeStep):
             angleConstants.append([float(lines[i].split()[3]),float(lines[i].split()[4])])
         angles = np.asarray(angles).reshape(nrOfAngles,3)
         angleConstants = np.asarray(angleConstants).reshape(nrOfAngles,2)
-        # print(angles)
-        # print(angleConstants)
         
         return(molecules, bonds, bondConstants, angles, angleConstants)
+
+types, x = readXYZfile("MixedMolecules.xyz", 0)
+molecules, bonds, bondConstants, angles, angleConstants = readTopologyFile("MixedMoleculesTopology.txt")
+
+# calculating forces on one go with help of topology file
+# bonds
+r = np.linalg.norm(x[bonds[:,0]] - x[bonds[:,1]], axis = 1)
+Fbonds = Fbond(r, bondConstants[:,0], bondConstants[:,1])*(bonds[:,0]-bonds[:,1])/r
+print(Fbonds)
+print(".....")
+
+# angles 
+# NOT YET FINISHED 
+le = x[angles[:,0]]
+md = x[angles[:,1]]
+ri = x[angles[:,2]]
+d1 = le-md
+d2 = ri-md
+t = np.arccos(np.sum(d1*d2, axis = 1)/(np.linalg.norm(le-md, axis = 1)*np.linalg.norm(ri-md, axis = 1)))
+Fangles = Fangle(t, angleConstants[:,0], angleConstants[:,1])
+print(Fangles)
+# normalVech1 = np.cross(h1-o,np.cross(h1-o,h2-o))
+# normalVech2 = np.cross(o-h2,np.cross(h1-o,h2-o))
+# Fh1 = Fangle(t, kt, t0)/np.linalg.norm(h1-o) * normalVech1/np.linalg.norm(normalVech1)
+# Fh2 = Fangle(t, kt, t0)/np.linalg.norm(h2-o) * normalVech2/np.linalg.norm(normalVech2)
     
-molecules, bonds, bondConstants, angles, angleConstants = readXYZWithTopologyFile("MixedMolecules.xyz", "MixedMoleculesTopology.txt", 0)
-print(bonds)
+    
+# FBondouter1centre = FBondOnAtoms(outer1,centre,k,r0)
+# FBondcentreouter2 = FBondOnAtoms(centre,outer2,k,r0)
+# FAngle = FAngleOnAtoms(centre,outer1,outer2,kt,t0)
+# Fouter1 = FBondouter1centre[0] + FAngle[1]
+# Fouter2 = FBondcentreouter2[1] + FAngle[2]
+# Fcentre = FBondouter1centre[1] + FBondcentreouter2[0] + FAngle[0]
     
 with open("MixedMoleculesOutput.xyz", "w") as outputFile: 
     outputFile.write("") 

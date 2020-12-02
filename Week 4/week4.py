@@ -41,7 +41,6 @@ def readXYZfile(fileName, timeStep):
     atomPositions = np.asarray(atomPositions).astype(np.float)
     return(atomTypes,atomPositions)
 
-
 def distAtoms(positions):
     """ Computes distances between all atoms """
     diff = positions - positions[:,np.newaxis]
@@ -322,7 +321,7 @@ def writeExampleToXYZ(molecule, integrator, filename, velocityZero =False):
 
     #return x_loc, v_loc, a_loc
  
-#writeExampleToXYZ('H2', integratorEuler, "EulerH2Example.xyz")
+# writeExampleToXYZ('H2', integratorEuler, "EulerH2Example.xyz")
 # writeExampleToXYZ('H2', integratorVerlocity, "VerlocityH2Example.xyz")
 # writeExampleToXYZ('H2', integratorRK4, "RK4H2Example.xyz")
 # writeExampleToXYZ('H2O', integratorEuler, "EulerH2OExample.xyz")
@@ -369,41 +368,67 @@ def eulerNewExample(molecule, filename, velocityZero =False):
     #return x_loc, v_loc, a_loc
 eulerNewExample('H2', "EulerH2OExample.xyz")
 
-def verlocityNewExample(molecule, filename, velocityZero =False):
-    """ Write examples of molecule movements to xyz
+# def verlocityNewExample(molecule, filename, velocityZero =False):
+#     """ Write examples of molecule movements to xyz
     
-    NOT WORKING YET
-    """
-    if (molecule == 'H2') : 
-        setParametersH2(velocityZero)   
-    elif (molecule == 'H2O'):
-        setParametersH2O(velocityZero) 
-    else :
-        print("No settings for this molecule")
-        # Maybe a nicer error catch?
+#     NOT WORKING YET
+#     """
+#     if (molecule == 'H2') : 
+#         setParametersH2(velocityZero)   
+#     elif (molecule == 'H2O'):
+#         setParametersH2O(velocityZero) 
+#     else :
+#         print("No settings for this molecule")
+#         # Maybe a nicer error catch?
         
-    x_loc = x
-    v_loc = v
-    a_loc = a
-    time_loc = time
+#     x_loc = x
+#     v_loc = v
+#     a_loc = a
+#     time_loc = time
 
-    with open(filename, "w") as outputFile: # clear output file 
-            outputFile.write("") #Can we let the file name depend on molecule and integrator?
+#     with open(filename, "w") as outputFile: # clear output file 
+#             outputFile.write("") #Can we let the file name depend on molecule and integrator?
     
     
-    with open(filename, "a") as outputFile:
-        while (time_loc <= endTime) : 
-            outputFile.write(f"{len(types)}\n")
-            outputFile.write(f"This is a comment and the time is {time_loc:5.4f}\n")
-            for i, atom in enumerate(x_loc):
-                outputFile.write(f"{types[i]} {x_loc[i,0]:10.5f} {x_loc[i,1]:10.5f} {x_loc[i,2]:10.5f}\n")  
+#     with open(filename, "a") as outputFile:
+#         while (time_loc <= endTime) : 
+#             outputFile.write(f"{len(types)}\n")
+#             outputFile.write(f"This is a comment and the time is {time_loc:5.4f}\n")
+#             for i, atom in enumerate(x_loc):
+#                 outputFile.write(f"{types[i]} {x_loc[i,0]:10.5f} {x_loc[i,1]:10.5f} {x_loc[i,2]:10.5f}\n")  
             
-            
-            
-            x_loc, v_loc, a_loc = integrator(x_loc, v_loc, a_loc, m, k, r0, kt, t0, dt) 
-            time_loc += dt
+#             x_loc, v_loc, a_loc = integrator(x_loc, v_loc, a_loc, m, k, r0, kt, t0, dt) 
+#             time_loc += dt
 
-    #return x_loc, v_loc, a_loc
+#     #return x_loc, v_loc, a_loc
+
+
+
+### Trying to read topology and work with different types of molecules simultaneously ###
+with open("WaterDoubleTopology.txt", "r") as inputFile:
+    lines = inputFile.readlines()
+    firstLine = lines[0].split()
+    nrOfMolecules = int(firstLine[1])
+    print(nrOfMolecules)
+    
+    
+    molecules = [list(map(int,lines[1].split()))]
+    for i in range(2,nrOfMolecules+1):
+        molecules.append(list(map(int,lines[i].split())))
+    molecules = np.asarray(molecules)
+
+
+        
+types, x = readXYZfile("WaterDouble.xyz", 0)
+    
+with open("WaterDoubleOutput.xyz", "w") as outputFile: 
+    outputFile.write("") 
+# with open("WaterDoubleOutput", "a") as outputFile:
+    # while (time_loc <= endTime) : 
+    #     outputFile.write(f"{len(types)}\n")
+    #     outputFile.write(f"This is a comment and the time is {time_loc:5.4f}\n")
+          
+
 
 
 

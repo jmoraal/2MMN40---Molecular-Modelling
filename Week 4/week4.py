@@ -408,6 +408,9 @@ def readTopologyFile(fileNameTopology):
     """Read a topology file."""
     with open(fileNameTopology, "r") as inputFile:
         lines = inputFile.readlines()
+        
+        ### ik dacht dat het handig was om aan te geven welke atomen in een molecuul zitten
+        ### maar dat is tot nu to nog niet echt nodig gebleken
         nrOfMolecules = int(lines[0].split()[1])
         # print(nrOfMolecules)
     
@@ -416,6 +419,7 @@ def readTopologyFile(fileNameTopology):
             molecules.append(list(map(int,lines[i].split())))
         # molecules = np.asarray(molecules) # no np array for molecules since length differs per entry
         # print(molecules)
+        ###
 
         nrOfBonds = int(lines[nrOfMolecules+1].split()[1])
         bonds = []
@@ -437,45 +441,68 @@ def readTopologyFile(fileNameTopology):
         
         return(molecules, bonds, bondConstants, angles, angleConstants)
 
+
+def computeForces(x, bonds, bondConstants, angles, angleConstants):
+    """Caltulate forces in one go with help of topology file."""
+    # bonds
+    r = np.linalg.norm(x[bonds[:,0]] - x[bonds[:,1]], axis = 1)
+    Fbonds = Fbond(r, bondConstants[:,0], bondConstants[:,1])[:,np.newaxis]*(x[bonds[:,0]]-x[bonds[:,1]])/r[:,np.newaxis]
+
+    # angles 
+    atomLeft = x[angles[:,0]]
+    atomMiddle = x[angles[:,1]]
+    atomRight = x[angles[:,2]]
+    dif1 = atomLeft-atomMiddle
+    dif2 = atomRight-atomMiddle
+    t = np.arccos(np.sum(dif1*dif2, axis = 1)/(np.linalg.norm(atomLeft-atomMiddle, axis = 1)*np.linalg.norm(atomRight-atomMiddle, axis = 1)))
+    Fangles = Fangle(t, angleConstants[:,0], angleConstants[:,1])
+
+    normalVec1 = np.cross(atomLeft-atomMiddle,np.cross(atomLeft-atomMiddle,atomRight-atomMiddle))
+    normalVec2 = np.cross(atomMiddle-atomRight,np.cross(atomLeft-atomMiddle,atomRight-atomMiddle))
+
+    FangleAtomLeft = Fangles[:,np.newaxis]/np.linalg.norm(atomLeft-atomMiddle, axis = 1)[:,np.newaxis] * normalVec1/np.linalg.norm(normalVec1, axis = 1)[:,np.newaxis]
+    FangleAtomRight = Fangles[:,np.newaxis]/np.linalg.norm(atomRight-atomMiddle, axis = 1)[:,np.newaxis] * normalVec2/np.linalg.norm(normalVec2, axis = 1)[:,np.newaxis]
+    FangleAtomMiddle = -FangleAtomLeft - FangleAtomRight
+
+    # combining bonds and angles
+    forces = np.zeros((len(types),3), dtype = float)
+    for i,atom in enumerate(bonds):
+        forces[atom[0]] += Fbonds[i]
+        forces[atom[1]] += -Fbonds[i]
+    
+    # print(forces)
+    for i,atom in enumerate(angles):
+        forces[atom[0]] += FangleAtomLeft[i]
+        forces[atom[1]] += FangleAtomMiddle[i]
+        forces[atom[2]] += FangleAtomRight[i]
+    return(forces)
+
+
 types, x = readXYZfile("MixedMolecules.xyz", 0)
 molecules, bonds, bondConstants, angles, angleConstants = readTopologyFile("MixedMoleculesTopology.txt")
 
-# calculating forces on one go with help of topology file
-# bonds
-r = np.linalg.norm(x[bonds[:,0]] - x[bonds[:,1]], axis = 1)
-Fbonds = Fbond(r, bondConstants[:,0], bondConstants[:,1])*(bonds[:,0]-bonds[:,1])/r
-print(Fbonds)
-print(".....")
+time_loc = 0
+endTime = 1
+dt = 0.001
+m = np.array([16,1,1,16,1,1,1,1])
+x_loc = x
+u = np.random.uniform(size=3*len(types)).reshape((len(types),3)) # random starting velocity vector
+u = u/np.linalg.norm(u,axis = 1)[:,np.newaxis] # normalize
+v_loc = 0.1*u
 
-# angles 
-# NOT YET FINISHED 
-le = x[angles[:,0]]
-md = x[angles[:,1]]
-ri = x[angles[:,2]]
-d1 = le-md
-d2 = ri-md
-t = np.arccos(np.sum(d1*d2, axis = 1)/(np.linalg.norm(le-md, axis = 1)*np.linalg.norm(ri-md, axis = 1)))
-Fangles = Fangle(t, angleConstants[:,0], angleConstants[:,1])
-print(Fangles)
-# normalVech1 = np.cross(h1-o,np.cross(h1-o,h2-o))
-# normalVech2 = np.cross(o-h2,np.cross(h1-o,h2-o))
-# Fh1 = Fangle(t, kt, t0)/np.linalg.norm(h1-o) * normalVech1/np.linalg.norm(normalVech1)
-# Fh2 = Fangle(t, kt, t0)/np.linalg.norm(h2-o) * normalVech2/np.linalg.norm(normalVech2)
-    
-    
-# FBondouter1centre = FBondOnAtoms(outer1,centre,k,r0)
-# FBondcentreouter2 = FBondOnAtoms(centre,outer2,k,r0)
-# FAngle = FAngleOnAtoms(centre,outer1,outer2,kt,t0)
-# Fouter1 = FBondouter1centre[0] + FAngle[1]
-# Fouter2 = FBondcentreouter2[1] + FAngle[2]
-# Fcentre = FBondouter1centre[1] + FBondcentreouter2[0] + FAngle[0]
-    
 with open("MixedMoleculesOutput.xyz", "w") as outputFile: 
     outputFile.write("") 
-# with open("WaterDoubleOutput", "a") as outputFile:
-    # while (time_loc <= endTime) : 
-    #     outputFile.write(f"{len(types)}\n")
-    #     outputFile.write(f"This is a comment and the time is {time_loc:5.4f}\n")
+with open("MixedMoleculesOutput.xyz", "a") as outputFile:
+    while (time_loc <= endTime) : 
+        outputFile.write(f"{len(types)}\n")
+        outputFile.write(f"This is a comment and the time is {time_loc:5.4f}\n")
+        for i, atom in enumerate(x_loc):
+            outputFile.write(f"{types[i]} {x_loc[i,0]:10.5f} {x_loc[i,1]:10.5f} {x_loc[i,2]:10.5f}\n")  
+            
+        forces = computeForces(x_loc, bonds, bondConstants, angles, angleConstants)
+        accel = forces / m[:,np.newaxis]
+        x_loc, v_loc, a_loc = integratorEulerNew(x_loc, v_loc, accel)
+        time_loc += dt
           
 
 

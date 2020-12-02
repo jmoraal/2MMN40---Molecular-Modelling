@@ -404,6 +404,11 @@ eulerNewExample('H2', "EulerH2OExample.xyz")
 
 
 
+### WEEK 4 ###
+# TODO: 
+# - Fix integrators to work on only the input: x,v,a
+# - include mass in topology file
+
 def readTopologyFile(fileNameTopology): 
     """Read a topology file."""
     with open(fileNameTopology, "r") as inputFile:
@@ -478,13 +483,15 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants):
     return(forces)
 
 
+
+# example
 types, x = readXYZfile("MixedMolecules.xyz", 0)
 molecules, bonds, bondConstants, angles, angleConstants = readTopologyFile("MixedMoleculesTopology.txt")
 
 time_loc = 0
 endTime = 1
 dt = 0.001
-m = np.array([16,1,1,16,1,1,1,1])
+m = np.array([16,1,1,16,1,1,1,1]) # we should probably include the mass in the topology file
 x_loc = x
 u = np.random.uniform(size=3*len(types)).reshape((len(types),3)) # random starting velocity vector
 u = u/np.linalg.norm(u,axis = 1)[:,np.newaxis] # normalize

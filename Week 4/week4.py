@@ -2,7 +2,7 @@
 """
 Created on Mon Nov  9 16:30:44 2020
 
-@authors: Sanne van Kempen (1017389) & Jan moraal (1016866)
+@authors: Sanne van Kempen (1017389) & Jan Moraal (1016866)
 
 """
 
@@ -405,23 +405,42 @@ eulerNewExample('H2', "EulerH2OExample.xyz")
 
 
 ### Trying to read topology and work with different types of molecules simultaneously ###
-with open("WaterDoubleTopology.txt", "r") as inputFile:
+types, x = readXYZfile("MixedMolecules.xyz", 0)
+with open("MixedMoleculesTopology.txt", "r") as inputFile:
     lines = inputFile.readlines()
-    firstLine = lines[0].split()
-    nrOfMolecules = int(firstLine[1])
+    nrOfMolecules = int(lines[0].split()[1])
     print(nrOfMolecules)
     
-    
-    molecules = [list(map(int,lines[1].split()))]
-    for i in range(2,nrOfMolecules+1):
+    molecules = []
+    for i in range(1,nrOfMolecules+1):
         molecules.append(list(map(int,lines[i].split())))
-    molecules = np.asarray(molecules)
+    # molecules = np.asarray(molecules) # no np array for molecules since length differs per entry
+    # print(molecules)
 
-
-        
-types, x = readXYZfile("WaterDouble.xyz", 0)
+    nrOfBonds = int(lines[nrOfMolecules+1].split()[1])
+    bonds = []
+    bondConstants = []
+    for i in range(nrOfMolecules+2,nrOfMolecules+nrOfBonds+2):
+        bonds.append([int(lines[i].split()[0]),int(lines[i].split()[1])])
+        bondConstants.append([float(lines[i].split()[2]),float(lines[i].split()[3])])
+    bonds = np.asarray(bonds).reshape(nrOfBonds,2)
+    bondConstants = np.asarray(bondConstants).reshape(nrOfBonds,2)
+    # print(bonds)
+    # print(bondConstants)
     
-with open("WaterDoubleOutput.xyz", "w") as outputFile: 
+    nrOfAngles = int(lines[nrOfMolecules+nrOfBonds+2].split()[1])
+    angles = []
+    angleConstants = []
+    for i in range(nrOfMolecules+nrOfBonds+3,len(lines)):
+        print(i)
+        angles.append([int(lines[i].split()[0]),int(lines[i].split()[1]),int(lines[i].split()[2])])
+        angleConstants.append([float(lines[i].split()[3]),float(lines[i].split()[4])])
+    angles = np.asarray(angles).reshape(nrOfAngles,3)
+    angleConstants = np.asarray(angleConstants).reshape(nrOfAngles,2)
+    # print(angles)
+    # print(angleConstants)
+    
+with open("MixedMoleculesOutput.xyz", "w") as outputFile: 
     outputFile.write("") 
 # with open("WaterDoubleOutput", "a") as outputFile:
     # while (time_loc <= endTime) : 

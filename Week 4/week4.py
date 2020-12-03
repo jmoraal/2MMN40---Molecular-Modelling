@@ -414,20 +414,20 @@ def integratorVerletNew(x, x1, v, a): # not yet working since x1 is needed
 def integratorVerlocityNew(x, v, a):
     """ Implementation of a single step for Velocty Verlet integrator. """ 
     x_new = x + v*dt + (dt**2)/2*a
-    a_new = computeForces(x_new, bonds, bondConstants, angles, angleConstants)
+    a_new = computeForces(x_new, bonds, bondConstants, angles, angleConstants)/m[:,np.newaxis]
     v = v + dt/2*(a_new +a)
     return(x_new, v, a)
 
 def integratorRK4New(x, v, a):
     """ Implementation of a single step for Runge-Kutta order 4 integrator. """ 
     x1 = x + dt*v + (dt**2)/2*a 
-    v1 = dt*computeForces(x1, bonds, bondConstants, angles, angleConstants)
+    v1 = dt*computeForces(x1, bonds, bondConstants, angles, angleConstants)/m[:,np.newaxis]
     x2 = x + dt/2*(v+v1/2) + (dt**2)/2*a 
-    v2 = dt*computeForces(x2, bonds, bondConstants, angles, angleConstants)
+    v2 = dt*computeForces(x2, bonds, bondConstants, angles, angleConstants)/m[:,np.newaxis]
     x3 = x + dt/2*(v+v2/2) + (dt**2)/2*a
-    v3 = dt*computeForces(x3, bonds, bondConstants, angles, angleConstants)
+    v3 = dt*computeForces(x3, bonds, bondConstants, angles, angleConstants)/m[:,np.newaxis]
     x4 = x + dt*(v+v3) + (dt**2)/2*a 
-    v4 = dt*computeForces(x4, bonds, bondConstants, angles, angleConstants)
+    v4 = dt*computeForces(x4, bonds, bondConstants, angles, angleConstants)/m[:,np.newaxis]
     
     v = v + (v1+2*v2+2*v3+v4)/6
     return(x1, v, a)
@@ -539,7 +539,7 @@ with open("MixedMoleculesOutput.xyz", "a") as outputFile:
             
         forces = computeForces(x_loc, bonds, bondConstants, angles, angleConstants)
         accel = forces / m[:,np.newaxis]
-        x_loc, v_loc, a_loc = integratorVerlocityNew(x_loc, v_loc, accel)
+        x_loc, v_loc, a_loc = integratorEulerNew(x_loc, v_loc, accel)
         time_loc += dt
           
 

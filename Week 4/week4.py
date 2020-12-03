@@ -50,11 +50,6 @@ def distAtoms(positions):
 
 ### WEEK 2 ###
 
-# TODO
-# - waarschijnlijk zijn er efficientere methodes voor FTotalOnAtoms en dat ding printen
-# - wat Ruben zei in Teams over volgorde van atomen (in group X donderdag 19 nov)
-#       maar dat komt dus volgende week
-
 # BOND
 def Vbond(r, k, r0):
     """ Calculates harmonic bond potential """
@@ -64,11 +59,11 @@ def Fbond(r, k, r0):
     """ Calculates bond force magnitude """
     return(-k*(r-r0))
 
-def FBondOnAtoms(a, b, k, r0):
-    """ Calculates bond force (with direction) """
-    r = np.linalg.norm(a-b)
-    Fa = Fbond(r, k, r0)*(a-b)/np.linalg.norm(a-b)
-    return(np.asarray([Fa, -Fa]))
+# def FBondOnAtoms(a, b, k, r0):
+#     """ Calculates bond force (with direction) """
+#     r = np.linalg.norm(a-b)
+#     Fa = Fbond(r, k, r0)*(a-b)/np.linalg.norm(a-b)
+#     return(np.asarray([Fa, -Fa]))
 
 # ANGLE
 def Vangle(t, kt, t0):
@@ -80,51 +75,51 @@ def Fangle(t, kt, t0):
     return -kt*(t-t0)
 
 
-def FAngleOnAtoms(o, h1, h2, kt, t0):
-    """ Compute angular forces on 3-body atom.
+# def FAngleOnAtoms(o, h1, h2, kt, t0):
+#     """ Compute angular forces on 3-body atom.
     
-    Mind the order of the arguments. The first argument is supposed to be the middle atom (O in water).
-    INPUT: positions of atoms a,b,c
-    OUTPUT: angular force acting on each of the atoms
-    """
-    t = np.arccos(np.dot((h1-o),(h2-o))/(np.linalg.norm(h1-o)*np.linalg.norm(h2-o)))
-    """ Alternative computation of t using cosine rule:
-    ab = np.linalg.norm(a-b)
-    bc = np.linalg.norm(c-b)
-    ac = np.linalg.norm(a-c)
-    t = np.arccos((ab**2 + bc**2 - ac**2)/(2*ab*bc))
-    """
-    normalVech1 = np.cross(h1-o,np.cross(h1-o,h2-o))
-    normalVech2 = np.cross(o-h2,np.cross(h1-o,h2-o))
-    Fh1 = Fangle(t, kt, t0)/np.linalg.norm(h1-o) * normalVech1/np.linalg.norm(normalVech1)
-    Fh2 = Fangle(t, kt, t0)/np.linalg.norm(h2-o) * normalVech2/np.linalg.norm(normalVech2)
-    return(np.asarray([-Fh1-Fh2, Fh1, Fh2]))
+#     Mind the order of the arguments. The first argument is supposed to be the middle atom (O in water).
+#     INPUT: positions of atoms a,b,c
+#     OUTPUT: angular force acting on each of the atoms
+#     """
+#     t = np.arccos(np.dot((h1-o),(h2-o))/(np.linalg.norm(h1-o)*np.linalg.norm(h2-o)))
+#     """ Alternative computation of t using cosine rule:
+#     ab = np.linalg.norm(a-b)
+#     bc = np.linalg.norm(c-b)
+#     ac = np.linalg.norm(a-c)
+#     t = np.arccos((ab**2 + bc**2 - ac**2)/(2*ab*bc))
+#     """
+#     normalVech1 = np.cross(h1-o,np.cross(h1-o,h2-o))
+#     normalVech2 = np.cross(o-h2,np.cross(h1-o,h2-o))
+#     Fh1 = Fangle(t, kt, t0)/np.linalg.norm(h1-o) * normalVech1/np.linalg.norm(normalVech1)
+#     Fh2 = Fangle(t, kt, t0)/np.linalg.norm(h2-o) * normalVech2/np.linalg.norm(normalVech2)
+#     return(np.asarray([-Fh1-Fh2, Fh1, Fh2]))
 
-def FTotalOnAtoms(centre, outer1, outer2, k, r0, kt, t0):
-    """ Compute total forces on 3-body atom. """
-    FBondouter1centre = FBondOnAtoms(outer1,centre,k,r0)
-    FBondcentreouter2 = FBondOnAtoms(centre,outer2,k,r0)
-    FAngle = FAngleOnAtoms(centre,outer1,outer2,kt,t0)
-    Fouter1 = FBondouter1centre[0] + FAngle[1]
-    Fouter2 = FBondcentreouter2[1] + FAngle[2]
-    Fcentre = FBondouter1centre[1] + FBondcentreouter2[0] + FAngle[0]
-    return(np.asarray([Fcentre, Fouter1, Fouter2]))
+# def FTotalOnAtoms(centre, outer1, outer2, k, r0, kt, t0):
+#     """ Compute total forces on 3-body atom. """
+#     FBondouter1centre = FBondOnAtoms(outer1,centre,k,r0)
+#     FBondcentreouter2 = FBondOnAtoms(centre,outer2,k,r0)
+#     FAngle = FAngleOnAtoms(centre,outer1,outer2,kt,t0)
+#     Fouter1 = FBondouter1centre[0] + FAngle[1]
+#     Fouter2 = FBondcentreouter2[1] + FAngle[2]
+#     Fcentre = FBondouter1centre[1] + FBondcentreouter2[0] + FAngle[0]
+#     return(np.asarray([Fcentre, Fouter1, Fouter2]))
 
 # hydrogen example
-def hydrogenForcesExample():
-    types, xyzs = readXYZfile("HydrogenSingle.xyz", 0)
-    k = 24531/(10**2) # in kJ / (mol A^2)
-    r0 = 0.74 # in Angstrom
-    print(FBondOnAtoms(xyzs[0],xyzs[1], k, r0))
+# def hydrogenForcesExample():
+#     types, xyzs = readXYZfile("HydrogenSingle.xyz", 0)
+#     k = 24531/(10**2) # in kJ / (mol A^2)
+#     r0 = 0.74 # in Angstrom
+#     print(FBondOnAtoms(xyzs[0],xyzs[1], k, r0))
 
 # water example
-def waterForcesExample():
-    types, xyzs = readXYZfile("WaterSingle.xyz", 0)
-    k = 502416/(10**2) # in kJ / (mol A^2)
-    r0 = 0.9572 # in Angstrom
-    kt = 628.02
-    t0 = np.deg2rad(104.52)
-    print(FTotalOnAtoms(xyzs[0], xyzs[1], xyzs[2], k, r0, kt, t0))
+# def waterForcesExample():
+#     types, xyzs = readXYZfile("WaterSingle.xyz", 0)
+#     k = 502416/(10**2) # in kJ / (mol A^2)
+#     r0 = 0.9572 # in Angstrom
+#     kt = 628.02
+#     t0 = np.deg2rad(104.52)
+#     print(FTotalOnAtoms(xyzs[0], xyzs[1], xyzs[2], k, r0, kt, t0))
 
 # waterForcesExample()
 
@@ -151,27 +146,27 @@ def waterForcesExample():
 #     return(x, v, a)
 
 # Verlet was also implemented out of curiosity, but turned out to be inconvenient to handle. 
-def integratorVerlet(x, x1, a, m, k, r0, kt, t0, dt):
-    """ Implementation of a single step for Verlet integrator. """ 
-    if len(types) == 2:
-        x = 2*x - x1  + (dt**2) * FBondOnAtoms(x[0], x[1], k, r0)/m
-        v = 1/(2*dt) * (x - x1)
-    elif len(types) == 3:
-        x = 2*x - x1  + (dt**2) * FTotalOnAtoms(x[0], x[1], x[2], k, r0, kt, t0)/m
-        v = 1/(2*dt) * (x - x1)
-    return(x, v, a)
+# def integratorVerlet(x, x1, a, m, k, r0, kt, t0, dt):
+#     """ Implementation of a single step for Verlet integrator. """ 
+#     if len(types) == 2:
+#         x = 2*x - x1  + (dt**2) * FBondOnAtoms(x[0], x[1], k, r0)/m
+#         v = 1/(2*dt) * (x - x1)
+#     elif len(types) == 3:
+#         x = 2*x - x1  + (dt**2) * FTotalOnAtoms(x[0], x[1], x[2], k, r0, kt, t0)/m
+#         v = 1/(2*dt) * (x - x1)
+#     return(x, v, a)
 
 
-def integratorVerlocity(x, v, a, m, k, r0, kt, t0, dt):
-    """ Implementation of a single step for Velocty Verlet integrator. """ 
-    if len(types) == 2:
-        x_new = x + v*dt + (dt**2)/2*FBondOnAtoms(x[0], x[1], k, r0)/m 
-        v = v + dt/2*(FBondOnAtoms(x[0], x[1], k, r0)/m + FBondOnAtoms(x_new[0], x_new[1], k, r0)/m)
-    elif len(types) == 3:
-        x_new = x + v*dt + (dt**2)/2*FTotalOnAtoms(x[0], x[1], x[2], k, r0, kt, t0)/m 
-        v = v + dt/2*(FTotalOnAtoms(x[0], x[1], x[2], k, r0, kt, t0)/m + FTotalOnAtoms(x_new[0], x_new[1], x_new[2], k, r0, kt, t0)/m)
+# def integratorVerlocity(x, v, a, m, k, r0, kt, t0, dt):
+#     """ Implementation of a single step for Velocty Verlet integrator. """ 
+#     if len(types) == 2:
+#         x_new = x + v*dt + (dt**2)/2*FBondOnAtoms(x[0], x[1], k, r0)/m 
+#         v = v + dt/2*(FBondOnAtoms(x[0], x[1], k, r0)/m + FBondOnAtoms(x_new[0], x_new[1], k, r0)/m)
+#     elif len(types) == 3:
+#         x_new = x + v*dt + (dt**2)/2*FTotalOnAtoms(x[0], x[1], x[2], k, r0, kt, t0)/m 
+#         v = v + dt/2*(FTotalOnAtoms(x[0], x[1], x[2], k, r0, kt, t0)/m + FTotalOnAtoms(x_new[0], x_new[1], x_new[2], k, r0, kt, t0)/m)
     
-    return(x_new, v, a)
+#     return(x_new, v, a)
 
 # def integratorVerlocityNew(x, v, a):
 #     """ Implementation of a single step for Velocty Verlet integrator. """ 
@@ -180,33 +175,33 @@ def integratorVerlocity(x, v, a, m, k, r0, kt, t0, dt):
 #     v = v + dt/2*(a_new +a)
 #     return(x_new, v, a)
 
-def integratorRK4(x, v, a, m, k, r0, kt, t0, dt):
-    """ Implementation of a single step for Runge-Kutta order 4 integrator. """ 
-    if len(types) == 2:
-        x1 = x + dt*v + (dt**2)/2*FBondOnAtoms(x[0], x[1], k, r0)/m 
-        v1 = dt*FBondOnAtoms(x1[0], x1[1], k, r0)/m 
-        x2 = x + dt/2*(v+v1/2) + (dt**2)/2*FBondOnAtoms(x[0], x[1], k, r0)/m 
-        v2 = dt*FBondOnAtoms(x2[0], x2[1], k, r0)/m 
-        x3 = x + dt/2*(v+v2/2) + (dt**2)/2*FBondOnAtoms(x[0], x[1], k, r0)/m 
-        v3 = dt*FBondOnAtoms(x3[0], x3[1], k, r0)/m 
-        x4 = x + dt*(v+v3) + (dt**2)/2*FBondOnAtoms(x[0], x[1], k, r0)/m 
-        v4 = dt*FBondOnAtoms(x4[0], x4[1], k, r0)/m 
+# def integratorRK4(x, v, a, m, k, r0, kt, t0, dt):
+#     """ Implementation of a single step for Runge-Kutta order 4 integrator. """ 
+#     if len(types) == 2:
+#         x1 = x + dt*v + (dt**2)/2*FBondOnAtoms(x[0], x[1], k, r0)/m 
+#         v1 = dt*FBondOnAtoms(x1[0], x1[1], k, r0)/m 
+#         x2 = x + dt/2*(v+v1/2) + (dt**2)/2*FBondOnAtoms(x[0], x[1], k, r0)/m 
+#         v2 = dt*FBondOnAtoms(x2[0], x2[1], k, r0)/m 
+#         x3 = x + dt/2*(v+v2/2) + (dt**2)/2*FBondOnAtoms(x[0], x[1], k, r0)/m 
+#         v3 = dt*FBondOnAtoms(x3[0], x3[1], k, r0)/m 
+#         x4 = x + dt*(v+v3) + (dt**2)/2*FBondOnAtoms(x[0], x[1], k, r0)/m 
+#         v4 = dt*FBondOnAtoms(x4[0], x4[1], k, r0)/m 
         
-        x = x + dt*v + (dt**2)/2*FBondOnAtoms(x[0], x[1], k, r0)/m 
-        v = v + (v1+2*v2+2*v3+v4)/6
-    elif len(types) == 3:
-        x1 = x + dt*v + (dt**2)/2*FTotalOnAtoms(x[0], x[1], x[2], k, r0, kt, t0)/m 
-        v1 = dt*FTotalOnAtoms(x1[0], x1[1], x1[2], k, r0, kt, t0)/m 
-        x2 = x + dt/2*(v+v1/2) + (dt**2)/2*FTotalOnAtoms(x[0], x[1], x[2], k, r0, kt, t0)/m 
-        v2 = dt*FTotalOnAtoms(x2[0], x2[1], x2[2], k, r0, kt, t0)/m 
-        x3 = x + dt/2*(v+v2/2) + (dt**2)/2*FTotalOnAtoms(x[0], x[1], x[2], k, r0, kt, t0)/m 
-        v3 = dt*FTotalOnAtoms(x3[0], x3[1], x3[2], k, r0, kt, t0)/m 
-        x4 = x + dt*(v+v3) + (dt**2)/2*FTotalOnAtoms(x[0], x[1], x[2], k, r0, kt, t0)/m 
-        v4 = dt*FTotalOnAtoms(x4[0], x4[1], x4[2], k, r0, kt, t0)/m 
+#         x = x + dt*v + (dt**2)/2*FBondOnAtoms(x[0], x[1], k, r0)/m 
+#         v = v + (v1+2*v2+2*v3+v4)/6
+#     elif len(types) == 3:
+#         x1 = x + dt*v + (dt**2)/2*FTotalOnAtoms(x[0], x[1], x[2], k, r0, kt, t0)/m 
+#         v1 = dt*FTotalOnAtoms(x1[0], x1[1], x1[2], k, r0, kt, t0)/m 
+#         x2 = x + dt/2*(v+v1/2) + (dt**2)/2*FTotalOnAtoms(x[0], x[1], x[2], k, r0, kt, t0)/m 
+#         v2 = dt*FTotalOnAtoms(x2[0], x2[1], x2[2], k, r0, kt, t0)/m 
+#         x3 = x + dt/2*(v+v2/2) + (dt**2)/2*FTotalOnAtoms(x[0], x[1], x[2], k, r0, kt, t0)/m 
+#         v3 = dt*FTotalOnAtoms(x3[0], x3[1], x3[2], k, r0, kt, t0)/m 
+#         x4 = x + dt*(v+v3) + (dt**2)/2*FTotalOnAtoms(x[0], x[1], x[2], k, r0, kt, t0)/m 
+#         v4 = dt*FTotalOnAtoms(x4[0], x4[1], x4[2], k, r0, kt, t0)/m 
         
-        x = x + dt*v + (dt**2)/2*FTotalOnAtoms(x[0], x[1], x[2], k, r0, kt, t0)/m 
-        v = v + (v1+2*v2+2*v3+v4)/6
-    return(x, v, a)
+#         x = x + dt*v + (dt**2)/2*FTotalOnAtoms(x[0], x[1], x[2], k, r0, kt, t0)/m 
+#         v = v + (v1+2*v2+2*v3+v4)/6
+#     return(x, v, a)
 
 # def integratorRK4New(x, v, a, a1, a2, a3, a4):
 #     """ Implementation of a single step for Runge-Kutta order 4 integrator. """ 

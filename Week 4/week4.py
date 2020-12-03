@@ -528,10 +528,6 @@ massesDict = {'H': 1.00784, 'O': 15.9994, 'C': 12.0110}
 m = np.vectorize(massesDict.get)(types)
 # kan ook direct bij xyz-lezen
 
-# m = types # is this method okay in terms of speed? 
-# m = [15.999 if x=="O" else x for x in m]
-# m = [1.00784 if x=="H" else x for x in m]
-# m = np.asarray(m)
 
 x_loc = x
 u = np.random.uniform(size=3*len(types)).reshape((len(types),3)) # random starting velocity vector

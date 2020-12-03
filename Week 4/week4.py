@@ -482,9 +482,11 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants):
     if bonds.size > 0:
         r = np.linalg.norm(x[bonds[:,0]] - x[bonds[:,1]], axis = 1)
         Fbonds = Fbond(r, bondConstants[:,0], bondConstants[:,1])[:,np.newaxis]*(x[bonds[:,0]]-x[bonds[:,1]])/r[:,np.newaxis]
-        for i,atom in enumerate(bonds): #kan dit ook zonder for-loop?
-            forces[atom[0]] += Fbonds[i]
-            forces[atom[1]] += -Fbonds[i]
+        # for i,atom in enumerate(bonds): #kan dit ook zonder for-loop?
+        #     forces[atom[0]] += Fbonds[i]
+        #     forces[atom[1]] += -Fbonds[i]
+        np.add.at(forces, bonds[:,0], Fbonds)
+        np.add.at(forces, bonds[:,1], -Fbonds)
     
     # angles 
     if angles.size > 0:
@@ -503,10 +505,13 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants):
         FangleAtomRight = Fangles[:,np.newaxis]/np.linalg.norm(atomRight-atomMiddle, axis = 1)[:,np.newaxis] * normalVec2/np.linalg.norm(normalVec2, axis = 1)[:,np.newaxis]
         FangleAtomMiddle = -FangleAtomLeft - FangleAtomRight
         
-        for i,atom in enumerate(angles): #kan dit ook zonder for-loop?
-            forces[atom[0]] += FangleAtomLeft[i]
-            forces[atom[1]] += FangleAtomMiddle[i]
-            forces[atom[2]] += FangleAtomRight[i]
+        # for i,atom in enumerate(angles): #kan dit ook zonder for-loop? Ja, gebruik numpy.at.add om te sommeren over index arrays
+        #     forces[atom[0]] += FangleAtomLeft[i]
+        #     forces[atom[1]] += FangleAtomMiddle[i]
+        #     forces[atom[2]] += FangleAtomRight[i]
+        np.add.at(forces, angles[:,0], FangleAtomLeft)
+        np.add.at(forces, angles[:,1], FangleAtomMiddle)
+        np.add.at(forces, angles[:,2], FangleAtomRight)
     return(forces)
 
 # example
@@ -521,6 +526,7 @@ dt = 0.001
 
 massesDict = {'H': 1.00784, 'O': 15.9994, 'C': 12.0110}
 m = np.vectorize(massesDict.get)(types)
+# kan ook direct bij xyz-lezen
 
 # m = types # is this method okay in terms of speed? 
 # m = [15.999 if x=="O" else x for x in m]

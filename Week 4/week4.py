@@ -482,7 +482,7 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants):
     if bonds.size > 0:
         r = np.linalg.norm(x[bonds[:,0]] - x[bonds[:,1]], axis = 1)
         Fbonds = Fbond(r, bondConstants[:,0], bondConstants[:,1])[:,np.newaxis]*(x[bonds[:,0]]-x[bonds[:,1]])/r[:,np.newaxis]
-        for i,atom in enumerate(bonds):
+        for i,atom in enumerate(bonds): #kan dit ook zonder for-loop?
             forces[atom[0]] += Fbonds[i]
             forces[atom[1]] += -Fbonds[i]
     
@@ -503,7 +503,7 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants):
         FangleAtomRight = Fangles[:,np.newaxis]/np.linalg.norm(atomRight-atomMiddle, axis = 1)[:,np.newaxis] * normalVec2/np.linalg.norm(normalVec2, axis = 1)[:,np.newaxis]
         FangleAtomMiddle = -FangleAtomLeft - FangleAtomRight
         
-        for i,atom in enumerate(angles):
+        for i,atom in enumerate(angles): #kan dit ook zonder for-loop?
             forces[atom[0]] += FangleAtomLeft[i]
             forces[atom[1]] += FangleAtomMiddle[i]
             forces[atom[2]] += FangleAtomRight[i]
@@ -518,10 +518,14 @@ time_loc = 0
 endTime = 2
 dt = 0.001
 
-m = types # is this method okay in terms of speed? 
-m = [15.999 if x=="O" else x for x in m]
-m = [1.00784 if x=="H" else x for x in m]
-m = np.asarray(m)
+
+massesDict = {'H': 1.00784, 'O': 15.9994, 'C': 12.0110}
+m = np.vectorize(massesDict.get)(types)
+
+# m = types # is this method okay in terms of speed? 
+# m = [15.999 if x=="O" else x for x in m]
+# m = [1.00784 if x=="H" else x for x in m]
+# m = np.asarray(m)
 
 x_loc = x
 u = np.random.uniform(size=3*len(types)).reshape((len(types),3)) # random starting velocity vector

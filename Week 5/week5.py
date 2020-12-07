@@ -189,25 +189,20 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, sigma, epsilo
         
     
     # Lennard Jones forces
-    dist = distAtoms(x)
-    i = 0
-    j = 3
-    if np.where(molecules == i)[0] != np.where(molecules == j)[0]: # check that atoms are not in same molecule
-        e = np.sqrt(epsilon[i]*epsilon[j])
-        s = 0.5*(sigma[i] + sigma[j])
-        r = dist[i,j]
-        Uij = 4*e*((s/r)**12 - (s/r)**6)
-    
-    # if sigma.size > 0:
-    #     for i,atom in enumerate(types):
-    #         for j,atom2 in enumerate(types):
-    #             if np.where(molecules == i)[0] != np.where(molecules == j)[0]:
-    #                 e = np.sqrt(epsilon[i]*epsilon[j])
-    #                 s = 0/5*(sigma[i] + sigma[j])
-    #                 r = dist[i,j]
-    #                 Uij = 4*e*((s/r)**12 - (s/r)**6)
-    #                 if Uij != 0:
-    #                     print(Uij)
+    dist = distAtoms(x)    
+    if sigma.size > 0:
+        f = np.zeros((len(types), 3))
+        for i,atom in enumerate(types):
+            for j,atom2 in enumerate(types):
+                if np.where(molecules == i)[0] != np.where(molecules == j)[0]:
+                    e = np.sqrt(epsilon[i]*epsilon[j])
+                    s = 0.5*(sigma[i] + sigma[j])
+                    r = dist[i,j]
+                    U = 4*e*((s/r)**12 - (s/r)**6)
+                    if U != 0:
+                        f[i] += U*(x[j] - x[i])
+                        
+        forces = forces + f
         
     return(forces)
 
@@ -275,7 +270,7 @@ def neighbourMatrix(positions,cutoff):
     """ returns adjacancy matrix for atoms closer than cutoff """
     return (distAtoms(positions) < cutoff)
 
-types,positions = readXYZfile("WaterSingle.xyz",0)
+types, positions, m = readXYZfile("WaterSingle.xyz",0)
 neighMatrix = neighbourMatrix(positions,1)
 
 # poging tot adjacency list:

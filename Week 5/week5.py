@@ -39,7 +39,9 @@ def readXYZfile(fileName, timeStep):
     atomPositions = lines[(2+(2+nrOfAtoms)*timeStep):((2+nrOfAtoms)*(timeStep+1))]
         
     atomPositions = np.asarray(atomPositions).astype(np.float)
-    return(atomTypes,atomPositions)
+    massesDict = {'H': 1.00784, 'O': 15.9994, 'C': 12.0110}
+    m = np.vectorize(massesDict.get)(atomTypes)
+    return(atomTypes, atomPositions ,m)
 
 def distAtoms(positions):
     """ Computes distances between all atoms """
@@ -130,7 +132,7 @@ def readTopologyFile(fileNameTopology):
         nrOfBonds = int(lines[nrOfMolecules+1].split()[1])
         bonds = []
         bondConstants = []
-        for i in range(nrOfMolecules+2,nrOfMolecules+nrOfBonds+2):
+        for i in range(nrOfMolecules+2, nrOfMolecules+nrOfBonds+2):
             bonds.append([int(lines[i].split()[0]),int(lines[i].split()[1])])
             bondConstants.append([float(lines[i].split()[2]),float(lines[i].split()[3])])
         bonds = np.asarray(bonds).reshape(nrOfBonds,2)
@@ -139,13 +141,21 @@ def readTopologyFile(fileNameTopology):
         nrOfAngles = int(lines[nrOfMolecules+nrOfBonds+2].split()[1])
         angles = []
         angleConstants = []
-        for i in range(nrOfMolecules+nrOfBonds+3,len(lines)):
+        for i in range(nrOfMolecules+nrOfBonds+3, nrOfMolecules+nrOfBonds+nrOfAngles+3):
             angles.append([int(lines[i].split()[0]),int(lines[i].split()[1]),int(lines[i].split()[2])])
             angleConstants.append([float(lines[i].split()[3]),float(lines[i].split()[4])])
         angles = np.asarray(angles).reshape(nrOfAngles,3)
         angleConstants = np.asarray(angleConstants).reshape(nrOfAngles,2)
         
-        return(molecules, bonds, bondConstants, angles, angleConstants)
+        sigma = []
+        epsilon = []
+        for i in range(nrOfMolecules+nrOfBonds+nrOfAngles+4, len(lines)):
+            sigma.append(float(lines[i].split()[0]))
+            epsilon.append(float(lines[i].split()[1]))
+        sigma = np.asarray(sigma)
+        epsilon = np.asarray(epsilon)
+        
+        return(molecules, bonds, bondConstants, angles, angleConstants, sigma, epsilon)
 
 
 def computeForces(x, bonds, bondConstants, angles, angleConstants):
@@ -182,17 +192,13 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants):
 
 # example
 # two water and one hydrogen molecules
-types, x = readXYZfile("MixedMolecules.xyz", 0)
-molecules, bonds, bondConstants, angles, angleConstants = readTopologyFile("MixedMoleculesTopology.txt")
+types, x, m = readXYZfile("MixedMolecules.xyz", 0)
+molecules, bonds, bondConstants, angles, angleConstants, sigma, epsilon = readTopologyFile("MixedMoleculesTopology.txt")
 
 time_loc = 0
 endTime = 2
 dt = 0.001
 
-
-massesDict = {'H': 1.00784, 'O': 15.9994, 'C': 12.0110}
-m = np.vectorize(massesDict.get)(types)
-# kan ook direct bij xyz-lezen
 
 
 x_loc = x

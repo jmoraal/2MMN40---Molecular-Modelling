@@ -211,10 +211,9 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, sigma, epsilo
                     r = dist[i,j]
                     U = LennardJonesInter(sigma, epsilon, i, j, r)
                     if U != 0:
-                        f[i] += U*(x[j] - x[i])
-                        
-        forces = forces + f
+                        f[i] += U*(x[j] - x[i])                 
         
+        forces = forces + f 
     return(forces)
 
 # example
@@ -276,3 +275,33 @@ def neighbourList(positions,cutoff):
 types,positions,masses = readXYZfile("WaterSingle.xyz",0)
 neighMatrix = neighbourMatrix(positions,1)
 neighList = neighbourList(positions,1)
+
+
+#simulation box dimensions in x,y,z:
+boxSize = 0.5
+cutoff = 0.5*boxSize
+
+def distAtomsPBC(positions):
+    """ Computes distances between all atoms, with boundaries """
+    diff = abs(positions - positions[:,np.newaxis]) % boxSize
+    #Of: np.add.at(diff,np.where(diff > 0.5*boxSize), - boxSize)
+    # Idee: bij alle richtingen waar dist>0.5boxSize, size aftrekken
+    dist = np.linalg.norm(diff,axis = 2)
+    return(dist)
+
+
+# diff = abs(positions - positions[:,np.newaxis])
+# np.add.at(diff,np.where(diff > cutoff), - boxSize)
+# dist2 = np.linalg.norm(diff,axis = 2)
+
+print(distAtoms(positions))
+print(distAtomsPBC(positions))
+
+# positionTest = np.array([[0,0,0],[4,2,2]])
+# print(distAtoms(positionTest))
+# diff = abs(positionTest - positionTest[:,np.newaxis])
+# print(diff)
+# np.add.at(diff,np.where(diff > 3), - 1)
+# #diff[diff>0.5] += -1
+# print(diff)
+# print(np.linalg.norm(diff,axis = 2))

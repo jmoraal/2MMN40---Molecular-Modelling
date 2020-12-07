@@ -277,12 +277,15 @@ neighMatrix = neighbourMatrix(positions,1)
 neighList = neighbourList(positions,1)
 
 
-#simulation box dimensions in x,y,z:
+#for cubic simulation box:
 boxSize = 0.5
 cutoff = 0.5*boxSize
 
 def distAtomsPBC(positions):
-    """ Computes distances between all atoms, with boundaries """
+    """ Computes distances between all atoms, with boundaries
+    
+    Not entirely sure this is correct!
+    """
     diff = abs(positions - positions[:,np.newaxis]) % boxSize
     #Of: np.add.at(diff,np.where(diff > 0.5*boxSize), - boxSize)
     # Idee: bij alle richtingen waar dist>0.5boxSize, size aftrekken
@@ -290,18 +293,9 @@ def distAtomsPBC(positions):
     return(dist)
 
 
-# diff = abs(positions - positions[:,np.newaxis])
-# np.add.at(diff,np.where(diff > cutoff), - boxSize)
-# dist2 = np.linalg.norm(diff,axis = 2)
+#atom-wise projection into box: 
+def coordProjectToBox(x, boxSize):
+    """Projects all coordinates into cubic box of size boxSize"""
+    return (x % boxSize)
+#To do: generalise to rectangular shapes? 
 
-print(distAtoms(positions))
-print(distAtomsPBC(positions))
-
-# positionTest = np.array([[0,0,0],[4,2,2]])
-# print(distAtoms(positionTest))
-# diff = abs(positionTest - positionTest[:,np.newaxis])
-# print(diff)
-# np.add.at(diff,np.where(diff > 3), - 1)
-# #diff[diff>0.5] += -1
-# print(diff)
-# print(np.linalg.norm(diff,axis = 2))

@@ -156,6 +156,15 @@ def readTopologyFile(fileNameTopology):
         return(molecules, bonds, bondConstants, angles, angleConstants, sigma, epsilon)
 
 
+
+#compute distance r within function?
+def LennardJonesInter(sigma,eps,a,b,r):
+    #r = np.linalg.norm()
+    epsilon = np.sqrt(eps[a]*eps[b])
+    sigma = 0.5*(sigma[a] + sigma[b])
+    return 4*epsilon*((sigma/r)**12 - (sigma/r)**6)
+
+
 def computeForces(x, bonds, bondConstants, angles, angleConstants, sigma, epsilon):
     """Caltulate forces in one go with help of topology file."""
     forces = np.zeros((len(types),3), dtype = float)
@@ -195,10 +204,12 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, sigma, epsilo
         for i,atom in enumerate(types):
             for j,atom2 in enumerate(types):
                 if np.where(molecules == i)[0] != np.where(molecules == j)[0]:
-                    e = np.sqrt(epsilon[i]*epsilon[j])
-                    s = 0.5*(sigma[i] + sigma[j])
+                    # e = np.sqrt(epsilon[i]*epsilon[j])
+                    # s = 0.5*(sigma[i] + sigma[j])
+                    # r = dist[i,j]
+                    # U = 4*e*((s/r)**12 - (s/r)**6)
                     r = dist[i,j]
-                    U = 4*e*((s/r)**12 - (s/r)**6)
+                    U = LennardJonesInter(sigma, epsilon, i, j, r)
                     if U != 0:
                         f[i] += U*(x[j] - x[i])
                         
@@ -243,23 +254,6 @@ with open("MixedMoleculesOutput.xyz", "a") as outputFile:
 # - Add periodic boundary conditions
 
 
-
-def combSigma(a,b):
-    return (0.5*(sigma[a] + sigma[b]))
-
-def combEps(a,b):
-    return(np.sqrt(epsilon[a]*epsilon[b]))
-
-
-#compute distance r within function?
-def LennardJonesInter(a,b,r):
-    #r = np.linalg.norm()
-    epsilon = combEps(a, b)
-    sigma = combSigma(a,b)
-    return 4*epsilon*((sigma/r)**12 - (sigma/r)**6)
-
-
-
 #Neighbourlists: 
 
 # Adjacency matrix: sparse, so memory-inefficient
@@ -267,18 +261,18 @@ def neighbourMatrix(positions,cutoff):
     """ returns adjacancy matrix for atoms closer than cutoff """
     return (distAtoms(positions) < cutoff)
 
-types,positions,masses = readXYZfile("WaterSingle.xyz",0)
-neighMatrix = neighbourMatrix(positions,1)
 
-# poging tot adjacency list:
 
 
 def neighbourList(positions,cutoff): 
-    """ returns list of neighbour pairs
+    """ returns list of pairs of atoms with distance < cutoff
     
     Note: still contains duplicates and pairs (x,x) """
     neighMatrix = neighbourMatrix(positions,cutoff)
     neighPairs = np.matrix.transpose(np.array(np.where(neighMatrix)))
     return neighPairs
 
+
+types,positions,masses = readXYZfile("WaterSingle.xyz",0)
+neighMatrix = neighbourMatrix(positions,1)
 neighList = neighbourList(positions,1)

@@ -271,11 +271,14 @@ types,positions,masses = readXYZfile("WaterSingle.xyz",0)
 neighMatrix = neighbourMatrix(positions,1)
 
 # poging tot adjacency list:
-length = len(neighMatrix)
-neighVect = neighMatrix.reshape(length**2)
-indices = [*range(0,length)]*length 
-neighbourIndices = np.multiply(neighVect,indices)
-# neighbourList = 
 
-#def neighbourList(positions,cutoff): 
+
+def neighbourList(positions,cutoff): 
+    """ returns list of neighbour pairs
     
+    Note: still contains duplicates and pairs (x,x) """
+    neighMatrix = neighbourMatrix(positions,cutoff)
+    neighPairs = np.matrix.transpose(np.array(np.where(neighMatrix)))
+    return neighPairs
+
+neighList = neighbourList(positions,1)

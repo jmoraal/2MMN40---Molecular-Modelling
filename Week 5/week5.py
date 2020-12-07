@@ -237,7 +237,7 @@ with open("MixedMoleculesOutput.xyz", "a") as outputFile:
 
 
 
-### WEEK 4 ###
+### WEEK 5 ###
 # TODO: 
 # - Implement Lennard-Jones Potential & forces
 # - Add periodic boundary conditions

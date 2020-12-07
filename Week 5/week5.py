@@ -248,15 +248,12 @@ with open("MixedMoleculesOutput.xyz", "a") as outputFile:
 # - Add periodic boundary conditions
 
 
-sigmaDict = {'H': 0, 'O': 0.315061}
-epsilonDict = {'H': 0, 'O': 0.66386}
-#These might depend on the molecule; need to generalise?
 
 def combSigma(a,b):
-    return (0.5*(sigmaDict[a] + sigmaDict[b]))
+    return (0.5*(sigma[a] + sigma[b]))
 
 def combEps(a,b):
-    return(np.sqrt(epsilonDict[a]*epsilonDict[b]))
+    return(np.sqrt(epsilon[a]*epsilon[b]))
 
 
 #compute distance r within function?
@@ -275,12 +272,14 @@ def neighbourMatrix(positions,cutoff):
     """ returns adjacancy matrix for atoms closer than cutoff """
     return (distAtoms(positions) < cutoff)
 
-types,positions = readXYZfile("WaterSingle.xyz",0)
+types,positions,masses = readXYZfile("WaterSingle.xyz",0)
 neighMatrix = neighbourMatrix(positions,1)
 
 # poging tot adjacency list:
-# length = len(neighMatrix)
-# neighbourIndices = neighMatrix.reshape(length**2,1)*
+length = len(neighMatrix)
+neighVect = neighMatrix.reshape(length**2)
+indices = [*range(0,length)]*length 
+neighbourIndices = np.multiply(neighVect,indices)
 # neighbourList = 
 
 #def neighbourList(positions,cutoff): 

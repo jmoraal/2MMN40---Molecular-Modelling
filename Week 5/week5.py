@@ -117,17 +117,15 @@ def readTopologyFile(fileNameTopology):
     with open(fileNameTopology, "r") as inputFile:
         lines = inputFile.readlines()
         
-        ### ik dacht dat het handig was om aan te geven welke atomen in een molecuul zitten
-        ### maar dat is tot nu to nog niet echt nodig gebleken
         nrOfMolecules = int(lines[0].split()[1])
         # print(nrOfMolecules)
     
         molecules = []
         for i in range(1,nrOfMolecules+1):
             molecules.append(list(map(int,lines[i].split())))
-        # molecules = np.asarray(molecules) # no np array for molecules since length differs per entry
-        # print(molecules)
-        ###
+            
+        pad = len(max(molecules, key=len)) # add padding to create np array 
+        molecules = np.array([i + [-1]*(pad-len(i)) for i in molecules])
 
         nrOfBonds = int(lines[nrOfMolecules+1].split()[1])
         bonds = []
@@ -158,7 +156,7 @@ def readTopologyFile(fileNameTopology):
         return(molecules, bonds, bondConstants, angles, angleConstants, sigma, epsilon)
 
 
-def computeForces(x, bonds, bondConstants, angles, angleConstants):
+def computeForces(x, bonds, bondConstants, angles, angleConstants, sigma, epsilon):
     """Caltulate forces in one go with help of topology file."""
     forces = np.zeros((len(types),3), dtype = float)
     # bonds
@@ -188,6 +186,29 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants):
         np.add.at(forces, angles[:,0], FangleAtomLeft)
         np.add.at(forces, angles[:,1], FangleAtomMiddle)
         np.add.at(forces, angles[:,2], FangleAtomRight)
+        
+    
+    # Lennard Jones forces
+    dist = distAtoms(x)
+    i = 0
+    j = 3
+    if np.where(molecules == i)[0] != np.where(molecules == j)[0]: # check that atoms are not in same molecule
+        e = np.sqrt(epsilon[i]*epsilon[j])
+        s = 0.5*(sigma[i] + sigma[j])
+        r = dist[i,j]
+        Uij = 4*e*((s/r)**12 - (s/r)**6)
+    
+    # if sigma.size > 0:
+    #     for i,atom in enumerate(types):
+    #         for j,atom2 in enumerate(types):
+    #             if np.where(molecules == i)[0] != np.where(molecules == j)[0]:
+    #                 e = np.sqrt(epsilon[i]*epsilon[j])
+    #                 s = 0/5*(sigma[i] + sigma[j])
+    #                 r = dist[i,j]
+    #                 Uij = 4*e*((s/r)**12 - (s/r)**6)
+    #                 if Uij != 0:
+    #                     print(Uij)
+        
     return(forces)
 
 # example
@@ -196,10 +217,8 @@ types, x, m = readXYZfile("MixedMolecules.xyz", 0)
 molecules, bonds, bondConstants, angles, angleConstants, sigma, epsilon = readTopologyFile("MixedMoleculesTopology.txt")
 
 time_loc = 0
-endTime = 2
+endTime = 0.001
 dt = 0.001
-
-
 
 x_loc = x
 u = np.random.uniform(size=3*len(types)).reshape((len(types),3)) # random starting velocity vector
@@ -215,7 +234,7 @@ with open("MixedMoleculesOutput.xyz", "a") as outputFile:
         for i, atom in enumerate(x_loc):
             outputFile.write(f"{types[i]} {x_loc[i,0]:10.5f} {x_loc[i,1]:10.5f} {x_loc[i,2]:10.5f}\n")  
             
-        forces = computeForces(x_loc, bonds, bondConstants, angles, angleConstants)
+        forces = computeForces(x_loc, bonds, bondConstants, angles, angleConstants, sigma, epsilon)
         accel = forces / m[:,np.newaxis]
         x_loc, v_loc, a_loc = integratorEulerNew(x_loc, v_loc, accel)
         time_loc += dt

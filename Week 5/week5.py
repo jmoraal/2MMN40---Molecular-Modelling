@@ -225,7 +225,7 @@ with open("MixedMoleculesOutput.xyz", "a") as outputFile:
 
 sigmaDict = {'H': 0, 'O': 0.315061}
 epsilonDict = {'H': 0, 'O': 0.66386}
-#These might depend on the molecule; need to generalise
+#These might depend on the molecule; need to generalise?
 
 def combSigma(a,b):
     return (0.5*(sigmaDict[a] + sigmaDict[b]))
@@ -234,10 +234,29 @@ def combEps(a,b):
     return(np.sqrt(epsilonDict[a]*epsilonDict[b]))
 
 
-#compute distance within function?
+#compute distance r within function?
 def LennardJonesInter(a,b,r):
     #r = np.linalg.norm()
     epsilon = combEps(a, b)
     sigma = combSigma(a,b)
     return 4*epsilon*((sigma/r)**12 - (sigma/r)**6)
 
+
+
+#Neighbourlists: 
+
+# Adjacency matrix: sparse, so memory-inefficient
+def neighbourMatrix(positions,cutoff): 
+    """ returns adjacancy matrix for atoms closer than cutoff """
+    return (distAtoms(positions) < cutoff)
+
+types,positions = readXYZfile("WaterSingle.xyz",0)
+neighMatrix = neighbourMatrix(positions,1)
+
+# poging tot adjacency list:
+# length = len(neighMatrix)
+# neighbourIndices = neighMatrix.reshape(length**2,1)*
+# neighbourList = 
+
+#def neighbourList(positions,cutoff): 
+    

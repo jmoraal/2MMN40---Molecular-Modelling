@@ -198,6 +198,7 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, sigma, epsilo
         
     
     # Lennard Jones forces
+    # dit is het idee maar dat moet natuurlijk nog op een snelle manier met np
     dist = distAtoms(x)    
     if sigma.size > 0:
         f = np.zeros((len(types), 3))

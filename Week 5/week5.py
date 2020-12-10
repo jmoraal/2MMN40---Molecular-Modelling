@@ -288,6 +288,8 @@ def distAtomsPBC(positions):
     Not entirely sure this is correct!
     """
     diff = abs(positions - positions[:,np.newaxis]) % boxSize
+    # To do: combine with direction vector computation
+    
     #Of: np.add.at(diff,np.where(diff > 0.5*boxSize), - boxSize)
     # Idee: bij alle richtingen waar dist>0.5boxSize, size aftrekken
     dist = np.linalg.norm(diff,axis = 2)
@@ -299,4 +301,5 @@ def coordProjectToBox(x, boxSize):
     """Projects all coordinates into cubic box of size boxSize"""
     return (x % boxSize)
 #To do: generalise to rectangular shapes? 
+# if not, then the function above is not necessary
 

@@ -7,6 +7,7 @@ Created on Mon Nov  9 16:30:44 2020
 """
 
 import numpy as np
+from itertools import chain
 
 ### WEEK 1 ###
 # To do (misschien): geheugen-efficiënter maken
@@ -124,8 +125,13 @@ def readTopologyFile(fileNameTopology):
         for i in range(1,nrOfMolecules+1):
             molecules.append(list(map(int,lines[i].split())))
             
-        pad = len(max(molecules, key=len)) # add padding to create np array 
-        molecules = np.array([i + [-1]*(pad-len(i)) for i in molecules])
+        # pad = len(maxa(molecules, key=len)) # add padding to create np array 
+        # molecules = np.rray([i + [-1]*(pad-len(i)) for i in molecules])
+        
+        atomsInOtherMolecules = []
+        for i in range(0,len(molecules)):
+            for j in range(0,len(molecules[i])):
+                atomsInOtherMolecules.append(list(chain(*(molecules[:i] + molecules[i+1:]))))
 
         nrOfBonds = int(lines[nrOfMolecules+1].split()[1])
         bonds = []
@@ -153,7 +159,7 @@ def readTopologyFile(fileNameTopology):
         sigma = np.asarray(sigma)
         epsilon = np.asarray(epsilon)
         
-        return(molecules, bonds, bondConstants, angles, angleConstants, sigma, epsilon)
+        return(atomsInOtherMolecules, bonds, bondConstants, angles, angleConstants, sigma, epsilon)
 
 
 
@@ -198,29 +204,42 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, sigma, epsilo
         
     
     # Lennard Jones forces
-    # dit is het idee maar dat moet natuurlijk nog op een snelle manier met np
-    dist = distAtoms(x)    
     if sigma.size > 0:
-        f = np.zeros((len(types), 3))
-        for i,atom in enumerate(types):
-            for j,atom2 in enumerate(types):
-                if np.where(molecules == i)[0] != np.where(molecules == j)[0]:
-                    # e = np.sqrt(epsilon[i]*epsilon[j])
-                    # s = 0.5*(sigma[i] + sigma[j])
-                    # r = dist[i,j]
-                    # U = 4*e*((s/r)**12 - (s/r)**6)
-                    r = dist[i,j]
-                    U = LennardJonesInter(sigma, epsilon, i, j, r)
-                    if U != 0:
-                        f[i] += U*(x[j] - x[i])                 
+        dist = distAtoms(x)
+        U = np.zeros((len(types), 3))
+    
+        e = np.sqrt(epsilon*epsilon[:,np.newaxis])
+        s = 0.5*(sigma+sigma[:,np.newaxis])
+    
+        # U = np.nan_to_num(4*e*((s/dist)**12 - (s/dist)**6)) # divides by 0 in diagonal elements
+        # print(U)
+        x[:,np.newaxis]-x
+    
+    
+    
+    # dit is het idee maar dat moet natuurlijk nog op een snelle manier met np
+    # dist = distAtoms(x)    
+    # if sigma.size > 0:
+    #     f = np.zeros((len(types), 3))
+    #     for i,atom in enumerate(types):
+    #         for j,atom2 in enumerate(types):
+    #             if np.where(molecules == i)[0] != np.where(molecules == j)[0]:
+    #                 e = np.sqrt(epsilon[i]*epsilon[j])
+    #                 s = 0.5*(sigma[i] + sigma[j])
+    #                 r = dist[i,j]
+    #                 U = 4*e*((s/r)**12 - (s/r)**6)
+    #                 # r = dist[i,j]
+    #                 # U = LennardJonesInter(sigma, epsilon, i, j, r)
+    #                 if U != 0:
+    #                     f[i] += U*(x[j] - x[i])                 
         
-        forces = forces + f 
+    #     forces = forces + f 
     return(forces)
 
 # example
 # two water and one hydrogen molecules
 types, x, m = readXYZfile("MixedMolecules.xyz", 0)
-molecules, bonds, bondConstants, angles, angleConstants, sigma, epsilon = readTopologyFile("MixedMoleculesTopology.txt")
+atomsInOtherMolecules, bonds, bondConstants, angles, angleConstants, sigma, epsilon = readTopologyFile("MixedMoleculesTopology.txt")
 
 time_loc = 0
 endTime = 0.001
@@ -260,8 +279,6 @@ with open("MixedMoleculesOutput.xyz", "a") as outputFile:
 def neighbourMatrix(positions,cutoff): 
     """ returns adjacancy matrix for atoms closer than cutoff """
     return (distAtoms(positions) < cutoff)
-
-
 
 
 def neighbourList(positions,cutoff): 

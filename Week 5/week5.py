@@ -175,14 +175,18 @@ def distAtomsPBC(positions, boxSize):
     
     Not entirely sure this is correct!
     """
-    diff = abs(positions - positions[:,np.newaxis]) % boxSize
-    # To do: combine with direction vector computation
+    # Old (but correct)
+    # diff = abs(positions - positions[:,np.newaxis]) % boxSize
+    # does not have right direction vector
     
-    #Of: np.add.at(diff,np.where(diff > 0.5*boxSize), - boxSize)
-    # Idee: bij alle richtingen waar dist>0.5boxSize, size aftrekken
+    diff = positions - positions[:,np.newaxis] % 0.5*boxSize
+    # idea: if dist > 0.5*boxsize in some direction (x, y or z), then there is a closer copy. 
+    # subtracting 0.5*boxsize in every direction where it is too large yields direction vector to closest neighbour
+    # Still check correctness!
     dist = np.linalg.norm(diff,axis = 2)
-    return(dist)
-
+    return(diff, dist)
+# Direction and distance are usually both needed, right? 
+# Could also just return difference vector and do distance calculation elsewhere
 
 def computeForces(x, bonds, bondConstants, angles, angleConstants, sigma, epsilon, boxSize = np.infty):
     """Caltulate forces in one go with help of topology file."""
@@ -339,6 +343,8 @@ with open("MixedMoleculesPBCOutput.xyz", "a") as outputFile:
         for i, atom in enumerate(x):
             outputFile.write(f"{types[i]} {x[i,0]:10.5f} {x[i,1]:10.5f} {x[i,2]:10.5f}\n")  
             
+        neighList = neighbourList(x, 0.5*boxSizeExample)
+        #yet to make sure LJ is computed correctly for neighbours from different boxes
         x = x % boxSizeExample
         forces = computeForces(x, bonds, bondConstants, angles, angleConstants, sigma, epsilon, boxSize = boxSizeExample)
         accel = forces / m[:,np.newaxis]

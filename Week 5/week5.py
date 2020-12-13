@@ -170,8 +170,21 @@ def LennardJonesInter(sigma,eps,a,b,r):
     sigma = 0.5*(sigma[a] + sigma[b])
     return 4*epsilon*((sigma/r)**12 - (sigma/r)**6)
 
+def distAtomsPBC(positions, boxSize):
+    """ Computes distances between all atoms, with boundaries
+    
+    Not entirely sure this is correct!
+    """
+    diff = abs(positions - positions[:,np.newaxis]) % boxSize
+    # To do: combine with direction vector computation
+    
+    #Of: np.add.at(diff,np.where(diff > 0.5*boxSize), - boxSize)
+    # Idee: bij alle richtingen waar dist>0.5boxSize, size aftrekken
+    dist = np.linalg.norm(diff,axis = 2)
+    return(dist)
 
-def computeForces(x, bonds, bondConstants, angles, angleConstants, sigma, epsilon):
+
+def computeForces(x, bonds, bondConstants, angles, angleConstants, sigma, epsilon, boxSize = np.infty):
     """Caltulate forces in one go with help of topology file."""
     forces = np.zeros((len(types),3), dtype = float)
     # bonds
@@ -204,8 +217,9 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, sigma, epsilo
         
     
     # Lennard Jones forces
+    
     if sigma.size > 0:
-        dist = distAtoms(x)
+        dist = distAtomsPBC(x,boxSize)  
         U = np.zeros((len(types), 3))
     
         e = np.sqrt(epsilon*epsilon[:,np.newaxis])
@@ -217,8 +231,8 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, sigma, epsilo
     
     
     
-    # dit is het idee maar dat moet natuurlijk nog op een snelle manier met np
-    # dist = distAtoms(x)    
+    #dit is het idee maar dat moet natuurlijk nog op een snelle manier met np
+    # dist = distAtomsPBC(x,boxSize)    
     # if sigma.size > 0:
     #     f = np.zeros((len(types), 3))
     #     for i,atom in enumerate(types):
@@ -299,18 +313,7 @@ neighList = neighbourList(positions,1)
 boxSize = 0.5
 cutoff = 0.5*boxSize
 
-def distAtomsPBC(positions):
-    """ Computes distances between all atoms, with boundaries
-    
-    Not entirely sure this is correct!
-    """
-    diff = abs(positions - positions[:,np.newaxis]) % boxSize
-    # To do: combine with direction vector computation
-    
-    #Of: np.add.at(diff,np.where(diff > 0.5*boxSize), - boxSize)
-    # Idee: bij alle richtingen waar dist>0.5boxSize, size aftrekken
-    dist = np.linalg.norm(diff,axis = 2)
-    return(dist)
+
 
 
 #atom-wise projection into box: 
@@ -320,3 +323,35 @@ def coordProjectToBox(x, boxSize):
 #To do: generalise to rectangular shapes? 
 # if not, then the function above is not necessary
 
+
+
+# example
+# two water and one hydrogen molecules
+types, x, m = readXYZfile("MixedMolecules.xyz", 0)
+atomsInOtherMolecules, bonds, bondConstants, angles, angleConstants, sigma, epsilon = readTopologyFile("MixedMoleculesTopology.txt")
+
+boxSizeExample = 10 # TODO: yet to choose meaningful value
+cutoff = 0.5*boxSizeExample
+
+time = 0
+endTime = 0.001
+dt = 0.001
+
+u = np.random.uniform(size=3*len(types)).reshape((len(types),3)) # random starting velocity vector
+u = u/np.linalg.norm(u,axis = 1)[:,np.newaxis] # normalize
+v = 0.1*u
+
+with open("MixedMoleculesPBCOutput.xyz", "w") as outputFile: 
+    outputFile.write("") 
+with open("MixedMoleculesPBCOutput.xyz", "a") as outputFile:
+    while (time <= endTime) : 
+        outputFile.write(f"{len(types)}\n")
+        outputFile.write(f"This is a comment and the time is {time:5.4f}\n")
+        for i, atom in enumerate(x):
+            outputFile.write(f"{types[i]} {x[i,0]:10.5f} {x[i,1]:10.5f} {x[i,2]:10.5f}\n")  
+            
+        x = x % boxSizeExample
+        forces = computeForces(x, bonds, bondConstants, angles, angleConstants, sigma, epsilon, boxSize = boxSizeExample)
+        accel = forces / m[:,np.newaxis]
+        x, v, a = integratorEulerNew(x, v, accel)
+        time += dt

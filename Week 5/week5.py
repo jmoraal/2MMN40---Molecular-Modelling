@@ -7,7 +7,7 @@ Created on Mon Nov  9 16:30:44 2020
 """
 
 import numpy as np
-from itertools import chain
+#from itertools import chain
 
 ### WEEK 1 ###
 # To do (misschien): geheugen-efficiënter maken
@@ -126,13 +126,16 @@ def readTopologyFile(fileNameTopology):
             molecules.append(list(map(int,lines[i].split())))
         
         # create boolean matrix to indicate which atoms are part of same molecule:
+        # Probably can still be done more efficiently?
         notInSameMolecule = np.ones((len(types), len(types)), dtype=bool)
         for i,mol in enumerate(molecules):
             for j,at in enumerate(mol):
                 for k,at2 in enumerate(mol):
-                    print(at, at2)
+                    # print(at, at2)
                     notInSameMolecule[at,at2] = False
+        
                 
+        
         # for i,atom in enumerate(types):
         #     for j,atom2 in enumerate(types):
         #         print(np.where(molecules == i)[0])
@@ -178,8 +181,11 @@ def readTopologyFile(fileNameTopology):
 
 
 
-#compute distance r within function?
 def LennardJonesInter(sigma,eps,a,b,r):
+    """computes LJ inter-molecular force
+    
+    Maybe calculate r inside of function?
+    Not used at moment, but maybe can still be generalised to arrays instead of single calculations"""
     #r = np.linalg.norm()
     epsilon = np.sqrt(eps[a]*eps[b])
     sigma = 0.5*(sigma[a] + sigma[b])
@@ -194,7 +200,8 @@ def distAtomsPBC(positions, boxSize):
     # diff = abs(positions - positions[:,np.newaxis]) % boxSize
     # does not have right direction vector
     
-    diff = positions - positions[:,np.newaxis] % 0.5*boxSize
+    diff = positions - positions[:,np.newaxis] 
+    diff = diff % (0.5*boxSize)
     # idea: if dist > 0.5*boxsize in some direction (x, y or z), then there is a closer copy. 
     # subtracting 0.5*boxsize in every direction where it is too large yields direction vector to closest neighbour
     # Still check correctness!
@@ -236,7 +243,6 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, sigma, epsilo
         
     
     # Lennard Jones forces
-    
     if sigma.size > 0:
         dist = distAtomsPBC(x,boxSize)  
         #U = np.zeros((len(types), 3))
@@ -332,12 +338,12 @@ def neighbourList(positions,cutoff):
 def coordProjectToBox(x, boxSize):
     """Projects all coordinates into cubic box of size boxSize"""
     return (x % boxSize)
-#To do: generalise to rectangular shapes? 
+#TODO: generalise to non-cubic shapes? 
 # if not, then the function above is not necessary
 
 
 
-# example
+# example (disclaimer: not yet fully correct, just to check methods so far are working)
 # two water and one hydrogen molecules
 types, x, m = readXYZfile("MixedMolecules.xyz", 0)
 atomsInOtherMolecules, bonds, bondConstants, angles, angleConstants, sigma, epsilon = readTopologyFile("MixedMoleculesTopology.txt")

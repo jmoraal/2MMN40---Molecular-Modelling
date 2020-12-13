@@ -298,22 +298,11 @@ def neighbourMatrix(positions,cutoff):
 def neighbourList(positions,cutoff): 
     """ returns list of pairs of atoms with distance < cutoff
     
-    Note: still contains duplicates and pairs (x,x) """
+    Note: still contains duplicates and pairs (x,x)
+    Also, there is probably a more direct way?"""
     neighMatrix = neighbourMatrix(positions,cutoff)
     neighPairs = np.matrix.transpose(np.array(np.where(neighMatrix)))
     return neighPairs
-
-
-types,positions,masses = readXYZfile("WaterSingle.xyz",0)
-neighMatrix = neighbourMatrix(positions,1)
-neighList = neighbourList(positions,1)
-
-
-#for cubic simulation box:
-boxSize = 0.5
-cutoff = 0.5*boxSize
-
-
 
 
 #atom-wise projection into box: 

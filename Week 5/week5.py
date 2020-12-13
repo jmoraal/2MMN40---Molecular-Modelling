@@ -124,14 +124,29 @@ def readTopologyFile(fileNameTopology):
         molecules = []
         for i in range(1,nrOfMolecules+1):
             molecules.append(list(map(int,lines[i].split())))
-            
+        
+        # create boolean matrix to indicate which atoms are part of same molecule:
+        notInSameMolecule = np.ones((len(types), len(types)), dtype=bool)
+        for i,mol in enumerate(molecules):
+            for j,at in enumerate(mol):
+                for k,at2 in enumerate(mol):
+                    print(at, at2)
+                    notInSameMolecule[at,at2] = False
+                
+        # for i,atom in enumerate(types):
+        #     for j,atom2 in enumerate(types):
+        #         print(np.where(molecules == i)[0])
+        #         if np.where(molecules == i)[0] == np.where(molecules == j)[0]:
+        #             notInSameMolecule[i,j] = False
+        
         # pad = len(maxa(molecules, key=len)) # add padding to create np array 
         # molecules = np.rray([i + [-1]*(pad-len(i)) for i in molecules])
         
-        atomsInOtherMolecules = []
-        for i in range(0,len(molecules)):
-            for j in range(0,len(molecules[i])):
-                atomsInOtherMolecules.append(list(chain(*(molecules[:i] + molecules[i+1:]))))
+        # another option for the notInSameMolecule is the nonAdjacencyList:
+        # nonAdjacencyList = []
+        # for i in range(0,len(molecules)):
+        #     for j in range(0,len(molecules[i])):
+        #         nonAdjacencyList.append(list(chain(*(molecules[:i] + molecules[i+1:]))))
 
         nrOfBonds = int(lines[nrOfMolecules+1].split()[1])
         bonds = []
@@ -159,7 +174,7 @@ def readTopologyFile(fileNameTopology):
         sigma = np.asarray(sigma)
         epsilon = np.asarray(epsilon)
         
-        return(atomsInOtherMolecules, bonds, bondConstants, angles, angleConstants, sigma, epsilon)
+        return(notInSameMolecule, bonds, bondConstants, angles, angleConstants, sigma, epsilon)
 
 
 
@@ -184,7 +199,7 @@ def distAtomsPBC(positions, boxSize):
     # subtracting 0.5*boxsize in every direction where it is too large yields direction vector to closest neighbour
     # Still check correctness!
     dist = np.linalg.norm(diff,axis = 2)
-    return(diff, dist)
+    return(dist) #diff,
 # Direction and distance are usually both needed, right? 
 # Could also just return difference vector and do distance calculation elsewhere
 
@@ -224,19 +239,23 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, sigma, epsilo
     
     if sigma.size > 0:
         dist = distAtomsPBC(x,boxSize)  
-        U = np.zeros((len(types), 3))
+        #U = np.zeros((len(types), 3))
     
         e = np.sqrt(epsilon*epsilon[:,np.newaxis])
         s = 0.5*(sigma+sigma[:,np.newaxis])
+        
+        frac = np.divide(s, dist, out=np.zeros_like(s), where=dist!=0) # avoid division by 0
+        U = 4*e*(frac**12 - frac**6)
+        L = x-x[:,np.newaxis]
+        
+        U = U*notInSameMolecule # these forces do not apply on atoms in the same molecule!
+        
+        U = np.repeat(U, 3).reshape(len(types), len(types), 3)
+        
+        forces += np.sum(U*L, axis = 1)
     
-        # U = np.nan_to_num(4*e*((s/dist)**12 - (s/dist)**6)) # divides by 0 in diagonal elements
-        # print(U)
-        x[:,np.newaxis]-x
-    
-    
-    
-    #dit is het idee maar dat moet natuurlijk nog op een snelle manier met np
-    # dist = distAtomsPBC(x,boxSize)    
+    # hieronder de LJ forces met forloops
+    # dist = distAtomsPBC(x,boxSizd)    
     # if sigma.size > 0:
     #     f = np.zeros((len(types), 3))
     #     for i,atom in enumerate(types):
@@ -257,10 +276,10 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, sigma, epsilo
 # example
 # two water and one hydrogen molecules
 types, x, m = readXYZfile("MixedMolecules.xyz", 0)
-atomsInOtherMolecules, bonds, bondConstants, angles, angleConstants, sigma, epsilon = readTopologyFile("MixedMoleculesTopology.txt")
+notInSameMolecule, bonds, bondConstants, angles, angleConstants, sigma, epsilon = readTopologyFile("MixedMoleculesTopology.txt")
 
 time_loc = 0
-endTime = 0.001
+endTime = 0.00
 dt = 0.001
 
 x_loc = x

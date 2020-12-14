@@ -67,12 +67,21 @@ def Fbond(r, k, r0):
 def Vangle(t, kt, t0):
     """ Calculates harmonic angular potential """
     return 1/2*kt*(t-t0)**2
+#Note: can also be used for harmonic dihedral potential
 
 def Fangle(t, kt, t0):
     """ Calculates angular force magnitude """
     return -kt*(t-t0)
 
+def Vdihedral(t, k0, t0, C):
+    """ Calculates periodic dihedral potential for given forcefield constants C """
+    psi = t - np.pi
+    return 0.5*(C[1]*(1+np.cos(psi)) + C[2]*(1-np.cos(2*psi)) + C[3]*(1+np.cos(3*psi)) + C[4]*(1-np.cos(4*psi)))
 
+def Fdihedral(t, k0, t0, C):
+    """ Calculates periodic dihedral force magnitude """
+    psi = t - np.pi
+    return 0.5*(-C[1]*np.sin(psi) + 2*C[2]*np.sin(2*psi) - 3*C[3]*np.sin(3*psi) + 4*C[4]*np.sin(4*psi))
 
 ### WEEK 3 updated ###
 def integratorEulerNew(x, v, a):
@@ -240,6 +249,21 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, sigma, epsilo
         np.add.at(forces, angles[:,0], FangleAtomLeft)
         np.add.at(forces, angles[:,1], FangleAtomMiddle)
         np.add.at(forces, angles[:,2], FangleAtomRight)
+        
+    dihedrals = []
+    # dihedrals
+    if dihedrals.size > 0:
+        dif1 = x[dihedrals[:,0]] - x[dihedrals[:,1]]
+        difCommon = x[dihedrals[:,1]] - x[dihedrals[:,2]]
+        dif2 = x[dihedrals[:,2]] - x[dihedrals[:,3]]
+        
+        normalVec1 = np.cross(dif1,difCommon)
+        normalVec2 = np.cross(-difCommon,dif2)
+        
+        theta = np.arccos(np.sum(normalVec1*normalVec2, axis = 1)/(np.linalg.norm(normalVec1, axis = 1)*np.linalg.norm(normalVec2, axis = 1)))
+        
+        psi = theta - np.pi
+        
         
     
     # Lennard Jones forces

@@ -264,7 +264,7 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, sigma, epsilo
         
         psi = theta - np.pi
         
-        
+        #voorbereiding is gedaan, nu moeten (analoog aan angles) de krachten zelf nog berekend worden met Fdihedrals() en richting gegeven worden
     
     # Lennard Jones forces
     if sigma.size > 0:

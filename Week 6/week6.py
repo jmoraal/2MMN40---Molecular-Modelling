@@ -250,7 +250,7 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, sigma, epsilo
         np.add.at(forces, angles[:,1], FangleAtomMiddle)
         np.add.at(forces, angles[:,2], FangleAtomRight)
         
-    dihedrals = []
+    dihedrals = [] # only there to prevent error warnings while implementing
     # dihedrals
     if dihedrals.size > 0:
         dif1 = x[dihedrals[:,0]] - x[dihedrals[:,1]]

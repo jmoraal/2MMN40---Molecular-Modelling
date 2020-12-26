@@ -211,6 +211,7 @@ def distAtomsPBC(positions, boxSize):
     
     diff = positions - positions[:,np.newaxis] 
     diff = diff % (0.5*boxSize)
+
     # idea: if dist > 0.5*boxsize in some direction (x, y or z), then there is a closer copy. 
     # subtracting 0.5*boxsize in every direction where it is too large yields direction vector to closest neighbour
     # Still check correctness!
@@ -242,6 +243,7 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, sigma, epsilo
         normalVec1 = np.cross(atomLeft-atomMiddle,np.cross(atomLeft-atomMiddle,atomRight-atomMiddle))
         normalVec2 = np.cross(atomMiddle-atomRight,np.cross(atomLeft-atomMiddle,atomRight-atomMiddle))
 
+        print(np.linalg.norm(atomLeft-atomMiddle, axis = 1)[:,np.newaxis])
         FangleAtomLeft = Fangles[:,np.newaxis]/np.linalg.norm(atomLeft-atomMiddle, axis = 1)[:,np.newaxis] * normalVec1/np.linalg.norm(normalVec1, axis = 1)[:,np.newaxis]
         FangleAtomRight = Fangles[:,np.newaxis]/np.linalg.norm(atomRight-atomMiddle, axis = 1)[:,np.newaxis] * normalVec2/np.linalg.norm(normalVec2, axis = 1)[:,np.newaxis]
         FangleAtomMiddle = -FangleAtomLeft - FangleAtomRight
@@ -250,20 +252,30 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, sigma, epsilo
         np.add.at(forces, angles[:,1], FangleAtomMiddle)
         np.add.at(forces, angles[:,2], FangleAtomRight)
         
-    dihedrals = [] # only there to prevent error warnings while implementing
-    # dihedrals
-    if dihedrals.size > 0:
-        dif1 = x[dihedrals[:,0]] - x[dihedrals[:,1]]
-        difCommon = x[dihedrals[:,1]] - x[dihedrals[:,2]]
-        dif2 = x[dihedrals[:,2]] - x[dihedrals[:,3]]
+    # dihedrals = [] # only there to prevent error warnings while implementing
+    # # dihedrals
+    # if dihedrals.size > 0:
+    #     dif1 = x[dihedrals[:,0]] - x[dihedrals[:,1]]
+    #     difCommon = x[dihedrals[:,1]] - x[dihedrals[:,2]]
+    #     dif2 = x[dihedrals[:,2]] - x[dihedrals[:,3]]
         
-        normalVec1 = np.cross(dif1,difCommon)
-        normalVec2 = np.cross(-difCommon,dif2)
+    #     normalVec1 = np.cross(dif1,difCommon)
+    #     normalVec2 = np.cross(-difCommon,dif2)
         
-        theta = np.arccos(np.sum(normalVec1*normalVec2, axis = 1)/(np.linalg.norm(normalVec1, axis = 1)*np.linalg.norm(normalVec2, axis = 1)))
+    #     theta = np.arccos(np.sum(normalVec1*normalVec2, axis = 1)/(np.linalg.norm(normalVec1, axis = 1)*np.linalg.norm(normalVec2, axis = 1)))
         
-        psi = theta - np.pi
+    #     psi = theta - np.pi
         
+    #     # Fdihedrals = Fdihedral(psi, dihedralConstants)
+        
+    #     # FdihedralAtomi = Fdihedrals[:,np.newaxis]/np.linalg.norm(dif1, axis = 1)[:,np.newaxis] * normalVec1/np.linalg.norm(normalVec1, axis = 1)[:,np.newaxis]
+    #     # FdihedralAtoml = Fdihedrals[:,np.newaxis]/np.linalg.norm(dif2, axis = 1)[:,np.newaxis] * normalVec1/np.linalg.norm(normalVec1, axis = 1)[:,np.newaxis]
+        
+    #     np.add.at(forces, angles[:,0], FangleAtomLeft)
+    #     np.add.at(forces, angles[:,1], FangleAtomMiddle)
+    #     np.add.at(forces, angles[:,2], FangleAtomRight)
+        
+    
         #voorbereiding is gedaan, nu moeten (analoog aan angles) de krachten zelf nog berekend worden met Fdihedrals() en richting gegeven worden
     
     # Lennard Jones forces

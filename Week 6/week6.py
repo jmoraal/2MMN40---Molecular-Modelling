@@ -51,7 +51,7 @@ def distAtoms(positions):
     return(dist)
 
 
-### WEEK 2 ###
+### FORCES ###
 
 # BOND
 def Vbond(r, k, r0):
@@ -73,17 +73,19 @@ def Fangle(t, kt, t0):
     """ Calculates angular force magnitude """
     return -kt*(t-t0)
 
-def Vdihedral(t, k0, t0, C):
+
+# DIHEDRAL
+def Vdihedral(t, C1, C2, C3, C4):
     """ Calculates periodic dihedral potential for given forcefield constants C """
     psi = t - np.pi
-    return 0.5*(C[1]*(1+np.cos(psi)) + C[2]*(1-np.cos(2*psi)) + C[3]*(1+np.cos(3*psi)) + C[4]*(1-np.cos(4*psi)))
+    return 0.5*(C1*(1+np.cos(psi)) + C2*(1-np.cos(2*psi)) + C3*(1+np.cos(3*psi)) + C4*(1-np.cos(4*psi)))
 
-def Fdihedral(t, k0, t0, C):
+def Fdihedral(t, C1, C2, C3, C4):
     """ Calculates periodic dihedral force magnitude """
     psi = t - np.pi
-    return 0.5*(-C[1]*np.sin(psi) + 2*C[2]*np.sin(2*psi) - 3*C[3]*np.sin(3*psi) + 4*C[4]*np.sin(4*psi))
+    return 0.5*(-C1*np.sin(psi) + 2*C2*np.sin(2*psi) - 3*C3*np.sin(3*psi) + 4*C4*np.sin(4*psi))
 
-### WEEK 3 updated ###
+### INTEGRATORS ###
 def integratorEulerNew(x, v, a):
     """ Implementation of a single step for Euler integrator. """ 
     x = x + dt*v + (dt**2)/2*a
@@ -143,17 +145,6 @@ def readTopologyFile(fileNameTopology):
                     # print(at, at2)
                     notInSameMolecule[at,at2] = False
         
-                
-        
-        # for i,atom in enumerate(types):
-        #     for j,atom2 in enumerate(types):
-        #         print(np.where(molecules == i)[0])
-        #         if np.where(molecules == i)[0] == np.where(molecules == j)[0]:
-        #             notInSameMolecule[i,j] = False
-        
-        # pad = len(maxa(molecules, key=len)) # add padding to create np array 
-        # molecules = np.rray([i + [-1]*(pad-len(i)) for i in molecules])
-        
         # another option for the notInSameMolecule is the nonAdjacencyList:
         # nonAdjacencyList = []
         # for i in range(0,len(molecules)):
@@ -178,15 +169,24 @@ def readTopologyFile(fileNameTopology):
         angles = np.asarray(angles).reshape(nrOfAngles,3)
         angleConstants = np.asarray(angleConstants).reshape(nrOfAngles,2)
         
+        nrOfDihedrals = int(lines[nrOfMolecules+nrOfBonds+nrOfAngles+3].split()[1])
+        dihedrals = []
+        dihedralConstants = []
+        for i in range(nrOfMolecules+nrOfBonds+nrOfAngles+4, nrOfMolecules+nrOfBonds+nrOfAngles+nrOfDihedrals+4):
+            dihedrals.append([int(lines[i].split()[0]),int(lines[i].split()[1]),int(lines[i].split()[2]),int(lines[i].split()[3])])
+            dihedralConstants.append([float(lines[i].split()[4]),float(lines[i].split()[5]),float(lines[i].split()[6]),float(lines[i].split()[7])])
+        dihedrals = np.asarray(dihedrals).reshape(nrOfDihedrals,4)
+        dihedralConstants = np.asarray(dihedralConstants).reshape(nrOfDihedrals,4)
+        
         sigma = []
         epsilon = []
-        for i in range(nrOfMolecules+nrOfBonds+nrOfAngles+4, len(lines)):
+        for i in range(nrOfMolecules+nrOfBonds+nrOfAngles+nrOfDihedrals+5, len(lines)):
             sigma.append(float(lines[i].split()[0]))
             epsilon.append(float(lines[i].split()[1]))
         sigma = np.asarray(sigma)
         epsilon = np.asarray(epsilon)
         
-        return(notInSameMolecule, bonds, bondConstants, angles, angleConstants, sigma, epsilon)
+        return(notInSameMolecule, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon)
 
 
 
@@ -220,7 +220,7 @@ def distAtomsPBC(positions, boxSize):
 # Direction and distance are usually both needed, right? 
 # Could also just return difference vector and do distance calculation elsewhere
 
-def computeForces(x, bonds, bondConstants, angles, angleConstants, sigma, epsilon, boxSize = np.infty):
+def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon, boxSize = np.infty):
     """Caltulate forces in one go with help of topology file."""
     forces = np.zeros((len(types),3), dtype = float)
     # bonds
@@ -242,8 +242,7 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, sigma, epsilo
 
         normalVec1 = np.cross(atomLeft-atomMiddle,np.cross(atomLeft-atomMiddle,atomRight-atomMiddle))
         normalVec2 = np.cross(atomMiddle-atomRight,np.cross(atomLeft-atomMiddle,atomRight-atomMiddle))
-
-        print(np.linalg.norm(atomLeft-atomMiddle, axis = 1)[:,np.newaxis])
+        
         FangleAtomLeft = Fangles[:,np.newaxis]/np.linalg.norm(atomLeft-atomMiddle, axis = 1)[:,np.newaxis] * normalVec1/np.linalg.norm(normalVec1, axis = 1)[:,np.newaxis]
         FangleAtomRight = Fangles[:,np.newaxis]/np.linalg.norm(atomRight-atomMiddle, axis = 1)[:,np.newaxis] * normalVec2/np.linalg.norm(normalVec2, axis = 1)[:,np.newaxis]
         FangleAtomMiddle = -FangleAtomLeft - FangleAtomRight
@@ -252,28 +251,32 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, sigma, epsilo
         np.add.at(forces, angles[:,1], FangleAtomMiddle)
         np.add.at(forces, angles[:,2], FangleAtomRight)
         
-    # dihedrals = [] # only there to prevent error warnings while implementing
-    # # dihedrals
-    # if dihedrals.size > 0:
-    #     dif1 = x[dihedrals[:,0]] - x[dihedrals[:,1]]
-    #     difCommon = x[dihedrals[:,1]] - x[dihedrals[:,2]]
-    #     dif2 = x[dihedrals[:,2]] - x[dihedrals[:,3]]
-        
-    #     normalVec1 = np.cross(dif1,difCommon)
-    #     normalVec2 = np.cross(-difCommon,dif2)
-        
-    #     theta = np.arccos(np.sum(normalVec1*normalVec2, axis = 1)/(np.linalg.norm(normalVec1, axis = 1)*np.linalg.norm(normalVec2, axis = 1)))
-        
-    #     psi = theta - np.pi
-        
-    #     # Fdihedrals = Fdihedral(psi, dihedralConstants)
-        
-    #     # FdihedralAtomi = Fdihedrals[:,np.newaxis]/np.linalg.norm(dif1, axis = 1)[:,np.newaxis] * normalVec1/np.linalg.norm(normalVec1, axis = 1)[:,np.newaxis]
-    #     # FdihedralAtoml = Fdihedrals[:,np.newaxis]/np.linalg.norm(dif2, axis = 1)[:,np.newaxis] * normalVec1/np.linalg.norm(normalVec1, axis = 1)[:,np.newaxis]
-        
-    #     np.add.at(forces, angles[:,0], FangleAtomLeft)
-    #     np.add.at(forces, angles[:,1], FangleAtomMiddle)
-    #     np.add.at(forces, angles[:,2], FangleAtomRight)
+        # dihedrals
+        if dihedrals.size > 0:
+            dif1 = x[dihedrals[:,0]] - x[dihedrals[:,1]]
+            difCommon = x[dihedrals[:,1]] - x[dihedrals[:,2]] # TODO check right direction of these vectors and forces !!
+            dif2 = x[dihedrals[:,2]] - x[dihedrals[:,3]]
+            
+            normalVec1 = np.cross(dif1,difCommon)
+            normalVec2 = np.cross(-difCommon,dif2)
+            
+            theta = np.arccos(np.sum(normalVec1*normalVec2, axis = 1)/(np.linalg.norm(normalVec1, axis = 1)*np.linalg.norm(normalVec2, axis = 1)))
+            
+            Fdihedrals = Fdihedral(theta, dihedralConstants[:,0], dihedralConstants[:,1], dihedralConstants[:,2], dihedralConstants[:,3])
+            
+            FdihedralAtomi = Fdihedrals[:,np.newaxis]/np.linalg.norm(dif1, axis = 1)[:,np.newaxis] * normalVec1/np.linalg.norm(normalVec1, axis = 1)[:,np.newaxis]
+            FdihedralAtoml = Fdihedrals[:,np.newaxis]/np.linalg.norm(dif2, axis = 1)[:,np.newaxis] * normalVec2/np.linalg.norm(normalVec2, axis = 1)[:,np.newaxis]
+            
+            FdihedralAtomj
+            FdihedralAtomk
+            
+            # FdihedralAtomi = Fdihedrals[:,np.newaxis]/np.linalg.norm(dif1, axis = 1)[:,np.newaxis] * normalVec1/np.linalg.norm(normalVec1, axis = 1)[:,np.newaxis]
+            # FdihedralAtoml = Fdihedrals[:,np.newaxis]/np.linalg.norm(dif2, axis = 1)[:,np.newaxis] * normalVec1/np.linalg.norm(normalVec1, axis = 1)[:,np.newaxis]
+            
+            np.add.at(forces, dihedrals[:,0], FdihedralAtomi)
+            np.add.at(forces, dihedrals[:,1], FdihedralAtomj)
+            np.add.at(forces, dihedrals[:,2], FdihedralAtomk)
+            np.add.at(forces, dihedrals[:,3], FdihedralAtoml)
         
     
         #voorbereiding is gedaan, nu moeten (analoog aan angles) de krachten zelf nog berekend worden met Fdihedrals() en richting gegeven worden
@@ -318,10 +321,10 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, sigma, epsilo
 # example
 # two water and one hydrogen molecules
 types, x, m = readXYZfile("MixedMolecules.xyz", 0)
-notInSameMolecule, bonds, bondConstants, angles, angleConstants, sigma, epsilon = readTopologyFile("MixedMoleculesTopology.txt")
+notInSameMolecule, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon = readTopologyFile("MixedMoleculesTopology.txt")
 
 time_loc = 0
-endTime = 0.00
+endTime = 2
 dt = 0.001
 
 x_loc = x
@@ -338,7 +341,7 @@ with open("MixedMoleculesOutput.xyz", "a") as outputFile:
         for i, atom in enumerate(x_loc):
             outputFile.write(f"{types[i]} {x_loc[i,0]:10.5f} {x_loc[i,1]:10.5f} {x_loc[i,2]:10.5f}\n")  
             
-        forces = computeForces(x_loc, bonds, bondConstants, angles, angleConstants, sigma, epsilon)
+        forces = computeForces(x_loc, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon)
         accel = forces / m[:,np.newaxis]
         x_loc, v_loc, a_loc = integratorEulerNew(x_loc, v_loc, accel)
         time_loc += dt
@@ -382,7 +385,7 @@ def coordProjectToBox(x, boxSize):
 # example (disclaimer: not yet fully correct, just to check methods so far are working)
 # two water and one hydrogen molecules
 types, x, m = readXYZfile("MixedMolecules.xyz", 0)
-atomsInOtherMolecules, bonds, bondConstants, angles, angleConstants, sigma, epsilon = readTopologyFile("MixedMoleculesTopology.txt")
+atomsInOtherMolecules, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon = readTopologyFile("MixedMoleculesTopology.txt")
 
 boxSizeExample = 10 # TODO: yet to choose meaningful value
 cutoff = 0.5*boxSizeExample
@@ -407,7 +410,7 @@ with open("MixedMoleculesPBCOutput.xyz", "a") as outputFile:
         neighList = neighbourList(x, 0.5*boxSizeExample)
         #yet to make sure LJ is computed correctly for neighbours from different boxes
         x = x % boxSizeExample
-        forces = computeForces(x, bonds, bondConstants, angles, angleConstants, sigma, epsilon, boxSize = boxSizeExample)
+        forces = computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon, boxSize = boxSizeExample)
         accel = forces / m[:,np.newaxis]
         x, v, a = integratorEulerNew(x, v, accel)
         time += dt

@@ -40,7 +40,7 @@ def readXYZfile(fileName, timeStep):
     atomPositions = lines[(2+(2+nrOfAtoms)*timeStep):((2+nrOfAtoms)*(timeStep+1))]
         
     atomPositions = np.asarray(atomPositions).astype(np.float)
-    massesDict = {'H': 1.00784, 'O': 15.9994, 'C': 12.0110}
+    massesDict = {'H': 1.0080, 'O': 15.9994, 'C': 12.0110}
     m = np.vectorize(massesDict.get)(atomTypes)
     return(atomTypes, atomPositions ,m)
 
@@ -103,7 +103,7 @@ def integratorVerlocityNew(x, v, a):
     x_new = x + v*dt + (dt**2)/2*a
     a_new = computeForces(x_new, bonds, bondConstants, angles, angleConstants)/m[:,np.newaxis]
     v = v + dt/2*(a_new +a)
-    return(x_new, v, a)
+    return(x_new, v, a_new)
 
 def integratorRK4New(x, v, a):
     """ Implementation of a single step for Runge-Kutta order 4 integrator. """ 
@@ -229,6 +229,7 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         Fbonds = Fbond(r, bondConstants[:,0], bondConstants[:,1])[:,np.newaxis]*(x[bonds[:,0]]-x[bonds[:,1]])/r[:,np.newaxis]
         np.add.at(forces, bonds[:,0], Fbonds)
         np.add.at(forces, bonds[:,1], -Fbonds)
+        
     
     # angles 
     if angles.size > 0:
@@ -249,8 +250,7 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         
         np.add.at(forces, angles[:,0], FangleAtomLeft)
         np.add.at(forces, angles[:,1], FangleAtomMiddle)
-        np.add.at(forces, angles[:,2], FangleAtomRight)
-        
+        np.add.at(forces, angles[:,2], FangleAtomRight)      
         # dihedrals
         if dihedrals.size > 0:
             dif1 = x[dihedrals[:,0]] - x[dihedrals[:,1]]
@@ -268,8 +268,10 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
             FdihedralAtoml = Fdihedrals[:,np.newaxis]/np.linalg.norm(dif2, axis = 1)[:,np.newaxis] * normalVec2/np.linalg.norm(normalVec2, axis = 1)[:,np.newaxis]
             
             # TODO check equations for Fj and Fk; there should be a square in norms
-            FdihedralAtomj = -FdihedralAtomi + np.sum(dif1*difCommon, axis = 1)/np.linalg.norm(difCommon, axis = 1)[:,np.newaxis]*FdihedralAtomi - np.sum(dif2*difCommon, axis = 1)/np.linalg.norm(dif2, axis = 1)[:,np.newaxis]*FdihedralAtoml
-            FdihedralAtomk = -FdihedralAtoml - np.sum(dif1*difCommon, axis = 1)/np.linalg.norm(difCommon, axis = 1)[:,np.newaxis]*FdihedralAtomi + np.sum(dif2*difCommon, axis = 1)/np.linalg.norm(dif2, axis = 1)[:,np.newaxis]*FdihedralAtoml
+            FdihedralAtomj = 0
+            FdihedralAtomk = 0
+            # FdihedralAtomj = -FdihedralAtomi + np.sum(dif1*difCommon, axis = 1)/np.linalg.norm(difCommon, axis = 1)[:,np.newaxis]*FdihedralAtomi - np.sum(dif2*difCommon, axis = 1)/np.linalg.norm(dif2, axis = 1)[:,np.newaxis]*FdihedralAtoml
+            # FdihedralAtomk = -FdihedralAtoml - np.sum(dif1*difCommon, axis = 1)/np.linalg.norm(difCommon, axis = 1)[:,np.newaxis]*FdihedralAtomi + np.sum(dif2*difCommon, axis = 1)/np.linalg.norm(dif2, axis = 1)[:,np.newaxis]*FdihedralAtoml
             
             # FdihedralAtomi = Fdihedrals[:,np.newaxis]/np.linalg.norm(dif1, axis = 1)[:,np.newaxis] * normalVec1/np.linalg.norm(normalVec1, axis = 1)[:,np.newaxis]
             # FdihedralAtoml = Fdihedrals[:,np.newaxis]/np.linalg.norm(dif2, axis = 1)[:,np.newaxis] * normalVec1/np.linalg.norm(normalVec1, axis = 1)[:,np.newaxis]
@@ -284,8 +286,12 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
     
     # Lennard Jones forces
     if sigma.size > 0:
+        # TODO update with PBC
         dist = distAtomsPBC(x,boxSize)  
-        #U = np.zeros((len(types), 3))
+        # dist = distAtoms(x)
+        # print(dist)
+        
+        U = np.zeros((len(types), 3))
     
         e = np.sqrt(epsilon*epsilon[:,np.newaxis])
         s = 0.5*(sigma+sigma[:,np.newaxis])
@@ -317,44 +323,10 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
     #                     f[i] += U*(x[j] - x[i])                 
         
     #     forces = forces + f 
+    
     return(forces)
-
-# example
-# two water and one hydrogen molecules
-types, x, m = readXYZfile("MixedMolecules.xyz", 0)
-notInSameMolecule, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon = readTopologyFile("MixedMoleculesTopology.txt")
-
-time_loc = 0
-endTime = 2
-dt = 0.001
-
-x_loc = x
-u = np.random.uniform(size=3*len(types)).reshape((len(types),3)) # random starting velocity vector
-u = u/np.linalg.norm(u,axis = 1)[:,np.newaxis] # normalize
-v_loc = 0.1*u
-
-with open("MixedMoleculesOutput.xyz", "w") as outputFile: 
-    outputFile.write("") 
-with open("MixedMoleculesOutput.xyz", "a") as outputFile:
-    while (time_loc <= endTime) : 
-        outputFile.write(f"{len(types)}\n")
-        outputFile.write(f"This is a comment and the time is {time_loc:5.4f}\n")
-        for i, atom in enumerate(x_loc):
-            outputFile.write(f"{types[i]} {x_loc[i,0]:10.5f} {x_loc[i,1]:10.5f} {x_loc[i,2]:10.5f}\n")  
-            
-        forces = computeForces(x_loc, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon)
-        accel = forces / m[:,np.newaxis]
-        x_loc, v_loc, a_loc = integratorEulerNew(x_loc, v_loc, accel)
-        time_loc += dt
-          
-
-
-
+      
 ### WEEK 5 ###
-# TODO: 
-# - Implement Lennard-Jones Potential & forces
-# - Add periodic boundary conditions
-
 
 #Neighbourlists: 
 
@@ -383,25 +355,36 @@ def coordProjectToBox(x, boxSize):
 
 
 
-# example (disclaimer: not yet fully correct, just to check methods so far are working)
-# two water and one hydrogen molecules
-types, x, m = readXYZfile("MixedMolecules.xyz", 0)
-atomsInOtherMolecules, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon = readTopologyFile("MixedMoleculesTopology.txt")
+# example 1: two water and one hydrogen molecules
+inputFileName = "MixedMolecules.xyz"
+inputTimeStep = 0
+topologyFileName = "MixedMoleculesTopology.txt"
+outputFileName = "MixedMoleculesPBCOutput.xyz"
 
-boxSizeExample = 10 # TODO: yet to choose meaningful value
-cutoff = 0.5*boxSizeExample
+# example 2: one ethanol molecule
+inputFileName = "Ethanol.xyz"
+inputTimeStep = 0
+topologyFileName = "EthanolTopology.txt"
+outputFileName = "EthanolOutput.xyz"
+
+# run simulation
+types, x, m = readXYZfile(inputFileName, inputTimeStep)
+notInSameMolecule, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon = readTopologyFile(topologyFileName)
 
 time = 0
-endTime = 0.001
+endTime = 2
 dt = 0.001
+
+boxSizeExample = 100 # TODO: yet to choose meaningful value
+cutoff = 0.5*boxSizeExample
 
 u = np.random.uniform(size=3*len(types)).reshape((len(types),3)) # random starting velocity vector
 u = u/np.linalg.norm(u,axis = 1)[:,np.newaxis] # normalize
 v = 0.1*u
 
-with open("MixedMoleculesPBCOutput.xyz", "w") as outputFile: 
+with open(outputFileName, "w") as outputFile: # clear file
     outputFile.write("") 
-with open("MixedMoleculesPBCOutput.xyz", "a") as outputFile:
+with open(outputFileName, "a") as outputFile:
     while (time <= endTime) : 
         outputFile.write(f"{len(types)}\n")
         outputFile.write(f"This is a comment and the time is {time:5.4f}\n")
@@ -415,3 +398,19 @@ with open("MixedMoleculesPBCOutput.xyz", "a") as outputFile:
         accel = forces / m[:,np.newaxis]
         x, v, a = integratorEulerNew(x, v, accel)
         time += dt
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        

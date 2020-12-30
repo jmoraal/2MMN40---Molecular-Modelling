@@ -238,19 +238,20 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         atomRight = x[angles[:,2]]
         dif1 = atomLeft-atomMiddle
         dif2 = atomRight-atomMiddle
-        t = np.arccos(np.sum(dif1*dif2, axis = 1)/(np.linalg.norm(atomLeft-atomMiddle, axis = 1)*np.linalg.norm(atomRight-atomMiddle, axis = 1)))
+        t = np.arccos(np.sum(dif1*dif2, axis = 1)/(np.linalg.norm(dif1, axis = 1)*np.linalg.norm(dif2, axis = 1)))
         Fangles = Fangle(t, angleConstants[:,0], angleConstants[:,1])
 
         normalVec1 = np.cross(atomLeft-atomMiddle,np.cross(atomLeft-atomMiddle,atomRight-atomMiddle))
         normalVec2 = np.cross(atomMiddle-atomRight,np.cross(atomLeft-atomMiddle,atomRight-atomMiddle))
         
-        FangleAtomLeft = Fangles[:,np.newaxis]/np.linalg.norm(atomLeft-atomMiddle, axis = 1)[:,np.newaxis] * normalVec1/np.linalg.norm(normalVec1, axis = 1)[:,np.newaxis]
+        FangleAtomLeft = Fangles[:,np.newaxis]/np.linalg.norm(atomLeft-atomMiddle, axis = 1)[:,np.newaxis] * normalVec1/np.linalg.norm(normalVec1, axis = 1)[:,np.newaxis] 
         FangleAtomRight = Fangles[:,np.newaxis]/np.linalg.norm(atomRight-atomMiddle, axis = 1)[:,np.newaxis] * normalVec2/np.linalg.norm(normalVec2, axis = 1)[:,np.newaxis]
-        FangleAtomMiddle = -FangleAtomLeft - FangleAtomRight
+        FangleAtomMiddle = - FangleAtomLeft - FangleAtomRight
         
         np.add.at(forces, angles[:,0], FangleAtomLeft)
         np.add.at(forces, angles[:,1], FangleAtomMiddle)
         np.add.at(forces, angles[:,2], FangleAtomRight)      
+        
         # dihedrals
         if dihedrals.size > 0:
             dif1 = x[dihedrals[:,0]] - x[dihedrals[:,1]]
@@ -263,9 +264,11 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
             theta = np.arccos(np.sum(normalVec1*normalVec2, axis = 1)/(np.linalg.norm(normalVec1, axis = 1)*np.linalg.norm(normalVec2, axis = 1)))
             
             Fdihedrals = Fdihedral(theta, dihedralConstants[:,0], dihedralConstants[:,1], dihedralConstants[:,2], dihedralConstants[:,3])
+            angleAtomsijk = np.pi - np.arccos(np.sum(dif1*difCommon, axis = 1)/(np.linalg.norm(dif1, axis = 1)*np.linalg.norm(difCommon, axis = 1)))
+            angleAtomsjkl = np.pi - np.arccos(np.sum(difCommon*dif2, axis = 1)/(np.linalg.norm(difCommon, axis = 1)*np.linalg.norm(dif2, axis = 1)))
             
-            FdihedralAtomi = Fdihedrals[:,np.newaxis]/np.linalg.norm(dif1, axis = 1)[:,np.newaxis] * normalVec1/np.linalg.norm(normalVec1, axis = 1)[:,np.newaxis]
-            FdihedralAtoml = Fdihedrals[:,np.newaxis]/np.linalg.norm(dif2, axis = 1)[:,np.newaxis] * normalVec2/np.linalg.norm(normalVec2, axis = 1)[:,np.newaxis]
+            FdihedralAtomi = Fdihedrals[:,np.newaxis]/((np.linalg.norm(dif1, axis = 1)*np.sin(angleAtomsijk))[:,np.newaxis]) * normalVec1/np.linalg.norm(normalVec1, axis = 1)[:,np.newaxis]
+            FdihedralAtoml = Fdihedrals[:,np.newaxis]/((np.linalg.norm(dif2, axis = 1)*np.sin(angleAtomsjkl))[:,np.newaxis]) * normalVec2/np.linalg.norm(normalVec2, axis = 1)[:,np.newaxis] # or np.linalg.norm(dif2, axis = 1)[:,np.newaxis]
             
             # TODO check equations for Fj and Fk; there should be a square in norms
             FdihedralAtomj = 0

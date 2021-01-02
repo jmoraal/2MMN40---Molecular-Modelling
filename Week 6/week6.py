@@ -329,14 +329,21 @@ inputFileName = "MixedMolecules.xyz"
 inputTimeStep = 0
 topologyFileName = "MixedMoleculesTopology.txt"
 outputFileName = "MixedMoleculesPBCOutput.xyz"
+thermostat = False
 
 # example 2: one ethanol molecule
 inputFileName = "Ethanol.xyz"
 inputTimeStep = 0
 topologyFileName = "EthanolTopology.txt"
 outputFileName = "EthanolOutput.xyz"
+thermostat = False
 
-
+# example 3: two water and one hydrogen molecules with thermostat
+inputFileName = "MixedMolecules.xyz"
+inputTimeStep = 0
+topologyFileName = "MixedMoleculesTopology.txt"
+outputFileName = "MixedMoleculesThermOutput.xyz"
+thermostat = True
 
 # run simulation
 types, x, m = readXYZfile(inputFileName, inputTimeStep)
@@ -354,12 +361,16 @@ v = 0.1*u
 distAtomsPBC.boxSize = 100 # TODO: yet to choose meaningful value
 
 #For Thermostat:
-temperature = 293 #kelvin
-kB = 1.38064852 * 10**23 # [m^2 kg]/[K s^2]
-Nf = 6*len(x) # as atoms have 3D position and velocity vector
-EkinDesired = 0.5 * Nf * kB * temperature
-EkinSyst = 0.5 * m * np.linalg.norm(v)**2
-#TODO: rescale velocities (also in simulation loop!)
+if thermostat: 
+    temperature = 293 # Kelvin
+    #kB = 1.38064852 * 10**23 # [m^2 kg]/[K s^2]
+    kB = 1.38064852 / 6.02214 * 10**(23-26) # [m^2 AMU]/[K s^2] #TODO nm or m?
+    Nf = 6*len(x) # as atoms have 3D position and velocity vector
+    EkinDesired = 0.5 * Nf * kB * temperature
+    EkinSystem = 0.5 * sum(m * np.linalg.norm(v)**2)
+    
+    v = v * np.sqrt(EkinDesired/EkinSystem) #np.sqrt(m/(Nf*kB*temperature)) scale element-wise or as a whole?
+
 
 with open(outputFileName, "w") as outputFile: # clear file
     outputFile.write("") 
@@ -376,4 +387,8 @@ with open(outputFileName, "a") as outputFile:
         accel = forces / m[:,np.newaxis]
         x, v, a = integratorEuler(x, v, accel)
         time += dt
-        # TODO: rescale velocities to get right temperature/pressure
+        
+        #with thermostat:
+        if thermostat: 
+            EkinSystem = 0.5 * sum(m * np.linalg.norm(v)**2)
+            v = v * np.sqrt(EkinDesired/EkinSystem)

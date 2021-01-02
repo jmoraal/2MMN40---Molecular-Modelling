@@ -193,17 +193,17 @@ def LennardJonesInter(sigma,eps,a,b,r):
     sigma = 0.5*(sigma[a] + sigma[b])
     return 4*epsilon*((sigma/r)**12 - (sigma/r)**6)
 
-def distAtomsPBC(positions, boxSize):
+def distAtomsPBC(positions):
     """ Computes distances between all atoms, with boundaries
     
-    Not entirely sure this is correct!
+    TODO: Not entirely sure this is correct!
     """
     # Old (but correct)
     # diff = abs(positions - positions[:,np.newaxis]) % boxSize
     # does not have right direction vector
     
     diff = positions - positions[:,np.newaxis] 
-    diff = diff % (0.5*boxSize)
+    diff = diff % (0.5*distAtomsPBC.boxSize)
 
     # idea: if dist > 0.5*boxsize in some direction (x, y or z), then there is a closer copy. 
     # subtracting 0.5*boxsize in every direction where it is too large yields direction vector to closest neighbour
@@ -213,7 +213,7 @@ def distAtomsPBC(positions, boxSize):
 # Direction and distance are usually both needed, right? 
 # Could also just return difference vector and do distance calculation elsewhere
 
-def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon, boxSize = np.infty):
+def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon):
     """Caltulate forces in one go with help of topology file."""
     forces = np.zeros((len(types),3), dtype = float)
     
@@ -283,7 +283,7 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
     # Lennard Jones forces
     if sigma.size > 0:
         # TODO update with PBC
-        dist = distAtomsPBC(x,boxSize)  
+        dist = distAtomsPBC(x)  
         # dist = distAtoms(x)
         # print(dist)
         
@@ -322,33 +322,6 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
     
     return(forces)
       
-### WEEK 5 ###
-
-#Neighbourlists: 
-
-# Adjacency matrix: sparse, so memory-inefficient
-def neighbourMatrix(positions,cutoff): 
-    """ returns adjacancy matrix for atoms closer than cutoff """
-    return (distAtoms(positions) < cutoff)
-
-
-def neighbourList(positions,cutoff): 
-    """ returns list of pairs of atoms with distance < cutoff
-    
-    Note: still contains duplicates and pairs (x,x)
-    Also, there is probably a more direct way?"""
-    neighMatrix = neighbourMatrix(positions,cutoff)
-    neighPairs = np.matrix.transpose(np.array(np.where(neighMatrix)))
-    return neighPairs
-
-
-#atom-wise projection into box: 
-def coordProjectToBox(x, boxSize):
-    """Projects all coordinates into cubic box of size boxSize"""
-    return (x % boxSize)
-#TODO: generalise to non-cubic shapes? 
-# if not, then the function above is not necessary
-
 
 
 # example 1: two water and one hydrogen molecules
@@ -371,8 +344,7 @@ time = 0
 endTime = 2
 dt = 0.001
 
-boxSizeExample = 100 # TODO: yet to choose meaningful value
-cutoff = 0.5*boxSizeExample
+distAtomsPBC.boxSize = 10 # TODO: yet to choose meaningful value
 
 u = np.random.uniform(size=3*len(types)).reshape((len(types),3)) # random starting velocity vector
 u = u/np.linalg.norm(u,axis = 1)[:,np.newaxis] # normalize
@@ -387,10 +359,9 @@ with open(outputFileName, "a") as outputFile:
         for i, atom in enumerate(x):
             outputFile.write(f"{types[i]} {x[i,0]:10.5f} {x[i,1]:10.5f} {x[i,2]:10.5f}\n")  
             
-        neighList = neighbourList(x, 0.5*boxSizeExample)
-        #yet to make sure LJ is computed correctly for neighbours from different boxes
-        x = x % boxSizeExample
-        forces = computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon, boxSize = boxSizeExample)
+        #TODO: yet to make sure LJ is computed correctly for neighbours from different boxes
+        #x = x % distAtomsPBC.boxSize #Project atoms into box, but do we want this?
+        forces = computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon)
         accel = forces / m[:,np.newaxis]
         x, v, a = integratorEuler(x, v, accel)
         time += dt

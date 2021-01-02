@@ -10,7 +10,7 @@ import numpy as np
 #from itertools import chain
 
 ### WEEK 1 ###
-# To do (misschien): geheugen-efficiënter maken
+# TODO (misschien): geheugen-efficiënter maken
 def readXYZnrAtoms(fileName): 
     """Reads number of atoms given in xyz file """
     with open(fileName, "r") as inputFile:
@@ -86,26 +86,20 @@ def Fdihedral(t, C1, C2, C3, C4):
     return 0.5*(-C1*np.sin(psi) + 2*C2*np.sin(2*psi) - 3*C3*np.sin(3*psi) + 4*C4*np.sin(4*psi))
 
 ### INTEGRATORS ###
-def integratorEulerNew(x, v, a):
+def integratorEuler(x, v, a):
     """ Implementation of a single step for Euler integrator. """ 
     x = x + dt*v + (dt**2)/2*a
     v = v + dt*a
     return(x, v, a)
 
-def integratorVerletNew(x, x1, v, a): # not yet working since x1 is needed
-    """ Implementation of a single step for Verlet integrator. """ 
-    x = 2*x - x1  + (dt**2) * a
-    v = 1/(2*dt) * (x - x1)
-    return(x, v, a)
-
-def integratorVerlocityNew(x, v, a):
+def integratorVerlocity(x, v, a):
     """ Implementation of a single step for Velocty Verlet integrator. """ 
     x_new = x + v*dt + (dt**2)/2*a
     a_new = computeForces(x_new, bonds, bondConstants, angles, angleConstants)/m[:,np.newaxis]
     v = v + dt/2*(a_new +a)
     return(x_new, v, a_new)
 
-def integratorRK4New(x, v, a):
+def integratorRK4(x, v, a):
     """ Implementation of a single step for Runge-Kutta order 4 integrator. """ 
     x1 = x + dt*v + (dt**2)/2*a 
     v1 = dt*computeForces(x1, bonds, bondConstants, angles, angleConstants)/m[:,np.newaxis]
@@ -130,14 +124,13 @@ def readTopologyFile(fileNameTopology):
         lines = inputFile.readlines()
         
         nrOfMolecules = int(lines[0].split()[1])
-        # print(nrOfMolecules)
     
         molecules = []
         for i in range(1,nrOfMolecules+1):
             molecules.append(list(map(int,lines[i].split())))
         
         # create boolean matrix to indicate which atoms are part of same molecule:
-        # Probably can still be done more efficiently?
+        # TODO: Probably can still be done more efficiently?
         notInSameMolecule = np.ones((len(types), len(types)), dtype=bool)
         for i,mol in enumerate(molecules):
             for j,at in enumerate(mol):
@@ -223,13 +216,13 @@ def distAtomsPBC(positions, boxSize):
 def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon, boxSize = np.infty):
     """Caltulate forces in one go with help of topology file."""
     forces = np.zeros((len(types),3), dtype = float)
+    
     # bonds
     if bonds.size > 0:
         r = np.linalg.norm(x[bonds[:,0]] - x[bonds[:,1]], axis = 1)
         Fbonds = Fbond(r, bondConstants[:,0], bondConstants[:,1])[:,np.newaxis]*(x[bonds[:,0]]-x[bonds[:,1]])/r[:,np.newaxis]
         np.add.at(forces, bonds[:,0], Fbonds)
-        np.add.at(forces, bonds[:,1], -Fbonds)
-        
+        np.add.at(forces, bonds[:,1], -Fbonds)  
     
     # angles 
     if angles.size > 0:
@@ -271,7 +264,8 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
             FdihedralAtomi = Fdihedrals[:,np.newaxis]/((np.linalg.norm(rij, axis = 1)*np.sin(angleAtomsijk))[:,np.newaxis]) * normalVec1/np.linalg.norm(normalVec1, axis = 1)[:,np.newaxis]
             FdihedralAtoml = Fdihedrals[:,np.newaxis]/((np.linalg.norm(rkl, axis = 1)*np.sin(angleAtomsjkl))[:,np.newaxis]) * normalVec2/np.linalg.norm(normalVec2, axis = 1)[:,np.newaxis] # or np.linalg.norm(dif2, axis = 1)[:,np.newaxis]
             
-            # TODO check equations for Fj and Fk; there should be a square in norms
+            # TODO check equations for Fj and Fk; there should be a square in norms 
+            # wat klopt er dan niet? Lijkt overeen te komen  met overleaf & paper
             FdihedralAtomk = 1/np.linalg.norm(normalVec1, axis = 1)[:,np.newaxis]**2 *np.cross((np.cross(-rok,FdihedralAtoml) + 0.5*np.cross(rij, FdihedralAtomi) - 0.5*np.cross(rkl, FdihedralAtoml)),rok)
             FdihedralAtomj = -FdihedralAtomi - FdihedralAtomk - FdihedralAtoml
             # FdihedralAtomj = -FdihedralAtomi + np.sum(dif1*difCommon, axis = 1)/np.linalg.norm(difCommon, axis = 1)[:,np.newaxis]*FdihedralAtomi - np.sum(dif2*difCommon, axis = 1)/np.linalg.norm(dif2, axis = 1)[:,np.newaxis]*FdihedralAtoml
@@ -284,10 +278,8 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
             np.add.at(forces, dihedrals[:,1], FdihedralAtomj)
             np.add.at(forces, dihedrals[:,2], FdihedralAtomk)
             np.add.at(forces, dihedrals[:,3], FdihedralAtoml)
+            
         
-    
-        #voorbereiding is gedaan, nu moeten (analoog aan angles) de krachten zelf nog berekend worden met Fdihedrals() en richting gegeven worden
-    
     # Lennard Jones forces
     if sigma.size > 0:
         # TODO update with PBC
@@ -400,21 +392,7 @@ with open(outputFileName, "a") as outputFile:
         x = x % boxSizeExample
         forces = computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon, boxSize = boxSizeExample)
         accel = forces / m[:,np.newaxis]
-        x, v, a = integratorEulerNew(x, v, accel)
+        x, v, a = integratorEuler(x, v, accel)
         time += dt
         
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
+   

@@ -254,25 +254,26 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         
         # dihedrals
         if dihedrals.size > 0:
-            dif1 = x[dihedrals[:,0]] - x[dihedrals[:,1]]
-            difCommon = x[dihedrals[:,2]] - x[dihedrals[:,1]] # TODO check right direction of these vectors and forces !!
-            dif2 = x[dihedrals[:,2]] - x[dihedrals[:,3]]
+            rij = x[dihedrals[:,1]] - x[dihedrals[:,0]]
+            rjk = x[dihedrals[:,2]] - x[dihedrals[:,1]] # TODO check right direction of these vectors and forces !!
+            rkl = x[dihedrals[:,3]] - x[dihedrals[:,2]]
+            rok = 0.5*x[dihedrals[:,1]] + 0.5*x[dihedrals[:,2]]
             
-            normalVec1 = np.cross(dif1,difCommon)
-            normalVec2 = np.cross(-difCommon,dif2)
+            normalVec1 = np.cross(-rij,rjk)
+            normalVec2 = np.cross(rjk,rkl)
             
             theta = np.arccos(np.sum(normalVec1*normalVec2, axis = 1)/(np.linalg.norm(normalVec1, axis = 1)*np.linalg.norm(normalVec2, axis = 1)))
             
             Fdihedrals = Fdihedral(theta, dihedralConstants[:,0], dihedralConstants[:,1], dihedralConstants[:,2], dihedralConstants[:,3])
-            angleAtomsijk = np.pi - np.arccos(np.sum(dif1*difCommon, axis = 1)/(np.linalg.norm(dif1, axis = 1)*np.linalg.norm(difCommon, axis = 1)))
-            angleAtomsjkl = np.pi - np.arccos(np.sum(difCommon*dif2, axis = 1)/(np.linalg.norm(difCommon, axis = 1)*np.linalg.norm(dif2, axis = 1)))
+            angleAtomsijk = np.arccos(np.sum(rij*rjk, axis = 1)/(np.linalg.norm(rij, axis = 1)*np.linalg.norm(rjk, axis = 1)))
+            angleAtomsjkl = np.arccos(np.sum(rjk*rkl, axis = 1)/(np.linalg.norm(rjk, axis = 1)*np.linalg.norm(rkl, axis = 1)))
             
-            FdihedralAtomi = Fdihedrals[:,np.newaxis]/((np.linalg.norm(dif1, axis = 1)*np.sin(angleAtomsijk))[:,np.newaxis]) * normalVec1/np.linalg.norm(normalVec1, axis = 1)[:,np.newaxis]
-            FdihedralAtoml = Fdihedrals[:,np.newaxis]/((np.linalg.norm(dif2, axis = 1)*np.sin(angleAtomsjkl))[:,np.newaxis]) * normalVec2/np.linalg.norm(normalVec2, axis = 1)[:,np.newaxis] # or np.linalg.norm(dif2, axis = 1)[:,np.newaxis]
+            FdihedralAtomi = Fdihedrals[:,np.newaxis]/((np.linalg.norm(rij, axis = 1)*np.sin(angleAtomsijk))[:,np.newaxis]) * normalVec1/np.linalg.norm(normalVec1, axis = 1)[:,np.newaxis]
+            FdihedralAtoml = Fdihedrals[:,np.newaxis]/((np.linalg.norm(rkl, axis = 1)*np.sin(angleAtomsjkl))[:,np.newaxis]) * normalVec2/np.linalg.norm(normalVec2, axis = 1)[:,np.newaxis] # or np.linalg.norm(dif2, axis = 1)[:,np.newaxis]
             
             # TODO check equations for Fj and Fk; there should be a square in norms
-            FdihedralAtomj = 0
-            FdihedralAtomk = 0
+            FdihedralAtomk = 1/np.linalg.norm(normalVec1, axis = 1)[:,np.newaxis]**2 *np.cross((np.cross(-rok,FdihedralAtoml) + 0.5*np.cross(rij, FdihedralAtomi) - 0.5*np.cross(rkl, FdihedralAtoml)),rok)
+            FdihedralAtomj = -FdihedralAtomi - FdihedralAtomk - FdihedralAtoml
             # FdihedralAtomj = -FdihedralAtomi + np.sum(dif1*difCommon, axis = 1)/np.linalg.norm(difCommon, axis = 1)[:,np.newaxis]*FdihedralAtomi - np.sum(dif2*difCommon, axis = 1)/np.linalg.norm(dif2, axis = 1)[:,np.newaxis]*FdihedralAtoml
             # FdihedralAtomk = -FdihedralAtoml - np.sum(dif1*difCommon, axis = 1)/np.linalg.norm(difCommon, axis = 1)[:,np.newaxis]*FdihedralAtomi + np.sum(dif2*difCommon, axis = 1)/np.linalg.norm(dif2, axis = 1)[:,np.newaxis]*FdihedralAtoml
             

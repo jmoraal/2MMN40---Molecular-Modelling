@@ -336,6 +336,8 @@ inputTimeStep = 0
 topologyFileName = "EthanolTopology.txt"
 outputFileName = "EthanolOutput.xyz"
 
+
+
 # run simulation
 types, x, m = readXYZfile(inputFileName, inputTimeStep)
 notInSameMolecule, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon = readTopologyFile(topologyFileName)
@@ -344,11 +346,20 @@ time = 0
 endTime = 2
 dt = 0.001
 
-distAtomsPBC.boxSize = 10 # TODO: yet to choose meaningful value
-
 u = np.random.uniform(size=3*len(types)).reshape((len(types),3)) # random starting velocity vector
 u = u/np.linalg.norm(u,axis = 1)[:,np.newaxis] # normalize
 v = 0.1*u
+
+# PBC's:
+distAtomsPBC.boxSize = 100 # TODO: yet to choose meaningful value
+
+#For Thermostat:
+temperature = 293 #kelvin
+kB = 1.38064852 * 10**23 # [m^2 kg]/[K s^2]
+Nf = 6*len(x) # as atoms have 3D position and velocity vector
+EkinDesired = 0.5 * Nf * kB * temperature
+EkinSyst = 0.5 * m * np.linalg.norm(v)**2
+#TODO: rescale velocities (also in simulation loop!)
 
 with open(outputFileName, "w") as outputFile: # clear file
     outputFile.write("") 
@@ -365,5 +376,4 @@ with open(outputFileName, "a") as outputFile:
         accel = forces / m[:,np.newaxis]
         x, v, a = integratorEuler(x, v, accel)
         time += dt
-        
-   
+        # TODO: rescale velocities to get right temperature/pressure

@@ -369,7 +369,7 @@ if thermostat:
     EkinDesired = 0.5 * Nf * kB * temperature
     EkinSystem = 0.5 * sum(m * np.linalg.norm(v)**2)
     
-    v = v * np.sqrt(EkinDesired/EkinSystem) #np.sqrt(m/(Nf*kB*temperature)) scale element-wise or as a whole?
+    v = v * np.sqrt(EkinDesired/EkinSystem) #np.sqrt(m/(Nf*kB*temperature)) scale element-wise (e.g. proportional to atom/molecule mass) or as a whole?
 
 
 with open(outputFileName, "w") as outputFile: # clear file
@@ -392,3 +392,4 @@ with open(outputFileName, "a") as outputFile:
         if thermostat: 
             EkinSystem = 0.5 * sum(m * np.linalg.norm(v)**2)
             v = v * np.sqrt(EkinDesired/EkinSystem)
+            #print(sum(m * np.linalg.norm(v)**2) / (Nf * kB)) #prints system temperature, indeed constant

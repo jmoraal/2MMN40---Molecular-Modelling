@@ -338,12 +338,19 @@ topologyFileName = "EthanolTopology.txt"
 outputFileName = "EthanolOutput.xyz"
 thermostat = False
 
-# # example 3: two water and one hydrogen molecules with thermostat
-# inputFileName = "MixedMolecules.xyz"
-# inputTimeStep = 0
-# topologyFileName = "MixedMoleculesTopology.txt"
-# outputFileName = "MixedMoleculesThermOutput.xyz"
-# thermostat = True
+# example 3: two water and one hydrogen molecules with thermostat
+inputFileName = "MixedMolecules.xyz"
+inputTimeStep = 0
+topologyFileName = "MixedMoleculesTopology.txt"
+outputFileName = "MixedMoleculesThermOutput.xyz"
+thermostat = True
+
+# example 2: one ethanol molecule with thermostat
+inputFileName = "Ethanol.xyz"
+inputTimeStep = 0
+topologyFileName = "EthanolTopology.txt"
+outputFileName = "EthanolThermOutput.xyz"
+thermostat = True
 
 # run simulation
 types, x, m = readXYZfile(inputFileName, inputTimeStep)
@@ -360,16 +367,14 @@ v = 0.1*u
 # PBC's:
 distAtomsPBC.boxSize = 100 # TODO: yet to choose meaningful value
 
-#For Thermostat:
+#For Gaussian Thermostat:
 if thermostat: 
-    temperature = 293 # Kelvin
+    temperatureDesired = 293 # Kelvin
     #kB = 1.38064852 * 10**23 # [m^2 kg]/[K s^2]
     kB = 1.38064852 / 6.02214 * 10**(23-26) # [m^2 AMU]/[K s^2] #TODO nm or m?
     Nf = 6*len(x) # as atoms have 3D position and velocity vector
-    EkinDesired = 0.5 * Nf * kB * temperature
-    EkinSystem = 0.5 * sum(m * np.linalg.norm(v)**2)
     
-    v = v * np.sqrt(EkinDesired/EkinSystem) #np.sqrt(m/(Nf*kB*temperature)) scale element-wise (e.g. proportional to atom/molecule mass) or as a whole?
+    
 
 
 with open(outputFileName, "w") as outputFile: # clear file
@@ -380,7 +385,12 @@ with open(outputFileName, "a") as outputFile:
         outputFile.write(f"This is a comment and the time is {time:5.4f}\n")
         for i, atom in enumerate(x):
             outputFile.write(f"{types[i]} {x[i,0]:10.5f} {x[i,1]:10.5f} {x[i,2]:10.5f}\n")  
-            
+        
+        if thermostat:
+            temperatureSystem = sum(m * np.linalg.norm(v)**2) / (Nf * kB)
+            v = v * np.sqrt(temperatureDesired/temperatureSystem) 
+            #print(sum(m * np.linalg.norm(v)**2) / (Nf * kB)) #prints system temperature, indeed constant
+        
         #TODO: yet to make sure LJ is computed correctly for neighbours from different boxes
         #x = x % distAtomsPBC.boxSize #Project atoms into box, but do we want this?
         forces = computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon)
@@ -388,8 +398,4 @@ with open(outputFileName, "a") as outputFile:
         x, v, a = integratorVerlocity(x, v, accel)
         time += dt
         
-        #with thermostat:
-        if thermostat: 
-            EkinSystem = 0.5 * sum(m * np.linalg.norm(v)**2)
-            v = v * np.sqrt(EkinDesired/EkinSystem)
-            #print(sum(m * np.linalg.norm(v)**2) / (Nf * kB)) #prints system temperature, indeed constant
+        

@@ -40,7 +40,7 @@ def readXYZfile(fileName, timeStep):
     atomPositions = lines[(2+(2+nrOfAtoms)*timeStep):((2+nrOfAtoms)*(timeStep+1))]
         
     atomPositions = np.asarray(atomPositions).astype(np.float)
-    massesDict = {'H': 1.0080, 'O': 15.9994, 'C': 12.0110}
+    massesDict = {'H': 1.0080, 'O': 15.9994, 'C': 12.0110} # in Dalton
     m = np.vectorize(massesDict.get)(atomTypes)
     return(atomTypes, atomPositions ,m)
 
@@ -343,7 +343,7 @@ topologyFileName = "MixedMoleculesTopology.txt"
 outputFileName = "MixedMoleculesThermOutput.xyz"
 thermostat = True
 
-# example 2: one ethanol molecule with thermostat
+# example 4: one ethanol molecule with thermostat
 inputFileName = "Ethanol.xyz"
 inputTimeStep = 0
 topologyFileName = "EthanolTopology.txt"
@@ -353,14 +353,16 @@ thermostat = True
 # run simulation
 types, x, m = readXYZfile(inputFileName, inputTimeStep)
 notInSameMolecule, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon = readTopologyFile(topologyFileName)
+# temp = bondConstants[0,:] * 10
+# bondConstants[0,:] = temp
 
-time = 0
-endTime = 5
-dt = 0.001
+time = 0 #ps
+endTime = 2 #ps
+dt = 0.001 #ps
 
 u = np.random.uniform(size=3*len(types)).reshape((len(types),3)) # random starting velocity vector
 u = u/np.linalg.norm(u,axis = 1)[:,np.newaxis] # normalize
-v = 0.1*u
+v = 0.1*u # A/ps
 
 # PBC's:
 distAtomsPBC.boxSize = 100 # TODO: yet to choose meaningful value
@@ -369,8 +371,8 @@ distAtomsPBC.boxSize = 100 # TODO: yet to choose meaningful value
 if thermostat: 
     temperatureDesired = 300 # Kelvin
     #kB = 1.38064852 * 10**23 # [m^2 kg]/[K s^2]
-    kB = 1.38064852 / 6.02214 * 10**(23-26) # [m^2 AMU]/[K s^2] #TODO nm or m?
-    Nf = 6*len(x) # as atoms have 3D position and velocity vector
+    kB = 1.38064852 * 1.6605390666 # [A^2 AMU]/[K ps^2]; hence -20+23-27+24 = 0 'in the exponent'
+    Nf = 6*len(x) # 6*, as atoms have 3D position and velocity vector so 6 degrees of freedom
     
     
 
@@ -387,7 +389,7 @@ with open(outputFileName, "a") as outputFile:
         if thermostat:
             temperatureSystem = sum(m * np.linalg.norm(v)**2) / (Nf * kB)
             v = v * np.sqrt(temperatureDesired/temperatureSystem) 
-            #print(sum(m * np.linalg.norm(v)**2) / (Nf * kB)) #prints system temperature, indeed constant
+            # print(sum(m * np.linalg.norm(v)**2) / (Nf * kB)) #prints system temperature, indeed constant
         
         #TODO: yet to make sure LJ is computed correctly for neighbours from different boxes
         #x = x % distAtomsPBC.boxSize #Project atoms into box, but do we want this?

@@ -253,7 +253,7 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
             rok = 0.5*x[dihedrals[:,1]] + 0.5*x[dihedrals[:,2]]
             
             normalVec1 = np.cross(-rij,rjk)
-            normalVec2 = np.cross(rjk,rkl)
+            normalVec2 = np.cross(-rjk,rkl)
             
             theta = np.arccos(np.sum(normalVec1*normalVec2, axis = 1)/(np.linalg.norm(normalVec1, axis = 1)*np.linalg.norm(normalVec2, axis = 1)))
             
@@ -264,9 +264,7 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
             FdihedralAtomi = Fdihedrals[:,np.newaxis]/((np.linalg.norm(rij, axis = 1)*np.sin(angleAtomsijk))[:,np.newaxis]) * normalVec1/np.linalg.norm(normalVec1, axis = 1)[:,np.newaxis]
             FdihedralAtoml = Fdihedrals[:,np.newaxis]/((np.linalg.norm(rkl, axis = 1)*np.sin(angleAtomsjkl))[:,np.newaxis]) * normalVec2/np.linalg.norm(normalVec2, axis = 1)[:,np.newaxis] # or np.linalg.norm(dif2, axis = 1)[:,np.newaxis]
             
-            # TODO check equations for Fj and Fk; there should be a square in norms 
-            # wat klopt er dan niet? Lijkt overeen te komen  met overleaf & paper
-            FdihedralAtomk = 1/np.linalg.norm(normalVec1, axis = 1)[:,np.newaxis]**2 *np.cross((np.cross(-rok,FdihedralAtoml) + 0.5*np.cross(rij, FdihedralAtomi) - 0.5*np.cross(rkl, FdihedralAtoml)),rok)
+            FdihedralAtomk = 1/np.linalg.norm(rok, axis = 1)[:,np.newaxis]**2 *np.cross((np.cross(-rok,FdihedralAtoml) + 0.5*np.cross(rij, FdihedralAtomi) - 0.5*np.cross(rkl, FdihedralAtoml)),rok)
             FdihedralAtomj = -FdihedralAtomi - FdihedralAtomk - FdihedralAtoml
             # FdihedralAtomj = -FdihedralAtomi + np.sum(dif1*difCommon, axis = 1)/np.linalg.norm(difCommon, axis = 1)[:,np.newaxis]*FdihedralAtomi - np.sum(dif2*difCommon, axis = 1)/np.linalg.norm(dif2, axis = 1)[:,np.newaxis]*FdihedralAtoml
             # FdihedralAtomk = -FdihedralAtoml - np.sum(dif1*difCommon, axis = 1)/np.linalg.norm(difCommon, axis = 1)[:,np.newaxis]*FdihedralAtomi + np.sum(dif2*difCommon, axis = 1)/np.linalg.norm(dif2, axis = 1)[:,np.newaxis]*FdihedralAtoml
@@ -358,7 +356,7 @@ notInSameMolecule, bonds, bondConstants, angles, angleConstants, dihedrals, dihe
 
 time = 0
 endTime = 5
-dt = 0.005
+dt = 0.001
 
 u = np.random.uniform(size=3*len(types)).reshape((len(types),3)) # random starting velocity vector
 u = u/np.linalg.norm(u,axis = 1)[:,np.newaxis] # normalize
@@ -369,7 +367,7 @@ distAtomsPBC.boxSize = 100 # TODO: yet to choose meaningful value
 
 #For Gaussian Thermostat:
 if thermostat: 
-    temperatureDesired = 293 # Kelvin
+    temperatureDesired = 300 # Kelvin
     #kB = 1.38064852 * 10**23 # [m^2 kg]/[K s^2]
     kB = 1.38064852 / 6.02214 * 10**(23-26) # [m^2 AMU]/[K s^2] #TODO nm or m?
     Nf = 6*len(x) # as atoms have 3D position and velocity vector

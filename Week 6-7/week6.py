@@ -95,7 +95,7 @@ def integratorEuler(x, v, a):
 def integratorVerlocity(x, v, a):
     """ Implementation of a single step for Velocty Verlet integrator. """ 
     x_new = x + v*dt + (dt**2)/2*a
-    a_new = computeForces(x_new, bonds, bondConstants, angles, angleConstants)/m[:,np.newaxis]
+    a_new = computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon)/m[:,np.newaxis]
     v = v + dt/2*(a_new +a)
     return(x_new, v, a_new)
 
@@ -339,11 +339,11 @@ outputFileName = "EthanolOutput.xyz"
 thermostat = False
 
 # example 3: two water and one hydrogen molecules with thermostat
-inputFileName = "MixedMolecules.xyz"
-inputTimeStep = 0
-topologyFileName = "MixedMoleculesTopology.txt"
-outputFileName = "MixedMoleculesThermOutput.xyz"
-thermostat = True
+# inputFileName = "MixedMolecules.xyz"
+# inputTimeStep = 0
+# topologyFileName = "MixedMoleculesTopology.txt"
+# outputFileName = "MixedMoleculesThermOutput.xyz"
+# thermostat = True
 
 # run simulation
 types, x, m = readXYZfile(inputFileName, inputTimeStep)
@@ -385,7 +385,7 @@ with open(outputFileName, "a") as outputFile:
         #x = x % distAtomsPBC.boxSize #Project atoms into box, but do we want this?
         forces = computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon)
         accel = forces / m[:,np.newaxis]
-        x, v, a = integratorEuler(x, v, accel)
+        x, v, a = integratorVerlocity(x, v, accel)
         time += dt
         
         #with thermostat:

@@ -328,6 +328,7 @@ inputTimeStep = 0
 topologyFileName = "MixedMoleculesTopology.txt"
 outputFileName = "MixedMoleculesPBCOutput.xyz"
 thermostat = False
+measuring = False
 
 # example 2: one ethanol molecule
 inputFileName = "Ethanol.xyz"
@@ -336,19 +337,19 @@ topologyFileName = "EthanolTopology.txt"
 outputFileName = "EthanolOutput.xyz"
 thermostat = False
 
-# example 3: two water and one hydrogen molecules with thermostat
-inputFileName = "MixedMolecules.xyz"
-inputTimeStep = 0
-topologyFileName = "MixedMoleculesTopology.txt"
-outputFileName = "MixedMoleculesThermOutput.xyz"
-thermostat = True
+# # example 3: two water and one hydrogen molecules with thermostat
+# inputFileName = "MixedMolecules.xyz"
+# inputTimeStep = 0
+# topologyFileName = "MixedMoleculesTopology.txt"
+# outputFileName = "MixedMoleculesThermOutput.xyz"
+# thermostat = True
 
-# example 4: one ethanol molecule with thermostat
-inputFileName = "Ethanol.xyz"
-inputTimeStep = 0
-topologyFileName = "EthanolTopology.txt"
-outputFileName = "EthanolThermOutput.xyz"
-thermostat = True
+# # example 4: one ethanol molecule with thermostat
+# inputFileName = "Ethanol.xyz"
+# inputTimeStep = 0
+# topologyFileName = "EthanolTopology.txt"
+# outputFileName = "EthanolThermOutput.xyz"
+# thermostat = True
 
 # run simulation
 types, x, m = readXYZfile(inputFileName, inputTimeStep)
@@ -357,25 +358,28 @@ notInSameMolecule, bonds, bondConstants, angles, angleConstants, dihedrals, dihe
 # bondConstants[0,:] = temp
 
 time = 0 #ps
-endTime = 2 #ps
-dt = 0.001 #ps
+endTime = 1 #ps; should be 1ns = 1000ps in final simulation
+dt = 0.002 #ps; suggestion was to start at 2fs for final simulations, larger might be better (without exploding at least)
 
 u = np.random.uniform(size=3*len(types)).reshape((len(types),3)) # random starting velocity vector
 u = u/np.linalg.norm(u,axis = 1)[:,np.newaxis] # normalize
 v = 0.1*u # A/ps
 
 # PBC's:
-distAtomsPBC.boxSize = 100 # TODO: yet to choose meaningful value
+distAtomsPBC.boxSize = 30 # 3 nm
+#TODO: introduce cutoff independent of boxsize! always using half is much to large (slow simulation)
 
 #For Gaussian Thermostat:
 if thermostat: 
-    temperatureDesired = 300 # Kelvin
+    temperatureDesired = 298.15 # Kelvin
     #kB = 1.38064852 * 10**23 # [m^2 kg]/[K s^2]
     kB = 1.38064852 * 1.6605390666 # [A^2 AMU]/[K ps^2]; hence -20+23-27+24 = 0 'in the exponent'
     Nf = 6*len(x) # 6*, as atoms have 3D position and velocity vector so 6 degrees of freedom
     
     
-
+# For measuring:
+Ekin = []
+Epot = []
 
 with open(outputFileName, "w") as outputFile: # clear file
     outputFile.write("") 
@@ -386,8 +390,15 @@ with open(outputFileName, "a") as outputFile:
         for i, atom in enumerate(x):
             outputFile.write(f"{types[i]} {x[i,0]:10.5f} {x[i,1]:10.5f} {x[i,2]:10.5f}\n")  
         
-        if thermostat:
-            temperatureSystem = sum(m * np.linalg.norm(v)**2) / (Nf * kB)
+        # measurables
+        EkinSyst = 0.5 * m * np.linalg.norm(v)**2
+        #Epot =  #TODO somehow compute the sum of all potentials here (including LJ)
+        Ekin.append(EkinSyst)
+        #Epot.append()
+        
+        if thermostat: #TODO moet dit wel bij elke stap? Is wat onduidelijk in final assignment
+            # temperatureSystem = sum(m * np.linalg.norm(v)**2) / (Nf * kB)
+            temperatureSystem = 2 * EkinSyst / (Nf * kB) #TODO not sure this goes well, Nf is quite large. Previous line definitely works, but means double computation
             v = v * np.sqrt(temperatureDesired/temperatureSystem) 
             # print(sum(m * np.linalg.norm(v)**2) / (Nf * kB)) #prints system temperature, indeed constant
         
@@ -397,5 +408,6 @@ with open(outputFileName, "a") as outputFile:
         accel = forces / m[:,np.newaxis]
         x, v, a = integratorVerlocity(x, v, accel)
         time += dt
+        
         
         

@@ -351,6 +351,13 @@ thermostat = False
 # outputFileName = "EthanolThermOutput.xyz"
 # thermostat = True
 
+# example 5: 150 water molecules
+inputFileName = "WaterInitial150.xyz"
+inputTimeStep = 0
+topologyFileName = "Water150Topology.txt"
+outputFileName = "Water150Output.xyz"
+thermostat = False
+
 # run simulation
 types, x, m = readXYZfile(inputFileName, inputTimeStep)
 notInSameMolecule, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon = readTopologyFile(topologyFileName)

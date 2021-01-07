@@ -7,7 +7,7 @@ Created on Thu Jan  7 11:54:00 2021
 
 ### Water ###
 nrOfMolecules = 150
-outputFileName = 'Water450Topology.txt'
+outputFileName = 'Water150Topology.txt'
 
 with open(outputFileName, "w") as outputFile: # clear file
     outputFile.write("") 
@@ -21,7 +21,7 @@ with open(outputFileName, "a") as outputFile:
         outputFile.write(f"{3*i} {3*i+1} 5024.16 0.9572 \n")
         outputFile.write(f"{3*i} {3*i+2} 5024.16 0.9572 \n")
     
-    outputFile.write(f"angles {nrOfMolecules*2}\n")
+    outputFile.write(f"angles {nrOfMolecules}\n")
     for i in range(0,nrOfMolecules):
         outputFile.write(f"{3*i+1} {3*i} {3*i+2} 628.02 1.8242181 \n")
         

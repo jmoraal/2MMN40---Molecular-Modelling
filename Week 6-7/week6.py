@@ -5,7 +5,7 @@ Created on Mon Nov  9 16:30:44 2020
 @authors: Sanne van Kempen (1017389) & Jan Moraal (1016866)
 
 """
-
+import time as timer
 import numpy as np
 #from itertools import chain
 
@@ -281,8 +281,8 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
     # Lennard Jones forces
     if sigma.size > 0:
         # TODO update with PBC
-        dist = distAtomsPBC(x)  
-        # dist = distAtoms(x)
+        # dist = distAtomsPBC(x)  
+        dist = distAtoms(x)
         # print(dist)
         
         U = np.zeros((len(types), 3))
@@ -365,7 +365,7 @@ notInSameMolecule, bonds, bondConstants, angles, angleConstants, dihedrals, dihe
 # bondConstants[0,:] = temp
 
 time = 0 #ps
-endTime = 1 #ps; should be 1ns = 1000ps in final simulation
+endTime = 2 #ps; should be 1ns = 1000ps in final simulation
 dt = 0.002 #ps; suggestion was to start at 2fs for final simulations, larger might be better (without exploding at least)
 
 u = np.random.uniform(size=3*len(types)).reshape((len(types),3)) # random starting velocity vector
@@ -373,8 +373,8 @@ u = u/np.linalg.norm(u,axis = 1)[:,np.newaxis] # normalize
 v = 0.1*u # A/ps
 
 # PBC's:
-distAtomsPBC.boxSize = 30 # 3 nm
-#TODO: introduce cutoff independent of boxsize! always using half is much to large (slow simulation)
+distAtomsPBC.boxSize = 300 # 3 nm
+#TODO: introduce cutoff independent of boxsize! always using half is apparently much to large (slow simulation)
 
 #For Gaussian Thermostat:
 if thermostat: 
@@ -390,8 +390,10 @@ Epot = []
 
 with open(outputFileName, "w") as outputFile: # clear file
     outputFile.write("") 
+simStartTime = timer.time()
 with open(outputFileName, "a") as outputFile:
     while (time <= endTime) : 
+        print(time, " out of ", endTime)
         outputFile.write(f"{len(types)}\n")
         outputFile.write(f"This is a comment and the time is {time:5.4f}\n")
         for i, atom in enumerate(x):
@@ -415,6 +417,7 @@ with open(outputFileName, "a") as outputFile:
         accel = forces / m[:,np.newaxis]
         x, v, a = integratorVerlocity(x, v, accel)
         time += dt
-        
+duration = timer.time() - simStartTime
+print("Simulation duration was ", duration)
         
         

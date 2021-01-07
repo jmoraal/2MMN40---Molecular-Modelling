@@ -203,13 +203,13 @@ def distAtomsPBC(positions):
     # does not have right direction vector
     
     diff = positions - positions[:,np.newaxis] 
-    diff = diff % (0.5*distAtomsPBC.boxSize)
+    diff = diff - np.floor(0.5 + diff/distAtomsPBC.boxSize)*distAtomsPBC.boxSize #TODO always projects distance into box for negative coefficients
 
     # idea: if dist > 0.5*boxsize in some direction (x, y or z), then there is a closer copy. 
     # subtracting 0.5*boxsize in every direction where it is too large yields direction vector to closest neighbour
     # Still check correctness!
     dist = np.linalg.norm(diff,axis = 2)
-    return(dist) #diff,
+    return(diff,dist) 
 # Direction and distance are usually both needed, right? 
 # Could also just return difference vector and do distance calculation elsewhere
 
@@ -281,24 +281,31 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
     # Lennard Jones forces
     if sigma.size > 0:
         # TODO update with PBC
-        # dist = distAtomsPBC(x)  
-        dist = distAtoms(x)
+        diff,dist = distAtomsPBC(x)
+        # dist = distAtoms(x)
         # print(dist)
         
-        U = np.zeros((len(types), 3))
+        # U = np.zeros((len(types), 3))
     
         e = np.sqrt(epsilon*epsilon[:,np.newaxis])
         s = 0.5*(sigma+sigma[:,np.newaxis])
         
         frac = np.divide(s, dist, out=np.zeros_like(s), where=dist!=0) # avoid division by 0
-        U = 4*e*(frac**12 - frac**6)
+        frac6 = frac**6
+        frac12 = frac6 ** 2
+        U = 4*e*(frac12 - frac6) #TODO derivatives instead! Watch minus-signs
+        V = np.sign(U)*np.divide(4*e*(6*frac6 - 12*frac12), dist, out=np.zeros_like(s), where=dist!=0) # avoid division by 0. TODO but what happens if dist=0?
+       
         L = x-x[:,np.newaxis]
         
-        U = U*notInSameMolecule # these forces do not apply on atoms in the same molecule!
+        # U = U*notInSameMolecule # these forces do not apply on atoms in the same molecule!
+        # U = np.repeat(U, 3).reshape(len(types), len(types), 3)
         
-        U = np.repeat(U, 3).reshape(len(types), len(types), 3)
+        V = V*notInSameMolecule # these forces do not apply on atoms in the same molecule!
+        V = np.repeat(V, 3).reshape(len(types), len(types), 3)
         
-        forces += np.sum(U*L, axis = 1)
+        #forces += np.sum(U*L, axis = 1)
+        forces += np.sum(V*L, axis = 1)
     
     # hieronder de LJ forces met forloops
     # dist = distAtomsPBC(x,boxSizd)    
@@ -319,7 +326,7 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
     #     forces = forces + f 
     
     return(forces)
-      
+
 
 
 # example 1: two water and one hydrogen molecules
@@ -361,8 +368,6 @@ thermostat = False
 # run simulation
 types, x, m = readXYZfile(inputFileName, inputTimeStep)
 notInSameMolecule, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon = readTopologyFile(topologyFileName)
-# temp = bondConstants[0,:] * 10
-# bondConstants[0,:] = temp
 
 time = 0 #ps
 endTime = 2 #ps; should be 1ns = 1000ps in final simulation
@@ -373,7 +378,7 @@ u = u/np.linalg.norm(u,axis = 1)[:,np.newaxis] # normalize
 v = 0.1*u # A/ps
 
 # PBC's:
-distAtomsPBC.boxSize = 300 # 3 nm
+distAtomsPBC.boxSize = 30 # 3 nm
 #TODO: introduce cutoff independent of boxsize! always using half is apparently much to large (slow simulation)
 
 #For Gaussian Thermostat:
@@ -405,11 +410,11 @@ with open(outputFileName, "a") as outputFile:
         Ekin.append(EkinSyst)
         #Epot.append()
         
-        if thermostat: #TODO moet dit wel bij elke stap? Is wat onduidelijk in final assignment
-            # temperatureSystem = sum(m * np.linalg.norm(v)**2) / (Nf * kB)
+        if thermostat: 
+            # temperatureSystem = np.sum(m * np.linalg.norm(v)**2) / (Nf * kB)
             temperatureSystem = 2 * EkinSyst / (Nf * kB) #TODO not sure this goes well, Nf is quite large. Previous line definitely works, but means double computation
             v = v * np.sqrt(temperatureDesired/temperatureSystem) 
-            # print(sum(m * np.linalg.norm(v)**2) / (Nf * kB)) #prints system temperature, indeed constant
+            # print(np.sum(m * np.linalg.norm(v)**2) / (Nf * kB)) #prints system temperature, indeed constant
         
         #TODO: yet to make sure LJ is computed correctly for neighbours from different boxes
         #x = x % distAtomsPBC.boxSize #Project atoms into box, but do we want this?
@@ -418,6 +423,6 @@ with open(outputFileName, "a") as outputFile:
         x, v, a = integratorVerlocity(x, v, accel)
         time += dt
 duration = timer.time() - simStartTime
-print("Simulation duration was ", duration)
+print("Simulation duration was ", duration, " seconds")
         
         

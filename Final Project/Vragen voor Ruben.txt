@@ -1,0 +1,15 @@
+- ca. 4000 watermoleculen, klopt dat wel?
+- Grote xyz handig genereren?
+- velocity rescaling bij elke stap? Onduidelijk in final assignment
+- PBC's en cutoff nog onzeker
+- trillingen veel te langzaam, zowel in water als ethanol. 
+- nog geen inter-molecular forces, lijkt het?
+
+
+(- temperatuur '=' kinetic energy?)
+
+TODO
+- torque & som van krachten 0? 
+- LJ: misschien potentiele energie * afstand; energie ipv afgeleide?
+- LJ: machtsverheffingen combineren voor snellere berekeningen
+- floor + 1/2; 

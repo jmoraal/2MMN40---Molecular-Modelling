@@ -255,11 +255,14 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
             normalVec1 = np.cross(-rij,rjk)
             normalVec2 = np.cross(-rjk,rkl)
             
-            theta = np.arccos(np.sum(normalVec1*normalVec2, axis = 1)/(np.linalg.norm(normalVec1, axis = 1)*np.linalg.norm(normalVec2, axis = 1)))
+            # theta = np.arccos(np.sum(normalVec1*normalVec2, axis = 1)/(np.linalg.norm(normalVec1, axis = 1)*np.linalg.norm(normalVec2, axis = 1))) # not corrected for floating point division
+            theta = np.arctan2(np.sum(np.cross(normalVec1,normalVec2), axis = 1),np.sum(normalVec1*normalVec2, axis = 1))*np.sign(np.sum(rij*normalVec2, axis = 1)) # corrected for floating point division
             
             Fdihedrals = Fdihedral(theta, dihedralConstants[:,0], dihedralConstants[:,1], dihedralConstants[:,2], dihedralConstants[:,3])
-            angleAtomsijk = np.arccos(np.sum(rij*rjk, axis = 1)/(np.linalg.norm(rij, axis = 1)*np.linalg.norm(rjk, axis = 1)))
+            angleAtomsijk = np.arccos(np.sum(rij*rjk, axis = 1)/(np.linalg.norm(rij, axis = 1)*np.linalg.norm(rjk, axis = 1))) # correction not needed since this angle is never close to 0 or 180 degrees (??)
             angleAtomsjkl = np.arccos(np.sum(rjk*rkl, axis = 1)/(np.linalg.norm(rjk, axis = 1)*np.linalg.norm(rkl, axis = 1)))
+            # angleAtomsijk = np.arctan2(np.sum(np.cross(rij,rjk), axis = 1),np.sum(rij*rjk, axis = 1))*np.sign()
+            # angleAtomsjkl = np.arctan2(np.sum(np.cross(rij,rjk), axis = 1),np.sum(rij*rjk, axis = 1))*np.sign()
             
             FdihedralAtomi = Fdihedrals[:,np.newaxis]/((np.linalg.norm(rij, axis = 1)*np.sin(angleAtomsijk))[:,np.newaxis]) * normalVec1/np.linalg.norm(normalVec1, axis = 1)[:,np.newaxis]
             FdihedralAtoml = Fdihedrals[:,np.newaxis]/((np.linalg.norm(rkl, axis = 1)*np.sin(angleAtomsjkl))[:,np.newaxis]) * normalVec2/np.linalg.norm(normalVec2, axis = 1)[:,np.newaxis] # or np.linalg.norm(dif2, axis = 1)[:,np.newaxis]
@@ -351,31 +354,32 @@ thermostat = False
 # outputFileName = "MixedMoleculesThermOutput.xyz"
 # thermostat = True
 
-# # example 4: one ethanol molecule with thermostat
-# inputFileName = "Ethanol.xyz"
-# inputTimeStep = 0
-# topologyFileName = "EthanolTopology.txt"
-# outputFileName = "EthanolThermOutput.xyz"
-# thermostat = True
-
-# example 5: 150 water molecules
-inputFileName = "WaterInitial150.xyz"
+# example 4: one ethanol molecule with thermostat
+inputFileName = "Ethanol.xyz"
 inputTimeStep = 0
-topologyFileName = "Water150Topology.txt"
-outputFileName = "Water150Output.xyz"
+topologyFileName = "EthanolTopology.txt"
+outputFileName = "EthanolThermOutput.xyz"
 thermostat = False
+
+# # example 5: 150 water molecules
+# inputFileName = "WaterInitial150.xyz"
+# inputTimeStep = 0
+# topologyFileName = "Water150Topology.txt"
+# outputFileName = "Water150Output.xyz"
+# thermostat = False
 
 # run simulation
 types, x, m = readXYZfile(inputFileName, inputTimeStep)
 notInSameMolecule, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon = readTopologyFile(topologyFileName)
 
 time = 0 #ps
-endTime = 2 #ps; should be 1ns = 1000ps in final simulation
+endTime = 5 #ps; should be 1ns = 1000ps in final simulation
 dt = 0.002 #ps; suggestion was to start at 2fs for final simulations, larger might be better (without exploding at least)
 
 u = np.random.uniform(size=3*len(types)).reshape((len(types),3)) # random starting velocity vector
 u = u/np.linalg.norm(u,axis = 1)[:,np.newaxis] # normalize
 v = 0.1*u # A/ps
+v = 0
 
 # PBC's:
 distAtomsPBC.boxSize = 30 # 3 nm
@@ -384,7 +388,7 @@ distAtomsPBC.boxSize = 30 # 3 nm
 #For Gaussian Thermostat:
 if thermostat: 
     temperatureDesired = 298.15 # Kelvin
-    #kB = 1.38064852 * 10**23 # [m^2 kg]/[K s^2]
+    # kB = 1.38064852 * 10**23 # [m^2 kg]/[K s^2]
     kB = 1.38064852 * 1.6605390666 # [A^2 AMU]/[K ps^2]; hence -20+23-27+24 = 0 'in the exponent'
     Nf = 6*len(x) # 6*, as atoms have 3D position and velocity vector so 6 degrees of freedom
     
@@ -398,7 +402,7 @@ with open(outputFileName, "w") as outputFile: # clear file
 simStartTime = timer.time()
 with open(outputFileName, "a") as outputFile:
     while (time <= endTime) : 
-        print(time, " out of ", endTime)
+        # print(time, " out of ", endTime)
         outputFile.write(f"{len(types)}\n")
         outputFile.write(f"This is a comment and the time is {time:5.4f}\n")
         for i, atom in enumerate(x):
@@ -411,8 +415,8 @@ with open(outputFileName, "a") as outputFile:
         #Epot.append()
         
         if thermostat: 
-            # temperatureSystem = np.sum(m * np.linalg.norm(v)**2) / (Nf * kB)
-            temperatureSystem = 2 * EkinSyst / (Nf * kB) #TODO not sure this goes well, Nf is quite large. Previous line definitely works, but means double computation
+            temperatureSystem = np.sum(m * np.linalg.norm(v)**2) / (Nf * kB)
+            # temperatureSystem = 2 * EkinSyst / (Nf * kB) #TODO not sure this goes well, Nf is quite large. Previous line definitely works, but means double computation
             v = v * np.sqrt(temperatureDesired/temperatureSystem) 
             # print(np.sum(m * np.linalg.norm(v)**2) / (Nf * kB)) #prints system temperature, indeed constant
         

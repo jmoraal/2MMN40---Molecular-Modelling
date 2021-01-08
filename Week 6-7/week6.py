@@ -179,7 +179,7 @@ def readTopologyFile(fileNameTopology):
         sigma = np.asarray(sigma)
         epsilon = np.asarray(epsilon)
         
-        return(notInSameMolecule, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon)
+        return(molecules, notInSameMolecule, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon)
 
 
 
@@ -194,16 +194,9 @@ def LennardJonesInter(sigma,eps,a,b,r):
     return 4*epsilon*((sigma/r)**12 - (sigma/r)**6)
 
 def distAtomsPBC(positions):
-    """ Computes distances between all atoms, with boundaries
-    
-    TODO: Not entirely sure this is correct!
-    """
-    # Old (but correct)
-    # diff = abs(positions - positions[:,np.newaxis]) % boxSize
-    # does not have right direction vector
-    
+    """ Computes distances between all atoms in closest copies, taking boundaries into account"""    
     diff = positions - positions[:,np.newaxis] 
-    diff = diff - np.floor(0.5 + diff/distAtomsPBC.boxSize)*distAtomsPBC.boxSize #TODO always projects distance into box for negative coefficients
+    diff = diff - np.floor(0.5 + diff/distAtomsPBC.boxSize)*distAtomsPBC.boxSize 
 
     # idea: if dist > 0.5*boxsize in some direction (x, y or z), then there is a closer copy. 
     # subtracting 0.5*boxsize in every direction where it is too large yields direction vector to closest neighbour
@@ -212,6 +205,7 @@ def distAtomsPBC(positions):
     return(diff,dist) 
 # Direction and distance are usually both needed, right? 
 # Could also just return difference vector and do distance calculation elsewhere
+#TODO replace difference vectors elsewhere, not only LJ?
 
 def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon):
     """Caltulate forces in one go with help of topology file."""
@@ -294,7 +288,7 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         frac6 = frac**6
         frac12 = frac6 ** 2
         U = 4*e*(frac12 - frac6) #TODO derivatives instead! Watch minus-signs
-        V = np.sign(U)*np.divide(4*e*(6*frac6 - 12*frac12), dist, out=np.zeros_like(s), where=dist!=0) # avoid division by 0. TODO but what happens if dist=0?
+        V = np.sign(U)*np.divide(4*e*(6*frac6 - 12*frac12), dist, out=np.zeros_like(s), where=dist!=0) # avoid division by 0. TODO but what happens if dist=0? And is the sign correct?
        
         L = x-x[:,np.newaxis]
         
@@ -327,6 +321,23 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
     
     return(forces)
 
+                    
+def projectMolecules(x):
+    """Projects entire molecules into box of given size
+    
+    Note: single atoms are not projected without the rest of their molecule
+    Now computes weighted average for centre of mass. Is this worth the computation time?
+    Might be that approximate centre of mass (e.g. unweighted) is good enough"""
+    
+    centers = x 
+    
+    for i in range(0, len(molecules)):
+        centers[molecules[i]] = sum(centers[molecules[i]] * m[molecules[i], np.newaxis] / sum(m[molecules[i]]))
+    centersProj = centers % distAtomsPBC.boxSize
+    x += centersProj - centers
+    
+    return x
+    
 
 
 # example 1: two water and one hydrogen molecules
@@ -367,18 +378,18 @@ thermostat = False
 
 # run simulation
 types, x, m = readXYZfile(inputFileName, inputTimeStep)
-notInSameMolecule, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon = readTopologyFile(topologyFileName)
+molecules, notInSameMolecule, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon = readTopologyFile(topologyFileName)
 
 time = 0 #ps
-endTime = 2 #ps; should be 1ns = 1000ps in final simulation
-dt = 0.002 #ps; suggestion was to start at 2fs for final simulations, larger might be better (without exploding at least)
+endTime = 10 #ps; should be 1ns = 1000ps in final simulation
+dt = 0.003 #ps; suggestion was to start at 2fs for final simulations, larger might be better (without exploding at least)
 
 u = np.random.uniform(size=3*len(types)).reshape((len(types),3)) # random starting velocity vector
 u = u/np.linalg.norm(u,axis = 1)[:,np.newaxis] # normalize
 v = 0.1*u # A/ps
 
 # PBC's:
-distAtomsPBC.boxSize = 30 # 3 nm
+distAtomsPBC.boxSize = 20 # 3 nm
 #TODO: introduce cutoff independent of boxsize! always using half is apparently much to large (slow simulation)
 
 #For Gaussian Thermostat:
@@ -392,6 +403,8 @@ if thermostat:
 # For measuring:
 Ekin = []
 Epot = []
+
+
 
 with open(outputFileName, "w") as outputFile: # clear file
     outputFile.write("") 
@@ -416,13 +429,11 @@ with open(outputFileName, "a") as outputFile:
             v = v * np.sqrt(temperatureDesired/temperatureSystem) 
             # print(np.sum(m * np.linalg.norm(v)**2) / (Nf * kB)) #prints system temperature, indeed constant
         
-        #TODO: yet to make sure LJ is computed correctly for neighbours from different boxes
-        #x = x % distAtomsPBC.boxSize #Project atoms into box, but do we want this?
         forces = computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon)
         accel = forces / m[:,np.newaxis]
         x, v, a = integratorVerlocity(x, v, accel)
+        x = projectMolecules(x) #TODO is this the right place, or should it before integration/force computation?
         time += dt
 duration = timer.time() - simStartTime
 print("Simulation duration was ", duration, " seconds")
-        
-        
+         

@@ -193,9 +193,9 @@ def LennardJonesInter(sigma,eps,a,b,r):
     sigma = 0.5*(sigma[a] + sigma[b])
     return 4*epsilon*((sigma/r)**12 - (sigma/r)**6)
 
-def distAtomsPBC(positions):
+def distAtomsPBC(x):
     """ Computes distances between all atoms in closest copies, taking boundaries into account"""    
-    diff = positions - positions[:,np.newaxis] 
+    diff = x - x[:,np.newaxis] 
     diff = diff - np.floor(0.5 + diff/distAtomsPBC.boxSize)*distAtomsPBC.boxSize 
 
     # idea: if dist > 0.5*boxsize in some direction (x, y or z), then there is a closer copy. 
@@ -329,13 +329,14 @@ def projectMolecules(x):
     Now computes weighted average for centre of mass. Is this worth the computation time?
     Might be that approximate centre of mass (e.g. unweighted) is good enough"""
     
-    centers = x 
-    
+    centers = np.zeros([len(types),3]) 
     for i in range(0, len(molecules)):
-        centers[molecules[i]] = sum(centers[molecules[i]] * m[molecules[i], np.newaxis] / sum(m[molecules[i]]))
+        centers[molecules[i]] = sum(x[molecules[i]] * m[molecules[i], np.newaxis] / sum(m[molecules[i]]))
     centersProj = centers % distAtomsPBC.boxSize
-    x += centersProj - centers
-    
+    print(x)
+    print(centersProj - centers)
+    x = x + (centersProj - centers)
+    print(x)
     return x
     
 
@@ -348,12 +349,12 @@ outputFileName = "MixedMoleculesPBCOutput.xyz"
 thermostat = False
 measuring = False
 
-# example 2: one ethanol molecule
-inputFileName = "Ethanol.xyz"
-inputTimeStep = 0
-topologyFileName = "EthanolTopology.txt"
-outputFileName = "EthanolOutput.xyz"
-thermostat = False
+# # example 2: one ethanol molecule
+# inputFileName = "Ethanol.xyz"
+# inputTimeStep = 0
+# topologyFileName = "EthanolTopology.txt"
+# outputFileName = "EthanolOutput.xyz"
+# thermostat = False
 
 # # example 3: two water and one hydrogen molecules with thermostat
 # inputFileName = "MixedMolecules.xyz"
@@ -369,19 +370,19 @@ thermostat = False
 # outputFileName = "EthanolThermOutput.xyz"
 # thermostat = True
 
-# example 5: 150 water molecules
-inputFileName = "WaterInitial150.xyz"
-inputTimeStep = 0
-topologyFileName = "Water150Topology.txt"
-outputFileName = "Water150Output.xyz"
-thermostat = False
+# # example 5: 150 water molecules
+# inputFileName = "WaterInitial150.xyz"
+# inputTimeStep = 0
+# topologyFileName = "Water150Topology.txt"
+# outputFileName = "Water150Output.xyz"
+# thermostat = False
 
 # run simulation
 types, x, m = readXYZfile(inputFileName, inputTimeStep)
 molecules, notInSameMolecule, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon = readTopologyFile(topologyFileName)
 
 time = 0 #ps
-endTime = 10 #ps; should be 1ns = 1000ps in final simulation
+endTime = 0.03 #ps; should be 1ns = 1000ps in final simulation
 dt = 0.003 #ps; suggestion was to start at 2fs for final simulations, larger might be better (without exploding at least)
 
 u = np.random.uniform(size=3*len(types)).reshape((len(types),3)) # random starting velocity vector
@@ -389,7 +390,7 @@ u = u/np.linalg.norm(u,axis = 1)[:,np.newaxis] # normalize
 v = 0.1*u # A/ps
 
 # PBC's:
-distAtomsPBC.boxSize = 20 # 3 nm
+distAtomsPBC.boxSize = 5 # 3 nm
 #TODO: introduce cutoff independent of boxsize! always using half is apparently much to large (slow simulation)
 
 #For Gaussian Thermostat:
@@ -429,11 +430,13 @@ with open(outputFileName, "a") as outputFile:
             v = v * np.sqrt(temperatureDesired/temperatureSystem) 
             # print(np.sum(m * np.linalg.norm(v)**2) / (Nf * kB)) #prints system temperature, indeed constant
         
+        x = projectMolecules(x) #TODO is this the right place, or should it before integration/force computation?
         forces = computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon)
         accel = forces / m[:,np.newaxis]
         x, v, a = integratorVerlocity(x, v, accel)
-        x = projectMolecules(x) #TODO is this the right place, or should it before integration/force computation?
         time += dt
+        
+
 duration = timer.time() - simStartTime
 print("Simulation duration was ", duration, " seconds")
          

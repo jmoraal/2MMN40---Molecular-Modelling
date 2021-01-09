@@ -344,20 +344,20 @@ def projectMolecules(x):
     
 
 
-# example 1: two water and one hydrogen molecules
-inputFileName = "MixedMolecules.xyz"
-inputTimeStep = 0
-topologyFileName = "MixedMoleculesTopology.txt"
-outputFileName = "MixedMoleculesPBCOutput.xyz"
-thermostat = False
-measuring = False
-
-# # example 2: one ethanol molecule
-# inputFileName = "Ethanol.xyz"
+# # example 1: two water and one hydrogen molecules
+# inputFileName = "MixedMolecules.xyz"
 # inputTimeStep = 0
-# topologyFileName = "EthanolTopology.txt"
-# outputFileName = "EthanolOutput.xyz"
+# topologyFileName = "MixedMoleculesTopology.txt"
+# outputFileName = "MixedMoleculesPBCOutput.xyz"
 # thermostat = False
+# measuring = False
+
+# example 2: one ethanol molecule
+inputFileName = "Ethanol.xyz"
+inputTimeStep = 0
+topologyFileName = "EthanolTopology.txt"
+outputFileName = "EthanolOutput.xyz"
+thermostat = False
 
 # # example 3: two water and one hydrogen molecules with thermostat
 # inputFileName = "MixedMolecules.xyz"
@@ -366,12 +366,12 @@ measuring = False
 # outputFileName = "MixedMoleculesThermOutput.xyz"
 # thermostat = True
 
-# example 4: one ethanol molecule with thermostat
-inputFileName = "Ethanol.xyz"
-inputTimeStep = 0
-topologyFileName = "EthanolTopology.txt"
-outputFileName = "EthanolThermOutput.xyz"
-thermostat = False
+# # example 4: one ethanol molecule with thermostat
+# inputFileName = "Ethanol.xyz"
+# inputTimeStep = 0
+# topologyFileName = "EthanolTopology.txt"
+# outputFileName = "EthanolThermOutput.xyz"
+# thermostat = False
 
 # # example 5: 150 water molecules
 # inputFileName = "WaterInitial150.xyz"
@@ -385,16 +385,15 @@ types, x, m = readXYZfile(inputFileName, inputTimeStep)
 molecules, notInSameMolecule, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon = readTopologyFile(topologyFileName)
 
 time = 0 #ps
-endTime = 0.03 #ps; should be 1ns = 1000ps in final simulation
+endTime = 2 #ps; should be 1ns = 1000ps in final simulation
 dt = 0.003 #ps; suggestion was to start at 2fs for final simulations, larger might be better (without exploding at least)
+distAtomsPBC.boxSize = 8 # 3 nm
 
 u = np.random.uniform(size=3*len(types)).reshape((len(types),3)) # random starting velocity vector
 u = u/np.linalg.norm(u,axis = 1)[:,np.newaxis] # normalize
 v = 0.1*u # A/ps
 v = 0
-
-# PBC's:
-distAtomsPBC.boxSize = 5 # 3 nm
+v = np.array([[4.0,0,0]]*9)
 #TODO: introduce cutoff independent of boxsize! always using half is apparently much to large (slow simulation)
 
 #For Gaussian Thermostat:

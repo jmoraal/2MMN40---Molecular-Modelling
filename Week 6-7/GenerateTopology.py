@@ -8,8 +8,7 @@ import numpy as np
 
 ### Water ###
 def writeWaterTopology(nrOfMolecules, boxSize): 
-    if (len(outputFileName) == 0): 
-        outputFileName = 'Water' + str(boxSize) + 'Topology.txt'
+    outputFileName = 'Water' + str(boxSize) + 'Topology.txt'
     
     with open(outputFileName, "w") as outputFile: # clear file
         outputFile.write("") 

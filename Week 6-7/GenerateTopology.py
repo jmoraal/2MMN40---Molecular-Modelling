@@ -222,15 +222,16 @@ def writeEthanolXYZ(nrOfMolecules, boxSize):
         outputFile.write(f"{nrOfMolecules*9}\n")
         outputFile.write("Comment t = 0\n")
         for i in range(0,nrOfMolecules):
-            outputFile.write(f'C {rand[i][0] + -1} {rand[i][1] + -1} {rand[i][2] + 0.5} \n')
-            outputFile.write(f'H {rand[i][0] + -1} {rand[i][1] + -2} {rand[i][2] + 0.2} \n')
-            outputFile.write(f'H {rand[i][0] + -2} {rand[i][1] + -1} {rand[i][2] + 1.1} \n')
-            outputFile.write(f'H {rand[i][0] + -1} {rand[i][1] + 0} {rand[i][2] + 0.1} \n')
-            outputFile.write(f'C {rand[i][0] + 0.5} {rand[i][1] + -1} {rand[i][2] + 0.9} \n')
-            outputFile.write(f'H {rand[i][0] + 0.5} {rand[i][1] + -0.2} {rand[i][2] + 1.7} \n')
-            outputFile.write(f'H {rand[i][0] + 0.5} {rand[i][1] + -1.7} {rand[i][2] + 1.7} \n')
-            outputFile.write(f'O {rand[i][0] + 2} {rand[i][1] + -1} {rand[i][2] + 0.4} \n')
-            outputFile.write(f'H {rand[i][0] + 2.5} {rand[i][1] + -0.5} {rand[i][2] + 0.2} \n')
+            outputFile.write(f'C {rand[i][0] + -1} {rand[i][1] + -1} {rand[i][2] + -0.4} \n')
+            outputFile.write(f'H {rand[i][0] + -1} {rand[i][1] + -2} {rand[i][2] + -0.7} \n')
+            outputFile.write(f'H {rand[i][0] + -2} {rand[i][1] + -1} {rand[i][2] + 0.2} \n')
+            outputFile.write(f'H {rand[i][0] + -1} {rand[i][1] + 0} {rand[i][2] + -0.8} \n')
+            outputFile.write(f'C {rand[i][0] + 0.5} {rand[i][1] + -1} {rand[i][2] + 0} \n')
+            outputFile.write(f'H {rand[i][0] + 0.5} {rand[i][1] + -0.2} {rand[i][2] + 0.8} \n')
+            outputFile.write(f'H {rand[i][0] + 0.5} {rand[i][1] + -1.7} {rand[i][2] + 0.8} \n')
+            outputFile.write(f'O {rand[i][0] + 2} {rand[i][1] + -1} {rand[i][2] + -0.5} \n')
+            outputFile.write(f'H {rand[i][0] + 2.5} {rand[i][1] + -0.5} {rand[i][2] + -0.7} \n')
+
 
 
 def writeMixtureXYZ(nrOfMolecules, boxSize):
@@ -245,9 +246,9 @@ def writeMixtureXYZ(nrOfMolecules, boxSize):
             for k in range(1,n): 
                 rand.append([(i+1)*d, (j+1)*d, (k+1)*d])
     global indWater, indEthanol
-    indWater = range(0, nrOfMolecules)
+    indWater = np.array(range(0, nrOfMolecules))
     indEthanol = np.random.choice(indWater, size=nrEthanol, replace=False) 
-    np.delete(indWater, indEthanol)
+    indWater = np.delete(indWater, indEthanol, axis=0)
     
     with open(outputFileName, "w") as outputFile: # clear file
         outputFile.write("") 
@@ -259,35 +260,34 @@ def writeMixtureXYZ(nrOfMolecules, boxSize):
             outputFile.write(f"H {rand[i][0]-1} {rand[i][1]} {rand[i][2]}\n")
             outputFile.write(f"H {rand[i][0]} {rand[i][1]-0.3} {rand[i][2]-0.9}\n")
         for i in indEthanol:
-            outputFile.write(f'C {rand[i][0] + -1} {rand[i][1] + -1} {rand[i][2] + 0.5} \n')
-            outputFile.write(f'H {rand[i][0] + -1} {rand[i][1] + -2} {rand[i][2] + 0.2} \n')
-            outputFile.write(f'H {rand[i][0] + -2} {rand[i][1] + -1} {rand[i][2] + 1.1} \n')
-            outputFile.write(f'H {rand[i][0] + -1} {rand[i][1] + 0} {rand[i][2] + 0.1} \n')
-            outputFile.write(f'C {rand[i][0] + 0.5} {rand[i][1] + -1} {rand[i][2] + 0.9} \n')
-            outputFile.write(f'H {rand[i][0] + 0.5} {rand[i][1] + -0.2} {rand[i][2] + 1.7} \n')
-            outputFile.write(f'H {rand[i][0] + 0.5} {rand[i][1] + -1.7} {rand[i][2] + 1.7} \n')
-            outputFile.write(f'O {rand[i][0] + 2} {rand[i][1] + -1} {rand[i][2] + 0.4} \n')
-            outputFile.write(f'H {rand[i][0] + 2.5} {rand[i][1] + -0.5} {rand[i][2] + 0.2} \n')
+            outputFile.write(f'C {rand[i][0] + -1} {rand[i][1] + -1} {rand[i][2] + -0.4} \n')
+            outputFile.write(f'H {rand[i][0] + -1} {rand[i][1] + -2} {rand[i][2] + -0.7} \n')
+            outputFile.write(f'H {rand[i][0] + -2} {rand[i][1] + -1} {rand[i][2] + 0.2} \n')
+            outputFile.write(f'H {rand[i][0] + -1} {rand[i][1] + 0} {rand[i][2] + -0.8} \n')
+            outputFile.write(f'C {rand[i][0] + 0.5} {rand[i][1] + -1} {rand[i][2] + 0} \n')
+            outputFile.write(f'H {rand[i][0] + 0.5} {rand[i][1] + -0.2} {rand[i][2] + 0.8} \n')
+            outputFile.write(f'H {rand[i][0] + 0.5} {rand[i][1] + -1.7} {rand[i][2] + 0.8} \n')
+            outputFile.write(f'O {rand[i][0] + 2} {rand[i][1] + -1} {rand[i][2] + -0.5} \n')
+            outputFile.write(f'H {rand[i][0] + 2.5} {rand[i][1] + -0.5} {rand[i][2] + -0.7} \n')
 
 
 def writeConfig(type, boxSize):
     ''' Writes topology & initial xyz for given system
     
     Number of molecules is based on densities at T = 298.15K '''
-    boxSize /= 10 #given in angstrom, computed here with nm
     if (type == 'water'): 
-        nrOfMolecules = int(33.328*(boxSize**3))
-        writeWaterTopology(nrOfMolecules)
+        nrOfMolecules = int(33.328*((boxSize/10)**3))
+        writeWaterTopology(nrOfMolecules, boxSize)
         writeWaterXYZ(nrOfMolecules, boxSize)
     elif (type == 'ethanol'):
-        nrOfMolecules = int(10.272*boxSize**3)
-        writeEthanolTopology(nrOfMolecules)
+        nrOfMolecules = int(10.272*((boxSize/10)**3))
+        writeEthanolTopology(nrOfMolecules, boxSize)
         writeEthanolXYZ(nrOfMolecules, boxSize) 
     elif(type == 'mixture'):
-        nrOfMolecules = int(29.728*boxSize**3)
-        writeMixtureTopology(nrOfMolecules)
+        nrOfMolecules = int(29.728*((boxSize/10)**3))
+        writeMixtureTopology(nrOfMolecules, boxSize)
         writeMixtureXYZ(nrOfMolecules, boxSize)
     else: 
         print('Type unknown, try again')
             
-writeConfig('water', 30)
+writeConfig('mixture', 30)

@@ -304,5 +304,5 @@ def writeConfig(type, boxSize):
     else: 
         print('Type unknown, try again')
             
-writeConfig('mixture', 30)
-writeConfig('ethanol', 5)
+writeConfig('mixture', 29) #works reasonably well for uniform placement few open spots
+writeConfig('mixture', 48.42) #works very well

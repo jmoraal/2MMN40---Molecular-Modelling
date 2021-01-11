@@ -225,11 +225,13 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         atomRight = x[angles[:,2]]
         dif1 = atomLeft-atomMiddle
         dif2 = atomRight-atomMiddle
-        t = np.arccos(np.sum(dif1*dif2, axis = 1)/(np.linalg.norm(dif1, axis = 1)*np.linalg.norm(dif2, axis = 1)))
-        Fangles = Fangle(t, angleConstants[:,0], angleConstants[:,1])
-
         normalVec1 = np.cross(atomLeft-atomMiddle,np.cross(atomLeft-atomMiddle,atomRight-atomMiddle))
         normalVec2 = np.cross(atomMiddle-atomRight,np.cross(atomLeft-atomMiddle,atomRight-atomMiddle))
+        
+        # t = np.arccos(np.sum(dif1*dif2, axis = 1)/(np.linalg.norm(dif1, axis = 1)*np.linalg.norm(dif2, axis = 1))) # not corrected for floating point division
+        t = np.arctan2(np.linalg.norm(np.cross(dif1,dif2), axis = 1),np.sum(dif1*dif2, axis = 1))
+        
+        Fangles = Fangle(t, angleConstants[:,0], angleConstants[:,1])
         
         FangleAtomLeft = Fangles[:,np.newaxis]/np.linalg.norm(atomLeft-atomMiddle, axis = 1)[:,np.newaxis] * normalVec1/np.linalg.norm(normalVec1, axis = 1)[:,np.newaxis] 
         FangleAtomRight = Fangles[:,np.newaxis]/np.linalg.norm(atomRight-atomMiddle, axis = 1)[:,np.newaxis] * normalVec2/np.linalg.norm(normalVec2, axis = 1)[:,np.newaxis]
@@ -250,11 +252,15 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
             normalVec2 = np.cross(-rjk,rkl)
             
             # theta = np.arccos(np.sum(normalVec1*normalVec2, axis = 1)/(np.linalg.norm(normalVec1, axis = 1)*np.linalg.norm(normalVec2, axis = 1))) # not corrected for floating point division
-            theta = np.arctan2(np.sum(np.cross(normalVec1,normalVec2), axis = 1),np.sum(normalVec1*normalVec2, axis = 1))*np.sign(np.sum(rij*normalVec2, axis = 1)) # corrected for floating point division
+            theta = np.arctan2(np.linalg.norm(np.cross(normalVec1,normalVec2), axis = 1),np.sum(normalVec1*normalVec2, axis = 1))*np.sign(np.sum(rij*normalVec2, axis = 1)) # corrected for floating point division
             
             Fdihedrals = Fdihedral(theta, dihedralConstants[:,0], dihedralConstants[:,1], dihedralConstants[:,2], dihedralConstants[:,3])
-            angleAtomsijk = np.arccos(np.sum(rij*rjk, axis = 1)/(np.linalg.norm(rij, axis = 1)*np.linalg.norm(rjk, axis = 1))) # correction not needed since this angle is never close to 0 or 180 degrees (??)
-            angleAtomsjkl = np.arccos(np.sum(rjk*rkl, axis = 1)/(np.linalg.norm(rjk, axis = 1)*np.linalg.norm(rkl, axis = 1)))
+            # angleAtomsijk = np.arccos(np.sum(rij*rjk, axis = 1)/(np.linalg.norm(rij, axis = 1)*np.linalg.norm(rjk, axis = 1))) # not corrected for floating point division
+            # angleAtomsjkl = np.arccos(np.sum(rjk*rkl, axis = 1)/(np.linalg.norm(rjk, axis = 1)*np.linalg.norm(rkl, axis = 1)))
+            
+            angleAtomsijk = np.arctan2(np.linalg.norm(np.cross(rij,rjk), axis = 1),np.sum(rij*rjk, axis = 1))
+            angleAtomsjkl = np.arctan2(np.linalg.norm(np.cross(rjk,rkl), axis = 1),np.sum(rjk*rkl, axis = 1))
+            
             # angleAtomsijk = np.arctan2(np.sum(np.cross(rij,rjk), axis = 1),np.sum(rij*rjk, axis = 1))*np.sign()
             # angleAtomsjkl = np.arctan2(np.sum(np.cross(rij,rjk), axis = 1),np.sum(rij*rjk, axis = 1))*np.sign()
             
@@ -336,10 +342,10 @@ def projectMolecules(x):
     for i in range(0, len(molecules)):
         centers[molecules[i]] = sum(x[molecules[i]] * m[molecules[i], np.newaxis] / sum(m[molecules[i]]))
     centersProj = centers % distAtomsPBC.boxSize
-    print(x)
-    print(centersProj - centers)
+    # print(x)
+    # print(centersProj - centers)
     x = x + (centersProj - centers)
-    print(x)
+    # print(x)
     return x
     
 
@@ -353,11 +359,11 @@ def projectMolecules(x):
 # measuring = False
 
 # example 2: one ethanol molecule
-inputFileName = "Ethanol.xyz"
-inputTimeStep = 0
-topologyFileName = "EthanolTopology.txt"
-outputFileName = "EthanolOutput.xyz"
-thermostat = False
+# inputFileName = "Ethanol.xyz"
+# inputTimeStep = 0
+# topologyFileName = "EthanolTopology.txt"
+# outputFileName = "EthanolOutput.xyz"
+# thermostat = False
 
 # # example 3: two water and one hydrogen molecules with thermostat
 # inputFileName = "MixedMolecules.xyz"
@@ -380,20 +386,27 @@ thermostat = False
 # outputFileName = "Water150Output.xyz"
 # thermostat = False
 
+# example 6 mixture 14.3 percent ethanol
+inputFileName = "Mixture30Initial.xyz"
+inputTimeStep = 0
+topologyFileName = "Mixture30Topology.txt"
+outputFileName = "Mixture30Output.xyz"
+thermostat = False
+
 # run simulation
 types, x, m = readXYZfile(inputFileName, inputTimeStep)
 molecules, notInSameMolecule, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon = readTopologyFile(topologyFileName)
 
 time = 0 #ps
-endTime = 2 #ps; should be 1ns = 1000ps in final simulation
+endTime = 0.009 #ps; should be 1ns = 1000ps in final simulation
 dt = 0.003 #ps; suggestion was to start at 2fs for final simulations, larger might be better (without exploding at least)
 distAtomsPBC.boxSize = 8 # 3 nm
 
 u = np.random.uniform(size=3*len(types)).reshape((len(types),3)) # random starting velocity vector
 u = u/np.linalg.norm(u,axis = 1)[:,np.newaxis] # normalize
 v = 0.1*u # A/ps
-v = 0
-v = np.array([[4.0,0,0]]*9)
+# v = 0
+# v = np.array([[4.0,0,0]]*9)
 #TODO: introduce cutoff independent of boxsize! always using half is apparently much to large (slow simulation)
 
 #For Gaussian Thermostat:

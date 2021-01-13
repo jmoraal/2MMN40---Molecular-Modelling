@@ -215,12 +215,14 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         Fbonds = Fbond(r, bondConstants[:,0], bondConstants[:,1])[:,np.newaxis]*(x[bonds[:,0]]-x[bonds[:,1]])/r[:,np.newaxis]
         np.add.at(forces, bonds[:,0], Fbonds)
         np.add.at(forces, bonds[:,1], -Fbonds)  
+        # print(forces)
     
     # angles 
     if angles.size > 0:
         atomLeft = x[angles[:,0]]
         atomMiddle = x[angles[:,1]]
         atomRight = x[angles[:,2]]
+        
         dif1 = atomLeft-atomMiddle
         dif2 = atomRight-atomMiddle
         normalVec1 = np.cross(atomLeft-atomMiddle,np.cross(atomLeft-atomMiddle,atomRight-atomMiddle))
@@ -237,7 +239,9 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         
         np.add.at(forces, angles[:,0], FangleAtomLeft)
         np.add.at(forces, angles[:,1], FangleAtomMiddle)
-        np.add.at(forces, angles[:,2], FangleAtomRight)      
+        np.add.at(forces, angles[:,2], FangleAtomRight)   
+        
+        # print(forces)
         
     # dihedrals
     if dihedrals.size > 0:
@@ -273,6 +277,8 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         np.add.at(forces, dihedrals[:,1], FdihedralAtomj)
         np.add.at(forces, dihedrals[:,2], FdihedralAtomk)
         np.add.at(forces, dihedrals[:,3], FdihedralAtoml)
+        
+        # print(forces)
         
         
     # Lennard Jones forces
@@ -331,7 +337,6 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         if np.abs(np.sum(np.sum(forces, axis = 0), axis = 0)) > 10**(-5): 
             print(f"Warning: sum of forces not equal to 0 but {np.sum(np.sum(forces, axis = 0), axis = 0)}")
         # check that sum of torques is (approx) 0
-        print(dihedrals)
         if dihedrals.size > 0:
             ro = 0.5*x[dihedrals[:,1]] + 0.5*x[dihedrals[:,2]]
             torquei = np.cross(x[dihedrals[:,0]] - ro, forces[dihedrals[:,0]])
@@ -340,8 +345,6 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
             torquel = np.cross(x[dihedrals[:,3]] - ro, forces[dihedrals[:,3]])
             
             torqueSum = torquei + torquej + torquek + torquel
-            
-            print(f"sum of torques {np.sum(np.sum(torqueSum, axis = 0), axis = 0)}")
             
             if np.abs(np.sum(np.sum(torqueSum, axis = 0), axis = 0)) > 10**(-5): 
                 print(f"Warning: sum of torques not equal to 0 but {np.sum(np.sum(torqueSum, axis = 0), axis = 0)}")
@@ -379,7 +382,7 @@ def projectMolecules(x):
 # measuring = False
 
 # example 2: one ethanol molecule
-inputFileName = "Ethanol2.xyz"
+inputFileName = "Ethanol.xyz"
 inputTimeStep = 0
 topologyFileName = "EthanolTopology.txt"
 outputFileName = "EthanolOutput.xyz"
@@ -400,16 +403,31 @@ thermostat = False
 # thermostat = False
 
 # example 5: mixture 14.3 percent ethanol
-# inputFileName = "Mixture30Initial.xyz"
+# inputFileName = "Mixture48.42Initial.xyz"
 # inputTimeStep = 0
-# topologyFileName = "Mixture30Topology.txt"
-# outputFileName = "Mixture30Output.xyz"
+# topologyFileName = "Mixture48.42Topology.txt"
+# outputFileName = "Mixture48.42Output.xyz"
 # thermostat = False
 
+# test case for dihedral forces -> works good!
 # inputFileName = "DihedralTest.xyz"
 # inputTimeStep = 0
 # topologyFileName = "DihedralTestToplogy.txt"
 # outputFileName = "DihedralTestOutput.xyz"
+# thermostat = False
+
+# test case for angular forces, one water molecule -> works good!
+# inputFileName = "WaterSingle.xyz"
+# inputTimeStep = 0
+# topologyFileName = "WaterSingleTopology.txt"
+# outputFileName = "WaterSingleOutput.xyz"
+# thermostat = False
+
+# example 6: pure ethanol
+# inputFileName = "Ethanol5Initial.xyz"
+# inputTimeStep = 0
+# topologyFileName = "Ethanol5Topology.txt"
+# outputFileName = "Ethanol5Output.xyz"
 # thermostat = False
 
 # run simulation
@@ -417,7 +435,7 @@ types, x, m = readXYZfile(inputFileName, inputTimeStep)
 molecules, notInSameMolecule, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon = readTopologyFile(topologyFileName)
 
 time = 0 #ps
-endTime = 0. #ps; should be 1ns = 1000ps in final simulation
+endTime = 0.003 #ps; should be 1ns = 1000ps in final simulation
 dt = 0.003 #ps; suggestion was to start at 2fs for final simulations, larger might be better (without exploding at least)
 distAtomsPBC.boxSize = 8 # 3 nm
 

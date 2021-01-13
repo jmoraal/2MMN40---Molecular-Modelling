@@ -281,10 +281,6 @@ def writeMixtureXYZ(nrOfMolecules, boxSize):
             outputFile.write(f'H {rand[i][0] + 1.00355339059327} {rand[i][1] + -0.296446609406726} {rand[i][2] + -1.90918830920368} \n')
 
 
-
-
-
-
 def writeConfig(type, boxSize):
     ''' Writes topology & initial xyz for given box size (in Angstrom)
     
@@ -304,5 +300,6 @@ def writeConfig(type, boxSize):
     else: 
         print('Type unknown, try again')
             
-writeConfig('mixture', 29) #works reasonably well for uniform placement few open spots
-writeConfig('mixture', 48.42) #works very well
+# writeConfig('mixture', 29) #works reasonably well for uniform placement few open spots
+# writeConfig('mixture', 48.42) #works very well
+writeConfig('ethanol', 5) # test case for ethanol dihedrals

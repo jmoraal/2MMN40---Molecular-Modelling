@@ -24,10 +24,10 @@ To zoom, drag with middle button or Alt/Option depressed, or use scroll wheel.
   On a two-button mouse, middle is left + right.
 To pan left/right and up/down, Shift-drag.
 """
-atoms = [vector(0.5,2,0),
+atoms = [vector(0.5,2,0.2),
                 vector(1,1,0),
                 vector(2.5,1,0),
-                vector(3,0.1,0.5)]
+                vector(3,0.7,1)]
 
 rij = atoms[1]-atoms[0]
 rjk = atoms[2]-atoms[1]
@@ -40,8 +40,8 @@ n2 = (rjk).cross(rkl)
 
 diri = n1
 dirl = -n2
-dirk = (-(rok).cross(dirl) + 0.5*(rkl).cross(dirl) + 0.5*(rij).cross(diri)).cross(rok)
-dirj = - diri -dirk -dirl
+dirk = (-((rok).cross(dirl) + 0.5*(rkl).cross(dirl) + 0.5*(rij).cross(-diri))).cross(rok)
+dirj = - diri - dirk - dirl
 
 print(diri + dirj + dirk + dirl)
 roi = atoms[0] - ro

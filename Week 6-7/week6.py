@@ -75,13 +75,12 @@ def Fangle(t, kt, t0):
 # DIHEDRAL
 def Vdihedral(t, C1, C2, C3, C4):
     """ Calculates periodic dihedral potential for given forcefield constants C """
-    psi = t - np.pi
+    psi = np.pi - t
     return 0.5*(C1*(1+np.cos(psi)) + C2*(1-np.cos(2*psi)) + C3*(1+np.cos(3*psi)) + C4*(1-np.cos(4*psi)))
 
 def Fdihedral(t, C1, C2, C3, C4):
     """ Calculates periodic dihedral force magnitude """
-    psi = t - np.pi
-    # psi = t
+    psi = np.pi - t
     return 0.5*(-C1*np.sin(psi) + 2*C2*np.sin(2*psi) - 3*C3*np.sin(3*psi) + 4*C4*np.sin(4*psi))
 
 ### INTEGRATORS ###
@@ -240,51 +239,41 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         np.add.at(forces, angles[:,1], FangleAtomMiddle)
         np.add.at(forces, angles[:,2], FangleAtomRight)      
         
-        # dihedrals
-        if dihedrals.size > 0:
-            rij = x[dihedrals[:,1]] - x[dihedrals[:,0]]
-            rjk = x[dihedrals[:,2]] - x[dihedrals[:,1]] # TODO check right direction of these vectors and forces !!
-            rkl = x[dihedrals[:,3]] - x[dihedrals[:,2]]
-            ro = 0.5*x[dihedrals[:,1]] + 0.5*x[dihedrals[:,2]]
-            rok = x[dihedrals[:,2]] - ro
-            
-            normalVec1 = np.cross(rij,rjk)
-            normalVec2 = np.cross(-rjk,rkl)
-            
-            # theta = np.arccos(np.sum(normalVec1*normalVec2, axis = 1)/(np.linalg.norm(normalVec1, axis = 1)*np.linalg.norm(normalVec2, axis = 1))) # not corrected for floating point division
-            theta = np.arctan2(np.linalg.norm(np.cross(normalVec1,normalVec2), axis = 1),np.sum(normalVec1*normalVec2, axis = 1))*np.sign(np.sum(rij*normalVec2, axis = 1)) # corrected for floating point division
-            
-            Fdihedrals = Fdihedral(theta, dihedralConstants[:,0], dihedralConstants[:,1], dihedralConstants[:,2], dihedralConstants[:,3])
-            angleAtomsijk = np.pi - np.arccos(np.sum(rij*rjk, axis = 1)/(np.linalg.norm(rij, axis = 1)*np.linalg.norm(rjk, axis = 1))) # not corrected for floating point division
-            angleAtomsjkl = np.arccos(np.sum(rjk*rkl, axis = 1)/(np.linalg.norm(rjk, axis = 1)*np.linalg.norm(rkl, axis = 1)))
-            
-            # angleAtomsijk = np.arctan2(np.linalg.norm(np.cross(rij,rjk), axis = 1),np.sum(rij*rjk, axis = 1))
-            # angleAtomsjkl = np.arctan2(np.linalg.norm(np.cross(-rjk,rkl), axis = 1),np.sum(-rjk*rkl, axis = 1))
-            
-            FdihedralAtomi = Fdihedrals[:,np.newaxis]/((np.linalg.norm(rij, axis = 1)*np.sin(angleAtomsijk))[:,np.newaxis]) * normalVec1/np.linalg.norm(normalVec1, axis = 1)[:,np.newaxis]
-            FdihedralAtoml = Fdihedrals[:,np.newaxis]/((np.linalg.norm(rkl, axis = 1)*np.sin(angleAtomsjkl))[:,np.newaxis]) * normalVec2/np.linalg.norm(normalVec2, axis = 1)[:,np.newaxis] 
-            
-            FdihedralAtomk = (1/np.linalg.norm(rok, axis = 1)[:,np.newaxis]**2) * np.cross((np.cross(-rok,FdihedralAtoml) + 0.5*np.cross(rij, FdihedralAtomi) + 0.5*np.cross(-rkl, FdihedralAtoml)),rok)
-            # FdihedralAtom = 0
-            FdihedralAtomj = - FdihedralAtomi - FdihedralAtomk - FdihedralAtoml
-            # FdihedralAtomj = 0
-            # FdihedralAtomj = -FdihedralAtomi + np.sum(dif1*difCommon, axis = 1)/np.linalg.norm(difCommon, axis = 1)[:,np.newaxis]*FdihedralAtomi - np.sum(dif2*difCommon, axis = 1)/np.linalg.norm(dif2, axis = 1)[:,np.newaxis]*FdihedralAtoml
-            # FdihedralAtomk = -FdihedralAtoml - np.sum(dif1*difCommon, axis = 1)/np.linalg.norm(difCommon, axis = 1)[:,np.newaxis]*FdihedralAtomi + np.sum(dif2*difCommon, axis = 1)/np.linalg.norm(dif2, axis = 1)[:,np.newaxis]*FdihedralAtoml
-            
-            # print(FdihedralAtomi)
-            # print(FdihedralAtomj)
-            # print(FdihedralAtomk)
-            # print(FdihedralAtoml)
-            
-            print(np.sum(rij*FdihedralAtomi, axis = 1))
-            print(np.sum(normalVec2*FdihedralAtomj, axis = 1))
-            print(np.sum(normalVec1*FdihedralAtomk, axis = 1))
-            print(np.sum(rkl*FdihedralAtoml, axis = 1))
-            np.add.at(forces, dihedrals[:,0], FdihedralAtomi)
-            np.add.at(forces, dihedrals[:,1], FdihedralAtomj)
-            np.add.at(forces, dihedrals[:,2], FdihedralAtomk)
-            np.add.at(forces, dihedrals[:,3], FdihedralAtoml)
-            
+    # dihedrals
+    if dihedrals.size > 0:
+        rij = x[dihedrals[:,1]] - x[dihedrals[:,0]]
+        rjk = x[dihedrals[:,2]] - x[dihedrals[:,1]] # TODO check right direction of these vectors and forces !!
+        rkl = x[dihedrals[:,3]] - x[dihedrals[:,2]]
+        ro = 0.5*x[dihedrals[:,1]] + 0.5*x[dihedrals[:,2]]
+        rok = x[dihedrals[:,2]] - ro
+        
+        normalVec1 = np.cross(rij,rjk)
+        normalVec2 = np.cross(rjk,rkl)
+        
+        # theta = np.arccos(np.sum(normalVec1*normalVec2, axis = 1)/(np.linalg.norm(normalVec1, axis = 1)*np.linalg.norm(normalVec2, axis = 1))) # not corrected for floating point division
+        theta = np.arctan2(np.linalg.norm(np.cross(normalVec1,normalVec2), axis = 1),np.sum(normalVec1*normalVec2, axis = 1))*np.sign(np.sum(rij*normalVec2, axis = 1)) # corrected for floating point division
+        
+        Fdihedrals = Fdihedral(theta, dihedralConstants[:,0], dihedralConstants[:,1], dihedralConstants[:,2], dihedralConstants[:,3])
+        angleAtomsijk = np.arccos(np.sum(rij*rjk, axis = 1)/(np.linalg.norm(rij, axis = 1)*np.linalg.norm(rjk, axis = 1))) # not corrected for floating point division
+        angleAtomsjkl = np.arccos(np.sum(rjk*rkl, axis = 1)/(np.linalg.norm(rjk, axis = 1)*np.linalg.norm(rkl, axis = 1)))
+        
+        # angleAtomsijk = np.arctan2(np.linalg.norm(np.cross(rij,rjk), axis = 1),np.sum(rij*rjk, axis = 1))
+        # angleAtomsjkl = np.arctan2(np.linalg.norm(np.cross(-rjk,rkl), axis = 1),np.sum(-rjk*rkl, axis = 1))
+        
+        FdihedralAtomi = -Fdihedrals[:,np.newaxis]/((np.linalg.norm(rij, axis = 1)*np.sin(angleAtomsijk))[:,np.newaxis]) * -normalVec1/np.linalg.norm(normalVec1, axis = 1)[:,np.newaxis]
+        FdihedralAtoml = -Fdihedrals[:,np.newaxis]/((np.linalg.norm(rkl, axis = 1)*np.sin(angleAtomsjkl))[:,np.newaxis]) * normalVec2/np.linalg.norm(normalVec2, axis = 1)[:,np.newaxis] 
+        
+        FdihedralAtomk = (1/np.linalg.norm(rok, axis = 1)[:,np.newaxis]**2) * np.cross(-(np.cross(rok,FdihedralAtoml) + 0.5*np.cross(rkl, FdihedralAtoml) + 0.5*np.cross(rij, -FdihedralAtomi)),rok)
+        
+        FdihedralAtomj = - FdihedralAtomi - FdihedralAtomk - FdihedralAtoml
+        # FdihedralAtomj = -FdihedralAtomi + np.sum(dif1*difCommon, axis = 1)/np.linalg.norm(difCommon, axis = 1)[:,np.newaxis]*FdihedralAtomi - np.sum(dif2*difCommon, axis = 1)/np.linalg.norm(dif2, axis = 1)[:,np.newaxis]*FdihedralAtoml
+        # FdihedralAtomk = -FdihedralAtoml - np.sum(dif1*difCommon, axis = 1)/np.linalg.norm(difCommon, axis = 1)[:,np.newaxis]*FdihedralAtomi + np.sum(dif2*difCommon, axis = 1)/np.linalg.norm(dif2, axis = 1)[:,np.newaxis]*FdihedralAtoml
+        
+        np.add.at(forces, dihedrals[:,0], FdihedralAtomi)
+        np.add.at(forces, dihedrals[:,1], FdihedralAtomj)
+        np.add.at(forces, dihedrals[:,2], FdihedralAtomk)
+        np.add.at(forces, dihedrals[:,3], FdihedralAtoml)
+        
         
     # Lennard Jones forces
     if sigma.size > 0:
@@ -342,18 +331,18 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         if np.abs(np.sum(np.sum(forces, axis = 0), axis = 0)) > 10**(-5): 
             print(f"Warning: sum of forces not equal to 0 but {np.sum(np.sum(forces, axis = 0), axis = 0)}")
         # check that sum of torques is (approx) 0
+        print(dihedrals)
         if dihedrals.size > 0:
             ro = 0.5*x[dihedrals[:,1]] + 0.5*x[dihedrals[:,2]]
             torquei = np.cross(x[dihedrals[:,0]] - ro, forces[dihedrals[:,0]])
             torquej = np.cross(x[dihedrals[:,1]] - ro, forces[dihedrals[:,1]])
             torquek = np.cross(x[dihedrals[:,2]] - ro, forces[dihedrals[:,2]])
             torquel = np.cross(x[dihedrals[:,3]] - ro, forces[dihedrals[:,3]])
-            # print(torquei)
-            # print(torquej)
-            # print(torquek)
-            # print(torquel)
+            
             torqueSum = torquei + torquej + torquek + torquel
-            # print(torqueSum)
+            
+            print(f"sum of torques {np.sum(np.sum(torqueSum, axis = 0), axis = 0)}")
+            
             if np.abs(np.sum(np.sum(torqueSum, axis = 0), axis = 0)) > 10**(-5): 
                 print(f"Warning: sum of torques not equal to 0 but {np.sum(np.sum(torqueSum, axis = 0), axis = 0)}")
         
@@ -390,7 +379,7 @@ def projectMolecules(x):
 # measuring = False
 
 # example 2: one ethanol molecule
-inputFileName = "Ethanol.xyz"
+inputFileName = "Ethanol2.xyz"
 inputTimeStep = 0
 topologyFileName = "EthanolTopology.txt"
 outputFileName = "EthanolOutput.xyz"
@@ -417,12 +406,18 @@ thermostat = False
 # outputFileName = "Mixture30Output.xyz"
 # thermostat = False
 
+# inputFileName = "DihedralTest.xyz"
+# inputTimeStep = 0
+# topologyFileName = "DihedralTestToplogy.txt"
+# outputFileName = "DihedralTestOutput.xyz"
+# thermostat = False
+
 # run simulation
 types, x, m = readXYZfile(inputFileName, inputTimeStep)
 molecules, notInSameMolecule, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon = readTopologyFile(topologyFileName)
 
 time = 0 #ps
-endTime = 0 #ps; should be 1ns = 1000ps in final simulation
+endTime = 0. #ps; should be 1ns = 1000ps in final simulation
 dt = 0.003 #ps; suggestion was to start at 2fs for final simulations, larger might be better (without exploding at least)
 distAtomsPBC.boxSize = 8 # 3 nm
 

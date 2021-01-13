@@ -1,0 +1,7 @@
+molecules 1
+0 1 2 3
+bonds 0
+angles 0
+dihedrals 1
+0 1 2 3 1 1 1 1
+LJ 0

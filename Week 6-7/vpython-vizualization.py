@@ -27,17 +27,22 @@ To pan left/right and up/down, Shift-drag.
 atoms = [vector(0.5,2,0),
                 vector(1,1,0),
                 vector(2.5,1,0),
-                vector(3.5,0.1,1.5)]
+                vector(3,0.1,0.5)]
 
 rij = atoms[1]-atoms[0]
 rjk = atoms[2]-atoms[1]
 rkl = atoms[3]-atoms[2]
 ro = 0.5*atoms[1]+0.5*atoms[2]
 rok = atoms[2] - ro
-diri = (rij).cross(rjk)
-dirl = (-rjk).cross(rkl)
-dirk = ((-rok).cross(dirl) + 0.5*(rij).cross(diri) + 0.5*(-rkl).cross(dirl)).cross(rok)
-dirj = -diri -dirk -dirl
+
+n1 = (rij).cross(rjk)
+n2 = (rjk).cross(rkl)
+
+diri = n1
+dirl = -n2
+dirk = (-(rok).cross(dirl) + 0.5*(rkl).cross(dirl) + 0.5*(rij).cross(diri)).cross(rok)
+dirj = - diri -dirk -dirl
+
 print(diri + dirj + dirk + dirl)
 roi = atoms[0] - ro
 roj = atoms[1] - ro

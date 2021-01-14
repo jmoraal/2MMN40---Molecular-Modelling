@@ -1,7 +1,9 @@
-molecules 1
+molecules 2
 0 1 2 3
+4 5 6 7
 bonds 0
 angles 0
-dihedrals 1
+dihedrals 2
 0 1 2 3 1 1 1 1
+4 5 6 7 1 1 1 1
 LJ 0

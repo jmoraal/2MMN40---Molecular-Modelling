@@ -215,7 +215,6 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         Fbonds = Fbond(r, bondConstants[:,0], bondConstants[:,1])[:,np.newaxis]*(x[bonds[:,0]]-x[bonds[:,1]])/r[:,np.newaxis]
         np.add.at(forces, bonds[:,0], Fbonds)
         np.add.at(forces, bonds[:,1], -Fbonds)  
-        # print(forces)
     
     # angles 
     if angles.size > 0:
@@ -240,8 +239,6 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         np.add.at(forces, angles[:,0], FangleAtomLeft)
         np.add.at(forces, angles[:,1], FangleAtomMiddle)
         np.add.at(forces, angles[:,2], FangleAtomRight)   
-        
-        # print(forces)
         
     # dihedrals
     if dihedrals.size > 0:
@@ -278,7 +275,17 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         np.add.at(forces, dihedrals[:,2], FdihedralAtomk)
         np.add.at(forces, dihedrals[:,3], FdihedralAtoml)
         
-        # print(forces)
+         # check that sum of torques is (approx) 0
+        if checkForces:
+            torquei = np.cross(x[dihedrals[:,0]] - ro, forces[dihedrals[:,0]])
+            torquej = np.cross(x[dihedrals[:,1]] - ro, forces[dihedrals[:,1]])
+            torquek = np.cross(x[dihedrals[:,2]] - ro, forces[dihedrals[:,2]])
+            torquel = np.cross(x[dihedrals[:,3]] - ro, forces[dihedrals[:,3]])
+            
+            torqueSum = torquei + torquej + torquek + torquel
+            
+            if np.abs(np.sum(np.sum(torqueSum, axis = 0), axis = 0)) > 10**(-5): 
+                print(f"Warning: sum of torques not equal to 0 but {np.sum(np.sum(torqueSum, axis = 0), axis = 0)}")
         
         
     # Lennard Jones forces
@@ -331,25 +338,10 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
     #     forces = forces + f 
     
     # forces check
-    checkForces = True
     if checkForces:
         # check that sum of all forces is (approx) 0
         if np.abs(np.sum(np.sum(forces, axis = 0), axis = 0)) > 10**(-5): 
             print(f"Warning: sum of forces not equal to 0 but {np.sum(np.sum(forces, axis = 0), axis = 0)}")
-        # check that sum of torques is (approx) 0
-        if dihedrals.size > 0:
-            ro = 0.5*x[dihedrals[:,1]] + 0.5*x[dihedrals[:,2]]
-            torquei = np.cross(x[dihedrals[:,0]] - ro, forces[dihedrals[:,0]])
-            torquej = np.cross(x[dihedrals[:,1]] - ro, forces[dihedrals[:,1]])
-            torquek = np.cross(x[dihedrals[:,2]] - ro, forces[dihedrals[:,2]])
-            torquel = np.cross(x[dihedrals[:,3]] - ro, forces[dihedrals[:,3]])
-            
-            torqueSum = torquei + torquej + torquek + torquel
-            
-            if np.abs(np.sum(np.sum(torqueSum, axis = 0), axis = 0)) > 10**(-5): 
-                print(f"Warning: sum of torques not equal to 0 but {np.sum(np.sum(torqueSum, axis = 0), axis = 0)}")
-        
-    
     
     return(forces)
 
@@ -382,11 +374,11 @@ def projectMolecules(x):
 # measuring = False
 
 # example 2: one ethanol molecule
-inputFileName = "Ethanol.xyz"
-inputTimeStep = 0
-topologyFileName = "EthanolTopology.txt"
-outputFileName = "EthanolOutput.xyz"
-thermostat = False
+# inputFileName = "Ethanol2.xyz"
+# inputTimeStep = 0
+# topologyFileName = "Ethanol2Topology.txt"
+# outputFileName = "Ethanol2Output.xyz"
+# thermostat = False
 
 # # example 3: two water and one hydrogen molecules with thermostat
 # inputFileName = "MixedMolecules.xyz"
@@ -410,11 +402,11 @@ thermostat = False
 # thermostat = False
 
 # test case for dihedral forces -> works good!
-# inputFileName = "DihedralTest.xyz"
-# inputTimeStep = 0
-# topologyFileName = "DihedralTestToplogy.txt"
-# outputFileName = "DihedralTestOutput.xyz"
-# thermostat = False
+inputFileName = "DihedralTest.xyz"
+inputTimeStep = 0
+topologyFileName = "DihedralTestToplogy.txt"
+outputFileName = "DihedralTestOutput.xyz"
+thermostat = False
 
 # test case for angular forces, one water molecule -> works good!
 # inputFileName = "WaterSingle.xyz"
@@ -435,7 +427,7 @@ types, x, m = readXYZfile(inputFileName, inputTimeStep)
 molecules, notInSameMolecule, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon = readTopologyFile(topologyFileName)
 
 time = 0 #ps
-endTime = 0.003 #ps; should be 1ns = 1000ps in final simulation
+endTime = 0 #ps; should be 1ns = 1000ps in final simulation
 dt = 0.003 #ps; suggestion was to start at 2fs for final simulations, larger might be better (without exploding at least)
 distAtomsPBC.boxSize = 8 # 3 nm
 
@@ -457,6 +449,7 @@ if thermostat:
 # For measuring:
 Ekin = []
 Epot = []
+checkForces = True
 
 with open(outputFileName, "w") as outputFile: # clear file
     outputFile.write("") 
@@ -481,7 +474,7 @@ with open(outputFileName, "a") as outputFile:
             v = v * np.sqrt(temperatureDesired/temperatureSystem) 
             # print(np.sum(m * np.linalg.norm(v)**2) / (Nf * kB)) #prints system temperature, indeed constant
         
-        x = projectMolecules(x) #TODO is this the right place, or should it before integration/force computation?
+        # x = projectMolecules(x) #TODO is this the right place, or should it before integration/force computation?
         forces = computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon)
         accel = forces / m[:,np.newaxis]
         x, v, a = integratorVerlocity(x, v, accel)

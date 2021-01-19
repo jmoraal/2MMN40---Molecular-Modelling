@@ -14,7 +14,7 @@ Created on Mon Nov  9 16:30:44 2020
 """
 import time as timer
 import numpy as np
-import GenerateTopology as gt
+
 #import functions as fun # idea was to put all fcts there, but too many non-parametrised variables
 
 #from itertools import chain
@@ -326,19 +326,13 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         frac12 = frac6 ** 2
         U = 4*e*(frac12 - frac6) 
         V = np.sign(U)*np.divide(4*e*(6*frac6 - 12*frac12), dist, out=np.zeros_like(s), where=dist!=0) # avoid division by 0. 
-        # TODO but what happens if dist=0? -> no division. That is ok since there is no forces on atoms at distance 0 anyway which is taken care of by notInSameMolecules
         # TODO is the sign correct? 
        
-        #L = x-x[:,np.newaxis]
         L = diff
-        
-        # U = U*notInSameMolecule # these forces do not apply on atoms in the same molecule!
-        # U = np.repeat(U, 3).reshape(len(types), len(types), 3)
         
         V = V*notInSameMolecule # these forces do not apply on atoms in the same molecule!
         V = np.repeat(V, 3).reshape(len(types), len(types), 3)
         
-        #forces += np.sum(U*L, axis = 1)
         forces += np.sum(V*L, axis = 1)
     
     
@@ -353,15 +347,15 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
                     
 ### PARAMETERS ###
 
-#SMALL
+# SMALL
 distAtomsPBC.boxSize = 29 # 3 nm
 
-# # case 1: mixture 14.3 percent ethanol
-# inputFileName = "Water29Initial.xyz"
-# inputTimeStep = 0
-# topologyFileName = "Water29Topology.txt"
-# outputFileName = "Water29Output.xyz"
-# thermostat = False
+# case 1: pure water
+inputFileName = "Water29Initial.xyz"
+inputTimeStep = 0
+topologyFileName = "Water29Topology.txt"
+outputFileName = "Water29Output.xyz"
+thermostat = False
 
 # # case 2: pure ethanol
 # inputFileName = "Ethanol29Initial.xyz"
@@ -370,18 +364,18 @@ distAtomsPBC.boxSize = 29 # 3 nm
 # outputFileName = "Ethanol29Output.xyz"
 # thermostat = False
 
-# case 3: mixture 14.3 percent ethanol
-inputFileName = "Mixture29Initial.xyz"
-inputTimeStep = 0
-topologyFileName = "Mixture29Topology.txt"
-outputFileName = "Mixture29Output.xyz"
-thermostat = False
+# # case 3: mixture 14.3 percent ethanol
+# inputFileName = "Mixture29Initial.xyz"
+# inputTimeStep = 0
+# topologyFileName = "Mixture29Topology.txt"
+# outputFileName = "Mixture29Output.xyz"
+# thermostat = False
 
 
 # #LARGE
 # distAtomsPBC.boxSize = 48.42 # 3 nm
 
-# # case 1: mixture 14.3 percent ethanol
+# # case 1: pure water
 # inputFileName = "Water48.42Initial.xyz"
 # inputTimeStep = 0
 # topologyFileName = "Water48.42Topology.txt"

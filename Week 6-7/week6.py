@@ -308,7 +308,8 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         # TODO but what happens if dist=0? -> no division. That is ok since there is no forces on atoms at distance 0 anyway which is taken care of by notInSameMolecules
         # TODO is the sign correct? 
        
-        L = x-x[:,np.newaxis]
+        #L = x-x[:,np.newaxis]
+        L = diff
         
         # U = U*notInSameMolecule # these forces do not apply on atoms in the same molecule!
         # U = np.repeat(U, 3).reshape(len(types), len(types), 3)
@@ -357,10 +358,7 @@ def projectMolecules(x):
     for i in range(0, len(molecules)):
         centers[molecules[i]] = sum(x[molecules[i]] * m[molecules[i], np.newaxis] / sum(m[molecules[i]]))
     centersProj = centers % distAtomsPBC.boxSize
-    # print(x)
-    # print(centersProj - centers)
     x = x + (centersProj - centers)
-    # print(x)
     return x
     
 
@@ -395,18 +393,18 @@ def projectMolecules(x):
 # thermostat = False
 
 # example 5: mixture 14.3 percent ethanol
-# inputFileName = "Mixture48.42Initial.xyz"
-# inputTimeStep = 0
-# topologyFileName = "Mixture48.42Topology.txt"
-# outputFileName = "Mixture48.42Output.xyz"
-# thermostat = False
-
-# test case for dihedral forces -> works good!
-inputFileName = "DihedralTest.xyz"
+inputFileName = "Mixture48.42Initial.xyz"
 inputTimeStep = 0
-topologyFileName = "DihedralTestToplogy.txt"
-outputFileName = "DihedralTestOutput.xyz"
+topologyFileName = "Mixture48.42Topology.txt"
+outputFileName = "Mixture48.42Output.xyz"
 thermostat = False
+
+# # test case for dihedral forces -> works good!
+# inputFileName = "DihedralTest.xyz"
+# inputTimeStep = 0
+# topologyFileName = "DihedralTestToplogy.txt"
+# outputFileName = "DihedralTestOutput.xyz"
+# thermostat = False
 
 # test case for angular forces, one water molecule -> works good!
 # inputFileName = "WaterSingle.xyz"
@@ -427,9 +425,9 @@ types, x, m = readXYZfile(inputFileName, inputTimeStep)
 molecules, notInSameMolecule, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon = readTopologyFile(topologyFileName)
 
 time = 0 #ps
-endTime = 0 #ps; should be 1ns = 1000ps in final simulation
+endTime = 1 #ps; should be 1ns = 1000ps in final simulation
 dt = 0.003 #ps; suggestion was to start at 2fs for final simulations, larger might be better (without exploding at least)
-distAtomsPBC.boxSize = 8 # 3 nm
+distAtomsPBC.boxSize = 55 # 3 nm
 
 u = np.random.uniform(size=3*len(types)).reshape((len(types),3)) # random starting velocity vector
 u = u/np.linalg.norm(u,axis = 1)[:,np.newaxis] # normalize
@@ -478,6 +476,7 @@ with open(outputFileName, "a") as outputFile:
         forces = computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon)
         accel = forces / m[:,np.newaxis]
         x, v, a = integratorVerlocity(x, v, accel)
+        x = projectMolecules(x)
         time += dt
         
 

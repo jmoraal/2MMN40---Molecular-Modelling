@@ -189,13 +189,13 @@ def writeMixtureTopology(nrOfMolecules, boxSize):
 ### Generate xyz's ###
 def writeWaterXYZ(nrOfMolecules, boxSize):
     outputFileName = 'Water' + str(boxSize) + 'Initial.xyz'
-    d = boxSize / (nrOfMolecules)**(1/3)
     n = int(nrOfMolecules**(1/3)) + 2
+    d = boxSize / n
     rand = []
     for i in range(1,n): 
         for j in range(1,n): 
             for k in range(1,n): 
-                rand.append([(i+1)*d, (j+1)*d, (k+1)*d])
+                rand.append([(i)*d, (j)*d, (k)*d])
         
     with open(outputFileName, "w") as outputFile: # clear file
         outputFile.write("") 
@@ -209,13 +209,13 @@ def writeWaterXYZ(nrOfMolecules, boxSize):
             
 def writeEthanolXYZ(nrOfMolecules, boxSize):
     outputFileName = 'Ethanol' + str(boxSize) + 'Initial.xyz'
-    d = boxSize / (nrOfMolecules)**(1/3)
     n = int(nrOfMolecules**(1/3)) + 2
+    d = boxSize / n
     rand = []
     for i in range(1,n): 
         for j in range(1,n): 
             for k in range(1,n): 
-                rand.append([(i+1)*d, (j+1)*d, (k+1)*d])
+                rand.append([(i)*d, (j)*d, (k)*d])
     with open(outputFileName, "w") as outputFile: # clear file
         outputFile.write("") 
     with open(outputFileName, "a") as outputFile:
@@ -238,13 +238,13 @@ def writeMixtureXYZ(nrOfMolecules, boxSize):
     outputFileName = 'Mixture' + str(boxSize) + 'Initial.xyz'
     nrEthanol = int(nrOfMolecules * 228 / 3716) #based on 14.3% mass ethanol
     nrWater = nrOfMolecules - nrEthanol
-    d = boxSize / (nrOfMolecules)**(1/3)
     n = int(nrOfMolecules**(1/3)) + 2
+    d = boxSize / n
     rand = []
     for i in range(1,n): 
         for j in range(1,n): 
             for k in range(1,n): 
-                rand.append([(i+1)*d, (j+1)*d, (k+1)*d])
+                rand.append([(i)*d, (j)*d, (k)*d])
     global indWater, indEthanol
     indWater = np.array(range(0, nrOfMolecules))
     indEthanol = np.random.choice(indWater, size=nrEthanol, replace=False) 
@@ -292,3 +292,5 @@ def writeConfig(type, boxSize):
             
 writeConfig('mixture', 29) #works reasonably well for uniform placement few open spots
 # writeConfig('mixture', 48.42) #works very well
+
+writeConfig('water', 29)

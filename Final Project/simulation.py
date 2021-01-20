@@ -66,7 +66,6 @@ def readTopologyFile(fileNameTopology):
         for i,mol in enumerate(molecules):
             for j,at in enumerate(mol):
                 for k,at2 in enumerate(mol):
-                    # print(at, at2)
                     notInSameMolecule[at,at2] = False
 
         nrOfBonds = int(lines[nrOfMolecules+1].split()[1])

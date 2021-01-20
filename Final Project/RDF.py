@@ -15,20 +15,21 @@ def readTopologyFile(fileNameTopology):
         
         nrOfMolecules = int(lines[0].split()[1])
     
-        molecules = []
+        molecule = np.zeros(len(types))
+        atom = 0
         for i in range(1,nrOfMolecules+1):
-            molecules.append(list(map(int,lines[i].split())))
+            for j in range(0,len(lines[i].split())):
+                if len(lines[i].split()) == 3:
+                    molecule[atom] = 0
+                elif len(lines[i].split()) == 9:
+                    molecule[atom] = 1
+                atom += 1       
         
-        notInSameMolecule = np.ones((len(types), len(types)), dtype=bool)
-        for i,mol in enumerate(molecules):
-            for j,at in enumerate(mol):
-                for k,at2 in enumerate(mol):
-                    # print(at, at2)
-                    notInSameMolecule[at,at2] = False
-        
-        return(molecules, notInSameMolecule)
+        # molecule = molecule.tolist()
+        # molecule = list(map(int, molecule))
+        return(molecule)
     
-def readXYZOutput(fileName, startTime, endTime, dt): 
+def readXYZOutput(fileName): 
     """Read a .xyz file.
     
     Reads entire file for arbitrary number of timesteps
@@ -46,59 +47,79 @@ def readXYZOutput(fileName, startTime, endTime, dt):
         
     nrOfAtoms = int(firstColumn[0])
     
-    nrOfTimeSteps = 4
+    nrOfTimeSteps = 1
     
     atomTypesList = firstColumn[2:2+nrOfAtoms]
-    typesDict = {'O': 0, 'H': 1, 'C': 2}
+    typesDict = {'O': 0, 'H': 1, 'C': 2} # 0 oxygen, 1 hydrogen, 2 carbon
     atomTypes = np.vectorize(typesDict.get)(atomTypesList)
+    
     atomPositions = np.zeros([nrOfTimeSteps,nrOfAtoms,3])
     
-    lineNr = int((nrOfAtoms+2)*(np.ceil((endTime - nrOfTimeSteps*dt - startTime)/dt))) # start reading here, until the end
+    lineNr = len(lines) - nrOfTimeSteps*(nrOfAtoms + 2)# start reading here, until the end
+    
     i = 0
-    while i < nrOfTimeSteps:
+    while lineNr < len(lines):
         atomPositions[i,:,:] = np.asarray(lines[lineNr+2:lineNr+2+nrOfAtoms], dtype=float)
         lineNr = lineNr + nrOfAtoms + 2
         i += 1
         
     return(atomTypes, atomPositions)
 
-def distAtomsPBC(x):
-    """ Computes distances between all atoms in closest copies, taking boundaries into account"""    
-    diff = x - x[:,np.newaxis] 
+def distAtomsPBC(x, x2):
+    """ Computes distances between all atoms in closest copies, taking boundaries into account"""   
+    diff = x - x2[:,np.newaxis]
     diff = diff - np.floor(0.5 + diff/distAtomsPBC.boxSize)*distAtomsPBC.boxSize 
-
-    # idea: if dist > 0.5*boxsize in some direction (x, y or z), then there is a closer copy. 
-    # subtracting 0.5*boxsize in every direction where it is too large yields direction vector to closest neighbour
-    # Still check correctness!
     dist = np.linalg.norm(diff,axis = 2)
-    return(diff,dist) 
+    return(dist) 
 
 outputFileName = "Water29Output.xyz"
 topologyFileName = "Water29Topology.txt"
 
-startTime = 0
-endTime = 0.012
-dt = 0.003
+# outputFileName = "MixedMoleculesOutput.xyz"
+# topologyFileName = "MixedMoleculesTopology.txt"
+
+outputFileName = "Mixture29Output.xyz"
+topologyFileName = "Mixture29Topology.txt"
+
 distAtomsPBC.boxSize = 29
-types, x = readXYZOutput(outputFileName, startTime, endTime, dt)
-molecules, notInSameMolecule = readTopologyFile(topologyFileName)
+types, x = readXYZOutput(outputFileName)
+molecule = readTopologyFile(topologyFileName)
 
-rOwaterOwater = x[:,np.where(types == 0),:] # TODO only water molecules not ethanol
-nrOwaterOwater = np.shape(rOwaterOwater)[2]
+xOwater = x[:,np.where((types == 0) & (molecule == 0)),:]
+xOethanol = x[:,np.where((types == 0) & (molecule == 1)),:]
+xHwater = x[:,np.where((types == 1) & (molecule == 0)),:]
+xHethanol = x[:,np.where((types == 1) & (molecule == 1)),:]
 
-time0 = rOwaterOwater[0,:,:,:].reshape(nrOwaterOwater,3)
+nrOwater = np.shape(xOwater)[2]
+nrOethanol = np.shape(xOethanol)[2]
+nrHwater = np.shape(xHwater)[2]
+nrHethanol = np.shape(xHethanol)[2]
 
-distance = np.linalg.norm(time0 - time0[:,np.newaxis], axis = 2)
-distance = np.around(distance,2).reshape(nrOwaterOwater*nrOwaterOwater)
+timeStep = 0
+xOwater = xOwater[timeStep,:,:,:].reshape(nrOwater,3)
+rOwaterOwater = distAtomsPBC(xOwater, xOwater)
+xOethanol = xOethanol[timeStep,:,:,:].reshape(nrOethanol,3)
+rOwaterOethanol = distAtomsPBC(xOwater, xOethanol)
+xHwater = xHwater[timeStep,:,:,:].reshape(nrHwater,3)
+rHwaterOethanol = distAtomsPBC(xHwater, xOethanol)
+
+rOwaterOwater = np.around(rOwaterOwater,2).reshape(nrOwater*nrOwater)
+rOwaterOethanol = np.around(rOwaterOethanol,2).reshape(nrOwater*nrOethanol)
+rHwaterOethanol = np.around(rHwaterOethanol,2).reshape(nrHwater*nrOethanol)
 
 dr = distAtomsPBC.boxSize/10
 
 fig = plt.figure(figsize =(10, 7)) 
 bins = [0, dr, 2*dr, 3*dr, 4*dr, 5*dr, 6*dr, 7*dr, 8*dr, 9*dr, 10*dr]
-plt.hist(distance, bins = bins)
+plt.hist(rOwaterOwater, bins = bins)
 
 plt.title("RDF") 
 plt.show()
+
+
+fig = plt.figure(figsize =(10, 7)) 
+plt.hist(rHwaterOethanol, bins = bins, color = "black")
+# TODO: shapes of the two histograms are too identical, cant be right
 
 
 

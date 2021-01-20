@@ -14,8 +14,8 @@ Created on Mon Nov  9 16:30:44 2020
 """
 import time as timer
 import numpy as np
-import warnings
-warnings.filterwarnings("error") # allows try/except-constructions for warnings (i.e. stop computation when dividing by 0)
+# import warnings
+# warnings.filterwarnings("error") # allows try/except-constructions for warnings (i.e. stop computation when dividing by 0)
 #import functions as fun # idea was to put all fcts there, but too many non-parametrised variables
 
 #from itertools import chain
@@ -202,20 +202,20 @@ def integratorEuler(x, v, a):
 def integratorVerlocity(x, v, a):
     """ Implementation of a single step for Velocty Verlet integrator. """ 
     x_new = x + v*dt + (dt**2)/2*a
-    a_new = computeForces(x_new, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon)/m[:,np.newaxis]
+    a_new = computeForces(x_new, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon, LJcutoff)/m[:,np.newaxis]
     v = v + dt/2*(a_new +a)
     return(x_new, v, a_new)
 
 def integratorRK4(x, v, a):
     """ Implementation of a single step for Runge-Kutta order 4 integrator. """ 
     x1 = x + dt*v + (dt**2)/2*a 
-    v1 = dt*computeForces(x1, bonds, bondConstants, angles, angleConstants)/m[:,np.newaxis]
+    v1 = dt*computeForces(x1, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon, LJcutoff)/m[:,np.newaxis]
     x2 = x + dt/2*(v+v1/2) + (dt**2)/2*a 
-    v2 = dt*computeForces(x2, bonds, bondConstants, angles, angleConstants)/m[:,np.newaxis]
+    v2 = dt*computeForces(x2, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon, LJcutoff)/m[:,np.newaxis]
     x3 = x + dt/2*(v+v2/2) + (dt**2)/2*a
-    v3 = dt*computeForces(x3, bonds, bondConstants, angles, angleConstants)/m[:,np.newaxis]
+    v3 = dt*computeForces(x3, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon, LJcutoff)/m[:,np.newaxis]
     x4 = x + dt*(v+v3) + (dt**2)/2*a 
-    v4 = dt*computeForces(x4, bonds, bondConstants, angles, angleConstants)/m[:,np.newaxis]
+    v4 = dt*computeForces(x4, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon, LJcutoff)/m[:,np.newaxis]
     
     v = v + (v1+2*v2+2*v3+v4)/6
     return(x1, v, a)
@@ -227,7 +227,7 @@ def integratorRK4(x, v, a):
 ### FORCES ###
 
 
-def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon):
+def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon, LJcutoff):
     """Caltulate forces in one go with help of topology file."""
     forces = np.zeros((len(types),3), dtype = float)
     
@@ -265,7 +265,7 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
     # dihedrals
     if dihedrals.size > 0:
         rij = x[dihedrals[:,1]] - x[dihedrals[:,0]]
-        rjk = x[dihedrals[:,2]] - x[dihedrals[:,1]] # TODO check right direction of these vectors and forces !!
+        rjk = x[dihedrals[:,2]] - x[dihedrals[:,1]] 
         rkl = x[dihedrals[:,3]] - x[dihedrals[:,2]]
         ro = 0.5*x[dihedrals[:,1]] + 0.5*x[dihedrals[:,2]]
         rok = x[dihedrals[:,2]] - ro
@@ -315,7 +315,6 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         # TODO update with cutoff
         diff,dist = distAtomsPBC(x)
         # dist = distAtoms(x)
-        # print(dist)
         
         # U = np.zeros((len(types), 3))
     
@@ -330,11 +329,16 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         # TODO is the sign correct? 
        
         L = diff
+<<<<<<< Updated upstream
         
         V = V*notInSameMolecule # these forces do not apply on atoms in the same molecule!
         #TODO add neighbour list w/ cutoff
+=======
+        V = V*notInSameMolecule*(dist < LJcutoff) # these forces do not apply on atoms in the same molecule! Force only applies when dist < cutoff
+>>>>>>> Stashed changes
         V = np.repeat(V, 3).reshape(len(types), len(types), 3)
         
+        print((dist < LJcutoff))
         forces += np.sum(V*L, axis = 1)
     
     
@@ -371,17 +375,23 @@ def setSimulation(substance, small = True, therm = False):
     outputFileName = substance + size + thermo + 'Output.xyz'
     thermostat = therm
 
-setSimulation('Water', therm = True)
+setSimulation('Mixture', therm = True)
 
-
+# inputFileName = "MixedMolecules.xyz"
+# inputTimeStep = 0
+# topologyFileName = "MixedMoleculesTopology.txt"
+# outputFileName = "MixedMoleculesOutput.xyz"
+# distAtomsPBC.boxSize = 48.42
+# thermostat = False
 
 
 ### SIMULATION ###
 types, x, m = readXYZfile(inputFileName, inputTimeStep)
 molecules, notInSameMolecule, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon = readTopologyFile(topologyFileName)
+LJcutoff = 2.5*np.max(sigma)
 
 time = 0 #ps
-endTime = 1 #ps; should be 1ns = 1000ps in final simulation
+endTime = 0 #ps; should be 1ns = 1000ps in final simulation
 dt = 0.003 #ps; suggestion was to start at 2fs for final simulations, larger might be better (without exploding at least)
 
 u = np.random.uniform(size=3*len(types)).reshape((len(types),3)) # random starting velocity vector
@@ -389,7 +399,6 @@ u = u/np.linalg.norm(u,axis = 1)[:,np.newaxis] # normalize
 v = 0.01*u # A/ps
 # v = 0
 # v = np.array([[4.0,0,0]]*9)
-#TODO: introduce cutoff independent of boxsize! always using half is apparently much to large (slow simulation)
 
 #For Gaussian Thermostat:
 if thermostat: 
@@ -429,7 +438,7 @@ with open(outputFileName, "a") as outputFile:
             # print(np.sum(m * np.linalg.norm(v)**2) / (Nf * kB)) #prints system temperature, indeed constant
         
         # x = projectMolecules(x) #TODO is this the right place, or should it before integration/force computation?
-        forces = computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon)
+        forces = computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon, LJcutoff)
         accel = forces / m[:,np.newaxis]
         x, v, a = integratorVerlocity(x, v, accel)
         x = projectMolecules(x)

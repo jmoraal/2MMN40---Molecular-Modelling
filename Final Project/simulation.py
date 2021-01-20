@@ -18,19 +18,10 @@ import numpy as np
 # warnings.filterwarnings("error") # allows try/except-constructions for warnings (i.e. stop computation when dividing by 0)
 #import functions as fun # idea was to put all fcts there, but too many non-parametrised variables
 
-#from itertools import chain
 
 ### READ INPUT ###
 
 # XYZ:
-def readXYZnrAtoms(fileName): 
-    """Reads number of atoms given in xyz file """
-    with open(fileName, "r") as inputFile:
-        firstString = inputFile.readline().split()
-        nrOfAtoms = int(firstString[0])
-    return nrOfAtoms
-
-# TODO (misschien): geheugen-efficiënter maken
 def readXYZfile(fileName, timeStep): 
     """Read a .xyz file.
     
@@ -77,12 +68,6 @@ def readTopologyFile(fileNameTopology):
                 for k,at2 in enumerate(mol):
                     # print(at, at2)
                     notInSameMolecule[at,at2] = False
-        
-        # another option for the notInSameMolecule is the nonAdjacencyList:
-        # nonAdjacencyList = []
-        # for i in range(0,len(molecules)):
-        #     for j in range(0,len(molecules[i])):
-        #         nonAdjacencyList.append(list(chain(*(molecules[:i] + molecules[i+1:]))))
 
         nrOfBonds = int(lines[nrOfMolecules+1].split()[1])
         bonds = []
@@ -134,14 +119,9 @@ def distAtomsPBC(x):
     diff = x - x[:,np.newaxis] 
     diff = diff - np.floor(0.5 + diff/distAtomsPBC.boxSize)*distAtomsPBC.boxSize 
 
-    # idea: if dist > 0.5*boxsize in some direction (x, y or z), then there is a closer copy. 
-    # subtracting 0.5*boxsize in every direction where it is too large yields direction vector to closest neighbour
-    # Still check correctness!
     dist = np.linalg.norm(diff,axis = 2)
     return(diff,dist) 
-# Direction and distance are usually both needed, right? 
-# Could also just return difference vector and do distance calculation elsewhere
-#TODO replace difference vectors elsewhere, not only LJ?
+
 
 def projectMolecules(x):
     """Projects entire molecules into box of given size
@@ -197,14 +177,22 @@ def integratorEuler(x, v, a):
     """ Implementation of a single step for Euler integrator. """ 
     x = x + dt*v + (dt**2)/2*a
     v = v + dt*a
-    return(x, v, a)
+    return(x, v) #a was previously returned too, but why?
 
-def integratorVerlocity(x, v, a):
+# def integratorVerlocity(x, v, a, a_new):  #TODO: should be able to do this with these parameters w/o computeForces for cleaner code
+#     """ Implementation of a single step for Velocty Verlet integrator. """ 
+#     x_new = x + v*dt + (dt**2)/2*a
+#     #a_new = computeForces(x_new, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon, LJcutoff)/m[:,np.newaxis]
+#     v = v + dt/2*(a_new + a)
+#     return(x_new, v)
+
+def integratorVerlocity(x, v, a):  
     """ Implementation of a single step for Velocty Verlet integrator. """ 
     x_new = x + v*dt + (dt**2)/2*a
-    a_new = computeForces(x_new, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon, LJcutoff)/m[:,np.newaxis]
-    v = v + dt/2*(a_new +a)
-    return(x_new, v, a_new)
+    forces, potential = computeForces(x_new, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon, LJcutoff)
+    a_new = forces/m[:,np.newaxis]
+    v = v + dt/2*(a_new + a)
+    return(x_new, v, a_new, potential)
 
 def integratorRK4(x, v, a):
     """ Implementation of a single step for Runge-Kutta order 4 integrator. """ 
@@ -220,8 +208,6 @@ def integratorRK4(x, v, a):
     v = v + (v1+2*v2+2*v3+v4)/6
     return(x1, v, a)
 
-# TODO: Fix integrators to work on only the input: x,v,a
-
 
 
 ### FORCES ###
@@ -230,6 +216,7 @@ def integratorRK4(x, v, a):
 def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon, LJcutoff):
     """Caltulate forces in one go with help of topology file."""
     forces = np.zeros((len(types),3), dtype = float)
+    potentials = np.zeros(4, dtype = float)
     
     # bonds
     if bonds.size > 0:
@@ -237,6 +224,8 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         Fbonds = Fbond(r, bondConstants[:,0], bondConstants[:,1])[:,np.newaxis]*(x[bonds[:,0]]-x[bonds[:,1]])/r[:,np.newaxis]
         np.add.at(forces, bonds[:,0], Fbonds)
         np.add.at(forces, bonds[:,1], -Fbonds)  
+        
+        potentials[0] = np.sum(Vbond(r,bondConstants[:,0], bondConstants[:,1]))
     
     # angles 
     if angles.size > 0:
@@ -249,7 +238,6 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         normalVec1 = np.cross(atomLeft-atomMiddle,np.cross(atomLeft-atomMiddle,atomRight-atomMiddle))
         normalVec2 = np.cross(atomMiddle-atomRight,np.cross(atomLeft-atomMiddle,atomRight-atomMiddle))
         
-        # t = np.arccos(np.sum(dif1*dif2, axis = 1)/(np.linalg.norm(dif1, axis = 1)*np.linalg.norm(dif2, axis = 1))) # not corrected for floating point division
         t = np.arctan2(np.linalg.norm(np.cross(dif1,dif2), axis = 1),np.sum(dif1*dif2, axis = 1))
         
         Fangles = Fangle(t, angleConstants[:,0], angleConstants[:,1])
@@ -262,6 +250,8 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         np.add.at(forces, angles[:,1], FangleAtomMiddle)
         np.add.at(forces, angles[:,2], FangleAtomRight)   
         
+        potentials[1] = np.sum(Vangle(t, angleConstants[:,0], angleConstants[:,1]))
+        
     # dihedrals
     if dihedrals.size > 0:
         rij = x[dihedrals[:,1]] - x[dihedrals[:,0]]
@@ -273,15 +263,11 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         normalVec1 = np.cross(rij,rjk)
         normalVec2 = np.cross(rjk,rkl)
         
-        # theta = np.arccos(np.sum(normalVec1*normalVec2, axis = 1)/(np.linalg.norm(normalVec1, axis = 1)*np.linalg.norm(normalVec2, axis = 1))) # not corrected for floating point division
         theta = np.arctan2(np.linalg.norm(np.cross(normalVec1,normalVec2), axis = 1),np.sum(normalVec1*normalVec2, axis = 1))*np.sign(np.sum(rij*normalVec2, axis = 1)) # corrected for floating point division
         
         Fdihedrals = Fdihedral(theta, dihedralConstants[:,0], dihedralConstants[:,1], dihedralConstants[:,2], dihedralConstants[:,3])
         angleAtomsijk = np.arccos(np.sum(rij*rjk, axis = 1)/(np.linalg.norm(rij, axis = 1)*np.linalg.norm(rjk, axis = 1))) # not corrected for floating point division
         angleAtomsjkl = np.arccos(np.sum(rjk*rkl, axis = 1)/(np.linalg.norm(rjk, axis = 1)*np.linalg.norm(rkl, axis = 1)))
-        
-        # angleAtomsijk = np.arctan2(np.linalg.norm(np.cross(rij,rjk), axis = 1),np.sum(rij*rjk, axis = 1))
-        # angleAtomsjkl = np.arctan2(np.linalg.norm(np.cross(-rjk,rkl), axis = 1),np.sum(-rjk*rkl, axis = 1))
         
         FdihedralAtomi = -Fdihedrals[:,np.newaxis]/((np.linalg.norm(rij, axis = 1)*np.sin(angleAtomsijk))[:,np.newaxis]) * -normalVec1/np.linalg.norm(normalVec1, axis = 1)[:,np.newaxis]
         FdihedralAtoml = -Fdihedrals[:,np.newaxis]/((np.linalg.norm(rkl, axis = 1)*np.sin(angleAtomsjkl))[:,np.newaxis]) * normalVec2/np.linalg.norm(normalVec2, axis = 1)[:,np.newaxis] 
@@ -289,8 +275,6 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         FdihedralAtomk = (1/np.linalg.norm(rok, axis = 1)[:,np.newaxis]**2) * np.cross(-(np.cross(rok,FdihedralAtoml) + 0.5*np.cross(rkl, FdihedralAtoml) + 0.5*np.cross(rij, -FdihedralAtomi)),rok)
         
         FdihedralAtomj = - FdihedralAtomi - FdihedralAtomk - FdihedralAtoml
-        # FdihedralAtomj = -FdihedralAtomi + np.sum(dif1*difCommon, axis = 1)/np.linalg.norm(difCommon, axis = 1)[:,np.newaxis]*FdihedralAtomi - np.sum(dif2*difCommon, axis = 1)/np.linalg.norm(dif2, axis = 1)[:,np.newaxis]*FdihedralAtoml
-        # FdihedralAtomk = -FdihedralAtoml - np.sum(dif1*difCommon, axis = 1)/np.linalg.norm(difCommon, axis = 1)[:,np.newaxis]*FdihedralAtomi + np.sum(dif2*difCommon, axis = 1)/np.linalg.norm(dif2, axis = 1)[:,np.newaxis]*FdihedralAtoml
         
         np.add.at(forces, dihedrals[:,0], FdihedralAtomi)
         np.add.at(forces, dihedrals[:,1], FdihedralAtomj)
@@ -308,15 +292,13 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
             
             if np.abs(np.sum(np.sum(torqueSum, axis = 0), axis = 0)) > 10**(-5): 
                 print(f"Warning: sum of torques not equal to 0 but {np.sum(np.sum(torqueSum, axis = 0), axis = 0)}")
+                
+        potentials[2] = np.sum(Vdihedral(theta, dihedralConstants[:,0], dihedralConstants[:,1], dihedralConstants[:,2], dihedralConstants[:,3]))
         
         
     # Lennard Jones forces
     if sigma.size > 0:
-        # TODO update with cutoff
         diff,dist = distAtomsPBC(x)
-        # dist = distAtoms(x)
-        
-        # U = np.zeros((len(types), 3))
     
         e = np.sqrt(epsilon*epsilon[:,np.newaxis])
         s = 0.5*(sigma+sigma[:,np.newaxis])
@@ -324,15 +306,17 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         frac = np.divide(s, dist, out=np.zeros_like(s), where=dist!=0) # avoid division by 0
         frac6 = frac**6
         frac12 = frac6 ** 2
-        U = 4*e*(frac12 - frac6) 
+        U = 4*e*(frac12 - frac6) # potential
         V = np.sign(U)*np.divide(4*e*(6*frac6 - 12*frac12), dist, out=np.zeros_like(s), where=dist!=0) # avoid division by 0. 
         # TODO is the sign correct? 
        
         L = diff
-        V = V*notInSameMolecule*(dist < LJcutoff) # these forces do not apply on atoms in the same molecule! Force only applies when dist < cutoff
+        V = V*notInSameMolecule*(dist < LJcutoff) # these forces do not apply on atoms in the same molecule, and only apply when dist < cutoff
         V = np.repeat(V, 3).reshape(len(types), len(types), 3)
         
         forces += np.sum(V*L, axis = 1)
+        
+        potentials[3] = np.sum(U)
     
     
     # forces check
@@ -341,14 +325,14 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         if np.abs(np.sum(np.sum(forces, axis = 0), axis = 0)) > 10**(-5): 
             print(f"Warning: sum of forces not equal to 0 but {np.sum(np.sum(forces, axis = 0), axis = 0)}")
     
-    return(forces)
+    return(forces, potentials)
 
 sizesSmall = {'Water': 31.08, 'Ethanol': 32.22, 'Mixture': 32.29}
 sizesLarge = {'Water': 49.72, 'Ethanol': 50.61, 'Mixture': 51.65}
 # boxsizes are chosen so that all grid positions are filled
                 
 ### PARAMETERS ###
-def setSimulation(substance, small = True, therm = False):
+def setSimulation(substance, small = True, therm = True):
     global inputTimeStep, inputFileName, topologyFileName, outputFileName, thermostat
     
     if small:
@@ -390,13 +374,10 @@ dt = 0.003 #ps; suggestion was to start at 2fs for final simulations, larger mig
 u = np.random.uniform(size=3*len(types)).reshape((len(types),3)) # random starting velocity vector
 u = u/np.linalg.norm(u,axis = 1)[:,np.newaxis] # normalize
 v = 0.01*u # A/ps
-# v = 0
-# v = np.array([[4.0,0,0]]*9)
 
 #For Gaussian Thermostat:
 if thermostat: 
     temperatureDesired = 298.15 # Kelvin
-    # kB = 1.38064852 * 10**23 # [m^2 kg]/[K s^2]
     kB = 1.38064852 * 1.6605390666 # [A^2 AMU]/[K ps^2]; hence -20+23-27+24 = 0 'in the exponent'
     Nf = 6*len(x) # 6*, as atoms have 3D position and velocity vector so 6 degrees of freedom
     c = 2/(3*kB*len(x)) #for alternative computation using equipartition theorem
@@ -411,6 +392,9 @@ with open(outputFileName, "w") as outputFile: # clear file
     outputFile.write("") 
 simStartTime = timer.time()
 with open(outputFileName, "a") as outputFile:
+    f_init, pot = computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon, LJcutoff)
+    a = f_init / m[:,np.newaxis]
+    
     while (time <= endTime) : 
         print(time, " out of ", endTime)
         outputFile.write(f"{len(types)}\n")
@@ -418,24 +402,24 @@ with open(outputFileName, "a") as outputFile:
         for i, atom in enumerate(x):
             outputFile.write(f"{types[i]} {x[i,0]:10.5f} {x[i,1]:10.5f} {x[i,2]:10.5f}\n")  
         
-        # measurables
-        EkinSyst = np.sum(0.5 * m * np.linalg.norm(v)**2)
-        #Epot =  #TODO somehow compute the sum of all potentials here (including LJ)
-        Ekin.append(EkinSyst)
-        #Epot.append()
+        #forces, potentials = computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon, LJcutoff)
+        #a_new = forces / m[:,np.newaxis]
+        #x, v = integratorVerlocity(x, v, a, a_new)
+        #a = a_new
+        
+        x, v, a, potentials = integratorVerlocity(x, v, a)
+        x = projectMolecules(x) #TODO is this the right place, or should it be before integration/force computation?
+        time += dt
         
         if thermostat: 
-            #temperatureSystem = np.sum(m * np.linalg.norm(v, axis=1)**2) / (Nf * kB)
             temperatureSystem = c*np.sum((np.linalg.norm(v, axis=1)**2)/m) #via equipartition theorem
             v = v * np.sqrt(temperatureDesired/temperatureSystem) 
-            # print(np.sum(m * np.linalg.norm(v)**2) / (Nf * kB)) #prints system temperature, indeed constant
         
-        # x = projectMolecules(x) #TODO is this the right place, or should it before integration/force computation?
-        forces = computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon, LJcutoff)
-        accel = forces / m[:,np.newaxis]
-        x, v, a = integratorVerlocity(x, v, accel)
-        x = projectMolecules(x)
-        time += dt
+        # measurables
+        EkinSyst = np.sum(0.5 * m * (np.linalg.norm(v, axis=1)**2))
+        Ekin.append(EkinSyst)
+        EpotSyst =  np.sum(potentials)
+        Epot.append(EpotSyst)
         
 
 duration = timer.time() - simStartTime

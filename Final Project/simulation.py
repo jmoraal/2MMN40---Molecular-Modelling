@@ -347,7 +347,7 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
     return(forces)
 
 sizesSmall = {'Water': 31.08, 'Ethanol': 32.22, 'Mixture': 32.29}
-sizesLarge = {'Water': 47.22, 'Ethanol': 50.61, 'Mixture': 51.65}
+sizesLarge = {'Water': 49.72, 'Ethanol': 50.61, 'Mixture': 51.65}
 # boxsizes are chosen so that all grid positions are filled
                 
 ### PARAMETERS ###

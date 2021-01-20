@@ -107,12 +107,6 @@ def readTopologyFile(fileNameTopology):
 
 ### DISTANCES & PBC ###
 
-def distAtoms(positions):
-    """ Computes distances between all atoms """
-    diff = positions - positions[:,np.newaxis]
-    dist = np.linalg.norm(diff,axis = 2)
-    return(dist)
-
 def distAtomsPBC(x):
     """ Computes distances between all atoms in closest copies, taking boundaries into account"""    
     diff = x - x[:,np.newaxis] 
@@ -130,8 +124,10 @@ def projectMolecules(x):
     Might be that approximate centre of mass (e.g. unweighted) is good enough"""
     #TODO make faster?
     centers = np.zeros([len(types),3]) 
+    #centers[molecules] = sum(x[molecules]  / sum([molecules])) #should be doable without forloop
     for i in range(0, len(molecules)):
-        centers[molecules[i]] = sum(x[molecules[i]] * m[molecules[i], np.newaxis] / sum(m[molecules[i]]))
+        # centers[molecules[i]] = sum(x[molecules[i]] * m[molecules[i], np.newaxis]) / sum(m[molecules[i]]) # weighted avg
+        centers[molecules[i]] = np.sum(x[molecules[i]], axis=0) / len(molecules[i]) # unweighted avg
     centersProj = centers % distAtomsPBC.boxSize
     x = x + (centersProj - centers)
     return x
@@ -424,3 +420,17 @@ with open(outputFileName, "a") as outputFile:
 duration = timer.time() - simStartTime
 print("Simulation duration was ", duration, " seconds")
          
+
+### PLOT ENERGY ###
+
+# import matplotlib.pyplot as plt
+# t = np.arange(0,time-dt, dt)
+# Etot = np.array(Ekin) + np.array(Epot)
+# plt.plot(t, Ekin, label = 'Kinetic energy')
+# plt.plot(t, Epot, label = 'Potential energy')
+# plt.plot(t, Etot, label = 'Total energy')
+# plt.title('Energy in the system')
+# plt.xlabel('Time (ps)')
+# plt.ylabel('Energy')
+# plt.legend()
+# plt.show()

@@ -310,6 +310,6 @@ def findSize(approxSize, substance):
 # writeConfig('ethanol', 32.22)
 # writeConfig('mixture', 32.29)
 
-writeConfig('water', 49.72)
-writeConfig('ethanol', 50.61)
-writeConfig('mixture', 51.65)
+writeConfig('water', 29)
+# writeConfig('ethanol', 50.61)
+# writeConfig('mixture', 51.65)

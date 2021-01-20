@@ -348,7 +348,7 @@ def setSimulation(substance, small = True, therm = True):
     outputFileName = substance + size + thermo + 'Output.xyz'
     thermostat = therm
 
-setSimulation('Water')
+setSimulation('Water', therm = False)
 
 # inputFileName = "MixedMolecules.xyz"
 # inputTimeStep = 0
@@ -364,7 +364,7 @@ molecules, notInSameMolecule, bonds, bondConstants, angles, angleConstants, dihe
 LJcutoff = 2.5*np.max(sigma)
 
 time = 0 #ps
-endTime = 0.03 #ps; should be 1ns = 1000ps in final simulation
+endTime = 0.012 #ps; should be 1ns = 1000ps in final simulation
 dt = 0.003 #ps; suggestion was to start at 2fs for final simulations, larger might be better (without exploding at least)
 
 u = np.random.uniform(size=3*len(types)).reshape((len(types),3)) # random starting velocity vector

@@ -346,15 +346,18 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
     
     return(forces)
 
-                    
+sizesSmall = {'Water': 31.08, 'Ethanol': 32.22, 'Mixture': 32.29}
+sizesLarge = {'Water': 47.22, 'Ethanol': 50.61, 'Mixture': 51.65}
+# boxsizes are chosen so that all grid positions are filled
+                
 ### PARAMETERS ###
 def setSimulation(substance, small = True, therm = False):
     global inputTimeStep, inputFileName, topologyFileName, outputFileName, thermostat
     
     if small:
-        distAtomsPBC.boxSize = 29
+        distAtomsPBC.boxSize = sizesSmall.get(substance)
     else: 
-        distAtomsPBC.boxSize = 48.42
+        distAtomsPBC.boxSize = sizesLarge.get(substance)
     
     if therm:
         thermo = 'Thermostat'

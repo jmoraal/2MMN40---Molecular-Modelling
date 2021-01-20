@@ -355,14 +355,19 @@ def setSimulation(substance, small = True, therm = False):
     else: 
         distAtomsPBC.boxSize = 48.42
     
+    if therm:
+        thermo = 'Thermostat'
+    else:
+        thermo = ''
+    
     size = str(distAtomsPBC.boxSize)
     inputTimeStep = 0
     inputFileName = substance + size + 'Initial.xyz'
     topologyFileName = substance + size + 'Topology.txt'
-    outputFileName = substance + size + 'Output.xyz'
+    outputFileName = substance + size + thermo + 'Output.xyz'
     thermostat = therm
 
-setSimulation('Water')
+setSimulation('Water', therm = True)
 
 
 
@@ -388,6 +393,7 @@ if thermostat:
     # kB = 1.38064852 * 10**23 # [m^2 kg]/[K s^2]
     kB = 1.38064852 * 1.6605390666 # [A^2 AMU]/[K ps^2]; hence -20+23-27+24 = 0 'in the exponent'
     Nf = 6*len(x) # 6*, as atoms have 3D position and velocity vector so 6 degrees of freedom
+    c = 2/(3*kB*len(x)) #for alternative computation using equipartition theorem
     
     
 # For measuring:
@@ -413,8 +419,8 @@ with open(outputFileName, "a") as outputFile:
         #Epot.append()
         
         if thermostat: 
-            temperatureSystem = np.sum(m * np.linalg.norm(v)**2) / (Nf * kB)
-            # temperatureSystem = 2 * EkinSyst / (Nf * kB) #TODO not sure this goes well, Nf is quite large. Previous line definitely works, but means double computation
+            #temperatureSystem = np.sum(m * np.linalg.norm(v, axis=1)**2) / (Nf * kB)
+            temperatureSystem = c*np.sum((np.linalg.norm(v, axis=1)**2)/m) #via equipartition theorem
             v = v * np.sqrt(temperatureDesired/temperatureSystem) 
             # print(np.sum(m * np.linalg.norm(v)**2) / (Nf * kB)) #prints system temperature, indeed constant
         

@@ -303,9 +303,13 @@ def findSize(approxSize, substance):
             d.append(boxSize)
     return d
 
-#print(findSize(30,'ethanol'))
 
-writeConfig('water', 31.08)
-writeConfig('ethanol', 32.22)
-writeConfig('mixture', 32.29)
+#print(findSize(50,'mixture'))
 
+# writeConfig('water', 31.08)
+# writeConfig('ethanol', 32.22)
+# writeConfig('mixture', 32.29)
+
+writeConfig('water', 49.72)
+writeConfig('ethanol', 50.61)
+writeConfig('mixture', 51.65)

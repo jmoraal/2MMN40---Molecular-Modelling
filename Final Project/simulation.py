@@ -142,16 +142,30 @@ def projectMolecules(x):
 ### FORCES ###
 
 # BOND
+def Vbond(r, k, r0):
+    """ Calculates harmonic bond potential """
+    return(1/2*k*(r-r0)**2)
+
 def Fbond(r, k, r0):
     """ Calculates bond force magnitude """
     return(-k*(r-r0))
 
 # ANGLE
+def Vangle(t, kt, t0):
+    """ Calculates harmonic angular potential """
+    return 1/2*kt*(t-t0)**2
+#Note: can also be used for harmonic dihedral potential
+
 def Fangle(t, kt, t0):
     """ Calculates angular force magnitude """
     return -kt*(t-t0)
 
 # DIHEDRAL
+def Vdihedral(t, C1, C2, C3, C4):
+    """ Calculates periodic dihedral potential for given forcefield constants C """
+    psi = np.pi - t
+    return 0.5*(C1*(1+np.cos(psi)) + C2*(1-np.cos(2*psi)) + C3*(1+np.cos(3*psi)) + C4*(1-np.cos(4*psi)))
+
 def Fdihedral(t, C1, C2, C3, C4):
     """ Calculates periodic dihedral force magnitude """
     psi = np.pi - t
@@ -370,15 +384,15 @@ with open(outputFileName, "a") as outputFile:
         for i, atom in enumerate(x):
             outputFile.write(f"{types[i]} {x[i,0]:10.5f} {x[i,1]:10.5f} {x[i,2]:10.5f}\n")  
         
-        # measurables
-        EkinSyst = np.sum(0.5 * m * np.linalg.norm(v)**2)
-        #Epot =  #TODO somehow compute the sum of all potentials here (including LJ)
-        Ekin.append(EkinSyst)
-        #Epot.append()
-        
         if thermostat: 
             temperatureSystem = c*np.sum((np.linalg.norm(v, axis=1)**2)/m) #via equipartition theorem
             v = v * np.sqrt(temperatureDesired/temperatureSystem) 
+        
+        # measurables
+        EkinSyst = np.sum(0.5 * m * (np.linalg.norm(v, axis=1)**2))
+        #Epot =  #TODO somehow compute the sum of all potentials here (including LJ)
+        Ekin.append(EkinSyst)
+        #Epot.append()
         
         forces = computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon, LJcutoff)
         accel = forces / m[:,np.newaxis]

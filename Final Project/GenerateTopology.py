@@ -187,16 +187,22 @@ def writeMixtureTopology(nrOfMolecules, boxSize):
 
 
 ### Generate xyz's ###
-def writeWaterXYZ(nrOfMolecules, boxSize):
-    outputFileName = 'Water' + str(boxSize) + 'Initial.xyz'
-    n = int(nrOfMolecules**(1/3)) + 2
+
+def createGrid(nrOfMolecules, boxSize):
+    n = int(nrOfMolecules**(1/3)) + 1
     d = boxSize / n
     rand = []
     for i in range(1,n): 
         for j in range(1,n): 
             for k in range(1,n): 
-                rand.append([(i)*d, (j)*d, (k)*d])
-        
+                rand.append([(i+1/2)*d, (j+1/2)*d, (k+1/2)*d]) #1/2 so that initial distance through box edge is equal to distance within
+    return rand
+
+
+def writeWaterXYZ(nrOfMolecules, boxSize):
+    outputFileName = 'Water' + str(boxSize) + 'Initial.xyz'
+    rand = createGrid(nrOfMolecules, boxSize)
+    
     with open(outputFileName, "w") as outputFile: # clear file
         outputFile.write("") 
     with open(outputFileName, "a") as outputFile:

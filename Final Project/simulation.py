@@ -177,14 +177,22 @@ def integratorEuler(x, v, a):
     """ Implementation of a single step for Euler integrator. """ 
     x = x + dt*v + (dt**2)/2*a
     v = v + dt*a
-    return(x, v, a)
+    return(x, v) #a was previously returned too, but why?
 
-def integratorVerlocity(x, v, a):
+# def integratorVerlocity(x, v, a, a_new):  #TODO: should be able to do this with these parameters w/o computeForces for cleaner code
+#     """ Implementation of a single step for Velocty Verlet integrator. """ 
+#     x_new = x + v*dt + (dt**2)/2*a
+#     #a_new = computeForces(x_new, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon, LJcutoff)/m[:,np.newaxis]
+#     v = v + dt/2*(a_new + a)
+#     return(x_new, v)
+
+def integratorVerlocity(x, v, a):  
     """ Implementation of a single step for Velocty Verlet integrator. """ 
     x_new = x + v*dt + (dt**2)/2*a
-    a_new = computeForces(x_new, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon, LJcutoff)/m[:,np.newaxis]
-    v = v + dt/2*(a_new +a)
-    return(x_new, v, a_new)
+    forces, potential = computeForces(x_new, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon, LJcutoff)
+    a_new = forces/m[:,np.newaxis]
+    v = v + dt/2*(a_new + a)
+    return(x_new, v, a_new, potential)
 
 def integratorRK4(x, v, a):
     """ Implementation of a single step for Runge-Kutta order 4 integrator. """ 
@@ -200,8 +208,6 @@ def integratorRK4(x, v, a):
     v = v + (v1+2*v2+2*v3+v4)/6
     return(x1, v, a)
 
-# TODO: Fix integrators to work on only the input: x,v,a
-
 
 
 ### FORCES ###
@@ -210,6 +216,7 @@ def integratorRK4(x, v, a):
 def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon, LJcutoff):
     """Caltulate forces in one go with help of topology file."""
     forces = np.zeros((len(types),3), dtype = float)
+    potentials = np.zeros(4, dtype = float)
     
     # bonds
     if bonds.size > 0:
@@ -217,6 +224,8 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         Fbonds = Fbond(r, bondConstants[:,0], bondConstants[:,1])[:,np.newaxis]*(x[bonds[:,0]]-x[bonds[:,1]])/r[:,np.newaxis]
         np.add.at(forces, bonds[:,0], Fbonds)
         np.add.at(forces, bonds[:,1], -Fbonds)  
+        
+        potentials[0] = np.sum(Vbond(r,bondConstants[:,0], bondConstants[:,1]))
     
     # angles 
     if angles.size > 0:
@@ -240,6 +249,8 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         np.add.at(forces, angles[:,0], FangleAtomLeft)
         np.add.at(forces, angles[:,1], FangleAtomMiddle)
         np.add.at(forces, angles[:,2], FangleAtomRight)   
+        
+        potentials[1] = np.sum(Vangle(t, angleConstants[:,0], angleConstants[:,1]))
         
     # dihedrals
     if dihedrals.size > 0:
@@ -281,6 +292,8 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
             
             if np.abs(np.sum(np.sum(torqueSum, axis = 0), axis = 0)) > 10**(-5): 
                 print(f"Warning: sum of torques not equal to 0 but {np.sum(np.sum(torqueSum, axis = 0), axis = 0)}")
+                
+        potentials[2] = np.sum(Vdihedral(theta, dihedralConstants[:,0], dihedralConstants[:,1], dihedralConstants[:,2], dihedralConstants[:,3]))
         
         
     # Lennard Jones forces
@@ -293,7 +306,7 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         frac = np.divide(s, dist, out=np.zeros_like(s), where=dist!=0) # avoid division by 0
         frac6 = frac**6
         frac12 = frac6 ** 2
-        U = 4*e*(frac12 - frac6) 
+        U = 4*e*(frac12 - frac6) # potential
         V = np.sign(U)*np.divide(4*e*(6*frac6 - 12*frac12), dist, out=np.zeros_like(s), where=dist!=0) # avoid division by 0. 
         # TODO is the sign correct? 
        
@@ -302,6 +315,8 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         V = np.repeat(V, 3).reshape(len(types), len(types), 3)
         
         forces += np.sum(V*L, axis = 1)
+        
+        potentials[3] = np.sum(U)
     
     
     # forces check
@@ -310,14 +325,14 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         if np.abs(np.sum(np.sum(forces, axis = 0), axis = 0)) > 10**(-5): 
             print(f"Warning: sum of forces not equal to 0 but {np.sum(np.sum(forces, axis = 0), axis = 0)}")
     
-    return(forces)
+    return(forces, potentials)
 
 sizesSmall = {'Water': 31.08, 'Ethanol': 32.22, 'Mixture': 32.29}
 sizesLarge = {'Water': 49.72, 'Ethanol': 50.61, 'Mixture': 51.65}
 # boxsizes are chosen so that all grid positions are filled
                 
 ### PARAMETERS ###
-def setSimulation(substance, small = True, therm = False):
+def setSimulation(substance, small = True, therm = True):
     global inputTimeStep, inputFileName, topologyFileName, outputFileName, thermostat
     
     if small:
@@ -337,7 +352,7 @@ def setSimulation(substance, small = True, therm = False):
     outputFileName = substance + size + thermo + 'Output.xyz'
     thermostat = therm
 
-setSimulation('Water', therm = True)
+setSimulation('Water')
 
 # inputFileName = "MixedMolecules.xyz"
 # inputTimeStep = 0
@@ -377,6 +392,9 @@ with open(outputFileName, "w") as outputFile: # clear file
     outputFile.write("") 
 simStartTime = timer.time()
 with open(outputFileName, "a") as outputFile:
+    f_init, pot = computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon, LJcutoff)
+    a = f_init / m[:,np.newaxis]
+    
     while (time <= endTime) : 
         print(time, " out of ", endTime)
         outputFile.write(f"{len(types)}\n")
@@ -384,21 +402,24 @@ with open(outputFileName, "a") as outputFile:
         for i, atom in enumerate(x):
             outputFile.write(f"{types[i]} {x[i,0]:10.5f} {x[i,1]:10.5f} {x[i,2]:10.5f}\n")  
         
+        #forces, potentials = computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon, LJcutoff)
+        #a_new = forces / m[:,np.newaxis]
+        #x, v = integratorVerlocity(x, v, a, a_new)
+        #a = a_new
+        
+        x, v, a, potentials = integratorVerlocity(x, v, a)
+        x = projectMolecules(x) #TODO is this the right place, or should it be before integration/force computation?
+        time += dt
+        
         if thermostat: 
             temperatureSystem = c*np.sum((np.linalg.norm(v, axis=1)**2)/m) #via equipartition theorem
             v = v * np.sqrt(temperatureDesired/temperatureSystem) 
         
         # measurables
         EkinSyst = np.sum(0.5 * m * (np.linalg.norm(v, axis=1)**2))
-        #Epot =  #TODO somehow compute the sum of all potentials here (including LJ)
         Ekin.append(EkinSyst)
-        #Epot.append()
-        
-        forces = computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon, LJcutoff)
-        accel = forces / m[:,np.newaxis]
-        x, v, a = integratorVerlocity(x, v, accel)
-        x = projectMolecules(x) #TODO is this the right place, or should it be before integration/force computation?
-        time += dt
+        EpotSyst =  np.sum(potentials)
+        Epot.append(EpotSyst)
         
 
 duration = timer.time() - simStartTime

@@ -149,7 +149,7 @@ def projectMolecules(x):
     Note: single atoms are not projected without the rest of their molecule
     Now computes weighted average for centre of mass. Is this worth the computation time?
     Might be that approximate centre of mass (e.g. unweighted) is good enough"""
-    
+    #TODO make faster?
     centers = np.zeros([len(types),3]) 
     for i in range(0, len(molecules)):
         centers[molecules[i]] = sum(x[molecules[i]] * m[molecules[i], np.newaxis] / sum(m[molecules[i]]))
@@ -312,7 +312,7 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         
     # Lennard Jones forces
     if sigma.size > 0:
-        # TODO update with PBC
+        # TODO update with cutoff
         diff,dist = distAtomsPBC(x)
         # dist = distAtoms(x)
         # print(dist)
@@ -332,6 +332,7 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         L = diff
         
         V = V*notInSameMolecule # these forces do not apply on atoms in the same molecule!
+        #TODO add neighbour list w/ cutoff
         V = np.repeat(V, 3).reshape(len(types), len(types), 3)
         
         forces += np.sum(V*L, axis = 1)

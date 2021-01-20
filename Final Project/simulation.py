@@ -329,16 +329,9 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         # TODO is the sign correct? 
        
         L = diff
-<<<<<<< Updated upstream
-        
-        V = V*notInSameMolecule # these forces do not apply on atoms in the same molecule!
-        #TODO add neighbour list w/ cutoff
-=======
         V = V*notInSameMolecule*(dist < LJcutoff) # these forces do not apply on atoms in the same molecule! Force only applies when dist < cutoff
->>>>>>> Stashed changes
         V = np.repeat(V, 3).reshape(len(types), len(types), 3)
         
-        print((dist < LJcutoff))
         forces += np.sum(V*L, axis = 1)
     
     

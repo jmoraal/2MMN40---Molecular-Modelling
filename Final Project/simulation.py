@@ -14,7 +14,8 @@ Created on Mon Nov  9 16:30:44 2020
 """
 import time as timer
 import numpy as np
-
+import warnings
+warnings.filterwarnings("error") # allows try/except-constructions for warnings (i.e. stop computation when dividing by 0)
 #import functions as fun # idea was to put all fcts there, but too many non-parametrised variables
 
 #from itertools import chain
@@ -346,57 +347,22 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
 
                     
 ### PARAMETERS ###
+def setSimulation(substance, small = True, therm = False):
+    global inputTimeStep, inputFileName, topologyFileName, outputFileName, thermostat
+    
+    if small:
+        distAtomsPBC.boxSize = 29
+    else: 
+        distAtomsPBC.boxSize = 48.42
+    
+    size = str(distAtomsPBC.boxSize)
+    inputTimeStep = 0
+    inputFileName = substance + size + 'Initial.xyz'
+    topologyFileName = substance + size + 'Topology.txt'
+    outputFileName = substance + size + 'Output.xyz'
+    thermostat = therm
 
-# SMALL
-distAtomsPBC.boxSize = 29 # 3 nm
-
-# case 1: pure water
-inputFileName = "Water29Initial.xyz"
-inputTimeStep = 0
-topologyFileName = "Water29Topology.txt"
-outputFileName = "Water29Output.xyz"
-thermostat = False
-
-# # case 2: pure ethanol
-# inputFileName = "Ethanol29Initial.xyz"
-# inputTimeStep = 0
-# topologyFileName = "Ethanol29Topology.txt"
-# outputFileName = "Ethanol29Output.xyz"
-# thermostat = False
-
-# # case 3: mixture 14.3 percent ethanol
-# inputFileName = "Mixture29Initial.xyz"
-# inputTimeStep = 0
-# topologyFileName = "Mixture29Topology.txt"
-# outputFileName = "Mixture29Output.xyz"
-# thermostat = False
-
-
-# #LARGE
-# distAtomsPBC.boxSize = 48.42 # 3 nm
-
-# # case 1: pure water
-# inputFileName = "Water48.42Initial.xyz"
-# inputTimeStep = 0
-# topologyFileName = "Water48.42Topology.txt"
-# outputFileName = "Water48.42Output.xyz"
-# thermostat = False
-
-# # case 2: pure ethanol
-# inputFileName = "Ethanol48.42Initial.xyz"
-# inputTimeStep = 0
-# topologyFileName = "Ethanol48.42Topology.txt"
-# outputFileName = "Ethanol48.42Output.xyz"
-# thermostat = False
-
-# # case 3: mixture 14.3 percent ethanol
-# inputFileName = "Mixture48.42Initial.xyz"
-# inputTimeStep = 0
-# topologyFileName = "Mixture48.42Topology.txt"
-# outputFileName = "Mixture48.42Output.xyz"
-# distAtomsPBC.boxSize = 48.42 # 3 nm
-# thermostat = False
-
+setSimulation('Water')
 
 
 
@@ -441,7 +407,7 @@ with open(outputFileName, "a") as outputFile:
             outputFile.write(f"{types[i]} {x[i,0]:10.5f} {x[i,1]:10.5f} {x[i,2]:10.5f}\n")  
         
         # measurables
-        EkinSyst = 0.5 * m * np.linalg.norm(v)**2
+        EkinSyst = np.sum(0.5 * m * np.linalg.norm(v)**2)
         #Epot =  #TODO somehow compute the sum of all potentials here (including LJ)
         Ekin.append(EkinSyst)
         #Epot.append()

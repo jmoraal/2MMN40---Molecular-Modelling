@@ -189,12 +189,13 @@ def writeMixtureTopology(nrOfMolecules, boxSize):
 ### Generate xyz's ###
 
 def createGrid(nrOfMolecules, boxSize):
+    global rand
     n = int(nrOfMolecules**(1/3)) + 1
     d = boxSize / n
     rand = []
-    for i in range(1,n): 
-        for j in range(1,n): 
-            for k in range(1,n): 
+    for i in range(0,n): 
+        for j in range(0,n): 
+            for k in range(0,n): 
                 rand.append([(i+1/2)*d, (j+1/2)*d, (k+1/2)*d]) #1/2 so that initial distance through box edge is equal to distance within
     return rand
 
@@ -215,13 +216,8 @@ def writeWaterXYZ(nrOfMolecules, boxSize):
             
 def writeEthanolXYZ(nrOfMolecules, boxSize):
     outputFileName = 'Ethanol' + str(boxSize) + 'Initial.xyz'
-    n = int(nrOfMolecules**(1/3)) + 2
-    d = boxSize / n
-    rand = []
-    for i in range(1,n): 
-        for j in range(1,n): 
-            for k in range(1,n): 
-                rand.append([(i)*d, (j)*d, (k)*d])
+    rand = createGrid(nrOfMolecules, boxSize)
+    
     with open(outputFileName, "w") as outputFile: # clear file
         outputFile.write("") 
     with open(outputFileName, "a") as outputFile:
@@ -244,14 +240,7 @@ def writeMixtureXYZ(nrOfMolecules, boxSize):
     outputFileName = 'Mixture' + str(boxSize) + 'Initial.xyz'
     nrEthanol = int(nrOfMolecules * 228 / 3716) #based on 14.3% mass ethanol
     nrWater = nrOfMolecules - nrEthanol
-    n = int(nrOfMolecules**(1/3)) + 2
-    d = boxSize / n
-    rand = []
-    for i in range(1,n): 
-        for j in range(1,n): 
-            for k in range(1,n): 
-                rand.append([(i)*d, (j)*d, (k)*d])
-    global indWater, indEthanol
+    rand = createGrid(nrOfMolecules, boxSize)
     indWater = np.array(range(0, nrOfMolecules))
     indEthanol = np.random.choice(indWater, size=nrEthanol, replace=False) 
     indWater = np.delete(indWater, indEthanol, axis=0)
@@ -300,3 +289,4 @@ writeConfig('mixture', 29) #works reasonably well for uniform placement few open
 # writeConfig('mixture', 48.42) #works very well
 
 writeConfig('water', 29)
+writeConfig('ethanol', 29)

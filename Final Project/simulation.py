@@ -110,7 +110,7 @@ def readTopologyFile(fileNameTopology):
 def distAtomsPBC(x):
     """ Computes distances between all atoms in closest copies, taking boundaries into account"""    
     diff = x - x[:,np.newaxis] 
-    diff = diff - np.floor(0.5 + diff/distAtomsPBC.boxSize)*distAtomsPBC.boxSize 
+    diff = diff - np.floor(0.5 + diff/distAtomsPBC.boxSize)*distAtomsPBC.boxSize #TODO must be a faster way
 
     dist = np.linalg.norm(diff,axis = 2)
     return(diff,dist) 
@@ -294,42 +294,26 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         
     # Lennard Jones forces
     if sigma.size > 0:
-        # improved: (almost) only necessary computations are carried out (ca. 7 percent)
         diff,dist = distAtomsPBC(x)
         V = np.zeros((len(types),len(types)))
         
         shouldComputePair = (dist < LJcutoff) * notInSameMolecule
-        atomPairs = np.where(shouldComputePair == True)
-        atomPairsLJ = tuple(map(tuple, atomPairs))
-        e = np.sqrt(epsilon*epsilon[:,np.newaxis])[atomPairsLJ] # this is still inefficient
-        s = 0.5*(sigma+sigma[:,np.newaxis])[atomPairsLJ] # this is still inefficient
+        atomPairs = np.where(shouldComputePair == True) #tuple of arrays; for 1D array computation
+        atomPairsLJ = tuple(map(tuple, atomPairs)) #tuple of tuples; for 2D computations
+        
+        e = np.sqrt(epsilon[atomPairs[0]] * epsilon[atomPairs[1]]) 
+        s = 0.5*(sigma[atomPairs[0]] + sigma[atomPairs[1]]) 
         
         distReciprocal = 1 / dist[atomPairsLJ]
         frac = s * distReciprocal
         frac6 = (frac)**6
         frac12 = (frac6) ** 2
+        
         U = 4*e*(frac12 - frac6) # potential
         V[atomPairsLJ] =  4*e*(6*frac6 - 12*frac12) * distReciprocal * np.sign(U)
         V = np.repeat(V, 3).reshape(len(types), len(types), 3)
-        
         forces += np.sum(V*diff, axis = 1)
         
-        ### Old: computes for all pairs and selects afterwards
-        # e = np.sqrt(epsilon*epsilon[:,np.newaxis])
-        # s = 0.5*(sigma+sigma[:,np.newaxis])
-        
-        # frac = np.divide(s, dist, out=np.zeros_like(s), where=dist!=0) # avoid division by 0
-        # frac6 = frac**6
-        # frac12 = frac6 ** 2
-        # U = 4*e*(frac12 - frac6) # potential
-        # V = np.sign(U)*np.divide(4*e*(6*frac6 - 12*frac12), dist, out=np.zeros_like(s), where=dist!=0) # avoid division by 0. 
-        
-        # L = diff
-        # V = V*notInSameMolecule*(dist < LJcutoff) # these forces do not apply on atoms in the same molecule, and only apply when dist < cutoff
-        # V = np.repeat(V, 3).reshape(len(types), len(types), 3)
-        
-        # forces += np.sum(V*L, axis = 1)
-            
         potentials[3] = np.sum(U)
     
     
@@ -366,7 +350,7 @@ def setSimulation(substance, small = True, therm = True):
     outputFileName = substance + size + thermo + 'Output.xyz'
     thermostat = therm
 
-setSimulation('Water', therm = False)
+setSimulation('Water')
 
 # inputFileName = "MixedMolecules.xyz"
 # inputTimeStep = 0

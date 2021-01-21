@@ -294,11 +294,13 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         
     # Lennard Jones forces
     if sigma.size > 0:
-        # improved: (almost) only necessary computations are carried out
+        # improved: (almost) only necessary computations are carried out (ca. 7 percent)
         diff,dist = distAtomsPBC(x)
         V = np.zeros((len(types),len(types)))
         
-        atomPairsLJ = (dist < LJcutoff) * notInSameMolecule
+        shouldComputePair = (dist < LJcutoff) * notInSameMolecule
+        atomPairs = np.where(shouldComputePair == True)
+        atomPairsLJ = tuple(map(tuple, atomPairs))
         e = np.sqrt(epsilon*epsilon[:,np.newaxis])[atomPairsLJ] # this is still inefficient
         s = 0.5*(sigma+sigma[:,np.newaxis])[atomPairsLJ] # this is still inefficient
         

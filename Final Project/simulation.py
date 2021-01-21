@@ -210,6 +210,7 @@ def integratorRK4(x, v, a):
 
 def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon, LJcutoff):
     """Caltulate forces in one go with help of topology file."""
+    global forces
     forces = np.zeros((len(types),3), dtype = float)
     potentials = np.zeros(4, dtype = float)
     
@@ -293,24 +294,40 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         
     # Lennard Jones forces
     if sigma.size > 0:
+        # improved: (almost) only necessary computations are carried out
         diff,dist = distAtomsPBC(x)
-    
-        e = np.sqrt(epsilon*epsilon[:,np.newaxis])
-        s = 0.5*(sigma+sigma[:,np.newaxis])
+        V = np.zeros((len(types),len(types)))
         
-        frac = np.divide(s, dist, out=np.zeros_like(s), where=dist!=0) # avoid division by 0
-        frac6 = frac**6
-        frac12 = frac6 ** 2
+        atomPairsLJ = (dist < LJcutoff) * notInSameMolecule
+        e = np.sqrt(epsilon*epsilon[:,np.newaxis])[atomPairsLJ] # this is still inefficient
+        s = 0.5*(sigma+sigma[:,np.newaxis])[atomPairsLJ] # this is still inefficient
+        
+        distReciprocal = 1 / dist[atomPairsLJ]
+        frac = s * distReciprocal
+        frac6 = (frac)**6
+        frac12 = (frac6) ** 2
         U = 4*e*(frac12 - frac6) # potential
-        V = np.sign(U)*np.divide(4*e*(6*frac6 - 12*frac12), dist, out=np.zeros_like(s), where=dist!=0) # avoid division by 0. 
-        # TODO is the sign correct? 
-       
-        L = diff
-        V = V*notInSameMolecule*(dist < LJcutoff) # these forces do not apply on atoms in the same molecule, and only apply when dist < cutoff
+        V[atomPairsLJ] =  4*e*(6*frac6 - 12*frac12) * distReciprocal * np.sign(U)
         V = np.repeat(V, 3).reshape(len(types), len(types), 3)
         
-        forces += np.sum(V*L, axis = 1)
+        forces += np.sum(V*diff, axis = 1)
         
+        ### Old: computes for all pairs and selects afterwards
+        # e = np.sqrt(epsilon*epsilon[:,np.newaxis])
+        # s = 0.5*(sigma+sigma[:,np.newaxis])
+        
+        # frac = np.divide(s, dist, out=np.zeros_like(s), where=dist!=0) # avoid division by 0
+        # frac6 = frac**6
+        # frac12 = frac6 ** 2
+        # U = 4*e*(frac12 - frac6) # potential
+        # V = np.sign(U)*np.divide(4*e*(6*frac6 - 12*frac12), dist, out=np.zeros_like(s), where=dist!=0) # avoid division by 0. 
+        
+        # L = diff
+        # V = V*notInSameMolecule*(dist < LJcutoff) # these forces do not apply on atoms in the same molecule, and only apply when dist < cutoff
+        # V = np.repeat(V, 3).reshape(len(types), len(types), 3)
+        
+        # forces += np.sum(V*L, axis = 1)
+            
         potentials[3] = np.sum(U)
     
     
@@ -363,7 +380,7 @@ molecules, notInSameMolecule, bonds, bondConstants, angles, angleConstants, dihe
 LJcutoff = 2.5*np.max(sigma)
 
 time = 0 #ps
-endTime = 0.012 #ps; should be 1ns = 1000ps in final simulation
+endTime = 1 #ps; should be 1ns = 1000ps in final simulation
 dt = 0.003 #ps; suggestion was to start at 2fs for final simulations, larger might be better (without exploding at least)
 
 u = np.random.uniform(size=3*len(types)).reshape((len(types),3)) # random starting velocity vector

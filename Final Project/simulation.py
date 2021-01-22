@@ -359,6 +359,12 @@ setSimulation('Water')
 # distAtomsPBC.boxSize = 48.42
 # thermostat = False
 
+# example 4: 150 water molecules
+inputFileName = "WaterInitial150.xyz"
+inputTimeStep = 0
+topologyFileName = "Water150Topology.txt"
+outputFileName = "Water150Output.xyz"
+thermostat = True
 
 ### SIMULATION ###
 types, x, m = readXYZfile(inputFileName, inputTimeStep)
@@ -366,7 +372,7 @@ molecules, notInSameMolecule, bonds, bondConstants, angles, angleConstants, dihe
 LJcutoff = 2.5*np.max(sigma)
 
 time = 0 #ps
-endTime = 1 #ps; should be 1ns = 1000ps in final simulation
+endTime = 10 #ps; should be 1ns = 1000ps in final simulation
 dt = 0.003 #ps; suggestion was to start at 2fs for final simulations, larger might be better (without exploding at least)
 
 u = np.random.uniform(size=3*len(types)).reshape((len(types),3)) # random starting velocity vector
@@ -400,17 +406,13 @@ with open(outputFileName, "a") as outputFile:
         for i, atom in enumerate(x):
             outputFile.write(f"{types[i]} {x[i,0]:10.5f} {x[i,1]:10.5f} {x[i,2]:10.5f}\n")  
         
-        #forces, potentials = computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon, LJcutoff)
-        #a_new = forces / m[:,np.newaxis]
-        #x, v = integratorVerlocity(x, v, a, a_new)
-        #a = a_new
-        
         x, v, a, potentials = integratorVerlocity(x, v, a)
-        x = projectMolecules(x) #TODO is this the right place, or should it be before integration/force computation?
+        x = projectMolecules(x) 
         time += dt
         
         if thermostat: 
-            temperatureSystem = c*np.sum((np.linalg.norm(v, axis=1)**2)/m) #via equipartition theorem
+            temperatureSystem = np.sum(m * np.linalg.norm(v)**2) / (Nf * kB)
+            #temperatureSystem = c*np.sum((np.linalg.norm(v, axis=1)**2)/m) #via equipartition theorem
             v = v * np.sqrt(temperatureDesired/temperatureSystem) 
         
         # measurables

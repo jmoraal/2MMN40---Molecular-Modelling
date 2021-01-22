@@ -109,10 +109,13 @@ def readTopologyFile(fileNameTopology):
 
 def distAtomsPBC(x):
     """ Computes distances between all atoms in closest copies, taking boundaries into account"""    
+    time0 = timer.time()
     diff = x - x[:,np.newaxis] 
+    time1 = timer.time()
     diff = diff - np.floor(0.5 + diff/distAtomsPBC.boxSize)*distAtomsPBC.boxSize #TODO must be a faster way
-
+    time2 = timer.time()
     dist = np.linalg.norm(diff,axis = 2)
+    #print('diff,floor,dist: ', time1 - time0, time2 - time1, timer.time() - time2)
     return(diff,dist) 
 
 
@@ -294,27 +297,39 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         
     # Lennard Jones forces
     if sigma.size > 0:
+        global atomPairsLJ
+        time0 = timer.time()
         diff,dist = distAtomsPBC(x)
         V = np.zeros((len(types),len(types)))
         
-        shouldComputePair = (dist < LJcutoff) * notInSameMolecule
-        atomPairs = np.where(shouldComputePair == True) #tuple of arrays; for 1D array computation
-        atomPairsLJ = tuple(map(tuple, atomPairs)) #tuple of tuples; for 2D computations
+        time1 = timer.time()
+        #shouldComputePair = (dist < LJcutoff) * notInSameMolecule
+        atomPairs = np.where(np.multiply((dist < LJcutoff), notInSameMolecule) == True) #tuple of arrays; for 1D array computation
+        atomPairsLJ = (tuple(atomPairs[0]), tuple(atomPairs[1])) #tuple of tuples; for 2D computations
         
-        e = np.sqrt(epsilon[atomPairs[0]] * epsilon[atomPairs[1]]) 
-        s = 0.5*(sigma[atomPairs[0]] + sigma[atomPairs[1]]) 
-        
+        time2 = timer.time()
         distReciprocal = 1 / dist[atomPairsLJ]
-        frac = s * distReciprocal
+        frac = np.multiply(sigPair[atomPairsLJ], distReciprocal)
         frac6 = (frac)**6
-        frac12 = (frac6) ** 2
+        #frac12 = np.multiply(frac6, frac6)
+        e = epsPair[atomPairsLJ]
         
-        U = 4*e*(frac12 - frac6) # potential
-        V[atomPairsLJ] =  4*e*(6*frac6 - 12*frac12) * distReciprocal * np.sign(U)
+        time3 = timer.time()
+        epsFrac6 = np.multiply(4*e,frac6)
+        epsFrac12 = np.multiply(epsFrac6, frac6)
+        
+        time4 = timer.time()
+        U = epsFrac12 - epsFrac6
+        #U = 4*e*(frac12 - frac6) # potential
+        V[atomPairsLJ] = np.multiply(6*epsFrac6 - 12*epsFrac12, distReciprocal)
+        #V[atomPairsLJ] =  -4*e*(6*frac6 - 12*frac12) * distReciprocal 
         V = np.repeat(V, 3).reshape(len(types), len(types), 3)
         forces += np.sum(V*diff, axis = 1)
         
+        time5 = timer.time()
         potentials[3] = np.sum(U)
+        #print('LJ time: ', time5 - time0)
+        #print('dist,pair,frac,eps,force', time1 - time0, time2 - time1, time3 - time2, time4 - time3, time5 - time4)
     
     
     # forces check
@@ -350,7 +365,7 @@ def setSimulation(substance, small = True, therm = True):
     outputFileName = substance + size + thermo + 'Output.xyz'
     thermostat = therm
 
-setSimulation('Water')
+#setSimulation('Water', therm = False)
 
 # inputFileName = "MixedMolecules.xyz"
 # inputTimeStep = 0
@@ -365,15 +380,16 @@ inputTimeStep = 0
 topologyFileName = "Water150Topology.txt"
 outputFileName = "Water150Output.xyz"
 thermostat = True
+distAtomsPBC.boxSize = 19
 
 ### SIMULATION ###
 types, x, m = readXYZfile(inputFileName, inputTimeStep)
 molecules, notInSameMolecule, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon = readTopologyFile(topologyFileName)
-LJcutoff = 2.5*np.max(sigma)
+LJcutoff = 2.5*np.max(sigma) #advised in literature: 2.5
 
 time = 0 #ps
-endTime = 10 #ps; should be 1ns = 1000ps in final simulation
-dt = 0.003 #ps; suggestion was to start at 2fs for final simulations, larger might be better (without exploding at least)
+endTime = 1 #ps; should be 1ns = 1000ps in final simulation
+dt = 0.002 #ps; suggestion was to start at 2fs for final simulations, paper uses 0.5fs
 
 u = np.random.uniform(size=3*len(types)).reshape((len(types),3)) # random starting velocity vector
 u = u/np.linalg.norm(u,axis = 1)[:,np.newaxis] # normalize
@@ -382,9 +398,9 @@ v = 0.01*u # A/ps
 #For Gaussian Thermostat:
 if thermostat: 
     temperatureDesired = 298.15 # Kelvin
-    kB = 1.38064852 * 1.6605390666 # [A^2 AMU]/[K ps^2]; hence -20+23-27+24 = 0 'in the exponent'
-    Nf = 6*len(x) # 6*, as atoms have 3D position and velocity vector so 6 degrees of freedom
-    c = 2/(3*kB*len(x)) #for alternative computation using equipartition theorem
+    kB = 0.8314459727525677 # = 1.38064852  * 6.02214076 * 10 **(-23 + 20 - 24 + 26) [A^2 AMU] / [ps^2 K]
+    Nf = 3*len(x) # 3*, as atoms have 3D velocity vector and only translational freedom matters
+    c = 1/( kB * Nf) 
     
     
 # For measuring:
@@ -392,34 +408,43 @@ Ekin = []
 Epot = []
 checkForces = False
 
+# Precomputations: 
+sigPair = 0.5*(sigma + sigma[:, np.newaxis]) 
+epsPair = np.sqrt(epsilon * epsilon[:, np.newaxis])
+
 with open(outputFileName, "w") as outputFile: # clear file
     outputFile.write("") 
 simStartTime = timer.time()
 with open(outputFileName, "a") as outputFile:
-    f_init, pot = computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon, LJcutoff)
+    f_init, pot = computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigPair, epsPair, LJcutoff)
     a = f_init / m[:,np.newaxis]
     
     while (time <= endTime) : 
+        loopTime = timer.time()
         print(time, " out of ", endTime)
         outputFile.write(f"{len(types)}\n")
         outputFile.write(f"This is a comment and the time is {time:5.4f}\n")
         for i, atom in enumerate(x):
             outputFile.write(f"{types[i]} {x[i,0]:10.5f} {x[i,1]:10.5f} {x[i,2]:10.5f}\n")  
         
+        
+        if thermostat: 
+            #temperatureSystem = np.sum(m)  * (np.linalg.norm(v)**2) / (Nf * kB) # calculates w/ AVERAGE kinetic energy
+            temperatureSystem = np.sum(m * np.linalg.norm(v, axis = 1)**2) / (Nf * kB)
+            #temperatureSystem = c*np.sum((np.linalg.norm(v, axis=1)**2) * m) / dt #via equipartition theorem
+            #print(temperatureSystem)
+            v = v * np.sqrt(temperatureDesired/temperatureSystem) 
+        
         x, v, a, potentials = integratorVerlocity(x, v, a)
         x = projectMolecules(x) 
         time += dt
-        
-        if thermostat: 
-            temperatureSystem = np.sum(m * np.linalg.norm(v)**2) / (Nf * kB)
-            #temperatureSystem = c*np.sum((np.linalg.norm(v, axis=1)**2)/m) #via equipartition theorem
-            v = v * np.sqrt(temperatureDesired/temperatureSystem) 
         
         # measurables
         EkinSyst = np.sum(0.5 * m * (np.linalg.norm(v, axis=1)**2))
         Ekin.append(EkinSyst)
         EpotSyst =  np.sum(potentials)
         Epot.append(EpotSyst)
+        #print('Loop time: ', timer.time() - loopTime)
         
 
 duration = timer.time() - simStartTime

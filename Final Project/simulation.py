@@ -14,8 +14,9 @@ Created on Mon Nov  9 16:30:44 2020
 """
 import time as timer
 import numpy as np
-# import warnings
-# warnings.filterwarnings("error") # allows try/except-constructions for warnings (i.e. stop computation when dividing by 0)
+import matplotlib.pyplot as plt
+import warnings
+warnings.filterwarnings("error") # allows try/except-constructions for warnings (i.e. stop computation when dividing by 0)
 #import functions as fun # idea was to put all fcts there, but too many non-parametrised variables
 
 
@@ -297,40 +298,90 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         
     # Lennard Jones forces
     if sigma.size > 0:
-        global atomPairsLJ
+        ### Version 1: With tuples. very slow (especially for larger cutoff) but working
+        global atomPairs, atomPairsLJ, distReciprocal, frac, e, U, LJforces, V, diff
+        # time0 = timer.time()
+        # diff,dist = distAtomsPBC(x)
+        # V = np.zeros((len(types),len(types)))
+        
+        # time1 = timer.time()
+        # atomPairs = np.where(np.multiply((dist < LJcutoff), notInSameMolecule) == True) #tuple of arrays; for 1D array computation
+        # atomPairsLJ = (tuple(atomPairs[0]), tuple(atomPairs[1])) #tuple of tuples; for 2D computations
+        
+        # time2 = timer.time()
+        # distReciprocal = np.power(dist[atomPairsLJ], -1)
+        # frac = np.multiply(sigPair[atomPairsLJ], distReciprocal)
+        # frac6 = np.power(frac, 6)
+        # #frac12 = np.multiply(frac6, frac6)
+        # e = epsPair[atomPairsLJ]
+        
+        # time3 = timer.time()
+        # epsFrac6 = np.multiply(4*e,frac6)
+        # epsFrac12 = np.multiply(epsFrac6, frac6)
+        
+        # time4 = timer.time()
+        # U = epsFrac12 - epsFrac6
+        # #U = 4*e*(frac12 - frac6) # potential
+        # V[atomPairsLJ] = np.multiply(12*epsFrac12 - 6*epsFrac6, distReciprocal)
+        # #V[atomPairsLJ] =  -4*e*(6*frac6 - 12*frac12) * distReciprocal 
+        # time4a = timer.time()
+        # V = np.repeat(V, 3).reshape(len(types), len(types), 3)
+        # forces += np.sum(V*diff, axis = 1)
+        
+        # time5 = timer.time()
+        # potentials[3] = np.sum(U)
+        # # print('LJ time: ', time5 - time0)
+        # #print('dist,pair,frac,eps,reshape,force', time1 - time0, time2 - time1, time3 - time2, time4 - time3, time5 - time4)
+        # print('dist: ', time1 - time0)
+        # print('pair: ', time2 - time1)
+        # print('frac: ', time3 - time2)
+        # print('eps: ', time4 - time3)
+        # print('force: ', time4a - time4)
+        # print('shape: ', time5 - time4a)
+        
+        
+        
+        
+        ## Version 2: With arrays. faster, but not working properly (yet)
+        global atomPairs, atomPairsLJ, distReciprocal, frac, e, U, LJforces, V, diff
         time0 = timer.time()
         diff,dist = distAtomsPBC(x)
-        V = np.zeros((len(types),len(types)))
         
         time1 = timer.time()
-        #shouldComputePair = (dist < LJcutoff) * notInSameMolecule
         atomPairs = np.where(np.multiply((dist < LJcutoff), notInSameMolecule) == True) #tuple of arrays; for 1D array computation
-        atomPairsLJ = (tuple(atomPairs[0]), tuple(atomPairs[1])) #tuple of tuples; for 2D computations
+        #atomPairs = atomPairs[0:int(len(atomPairs)/2)]
+        #TODO: still contains duplicates!!! Now fixed by only adding to atomPairs[0], not also [1]
         
         time2 = timer.time()
-        distReciprocal = 1 / dist[atomPairsLJ]
-        frac = np.multiply(sigPair[atomPairsLJ], distReciprocal)
-        frac6 = (frac)**6
-        #frac12 = np.multiply(frac6, frac6)
-        e = epsPair[atomPairsLJ]
+        distReciprocal = np.power(dist[atomPairs[0],atomPairs[1]], -1)
+        frac = np.multiply(sigPair[atomPairs[0],atomPairs[1]], distReciprocal) #sigPair is precomputed for all pairs of sigma
+        frac6 = np.power(frac, 6)
+        # frac12 = np.multiply(frac6, frac6)
+        e = epsPair[atomPairs[0],atomPairs[1]] #epsPair is precomputed for all pairs of epsilons
         
         time3 = timer.time()
-        epsFrac6 = np.multiply(4*e,frac6)
+        epsFrac6 = np.multiply(4*e,frac6) # to re-use in computation of both U and V
         epsFrac12 = np.multiply(epsFrac6, frac6)
         
         time4 = timer.time()
-        U = epsFrac12 - epsFrac6
-        #U = 4*e*(frac12 - frac6) # potential
-        V[atomPairsLJ] = np.multiply(6*epsFrac6 - 12*epsFrac12, distReciprocal)
-        #V[atomPairsLJ] =  -4*e*(6*frac6 - 12*frac12) * distReciprocal 
-        V = np.repeat(V, 3).reshape(len(types), len(types), 3)
-        forces += np.sum(V*diff, axis = 1)
+        U = epsFrac12 - epsFrac6 # = 4*e*(frac12 - frac6); potential
+        V = np.multiply(12*epsFrac12 - 6*epsFrac6, distReciprocal) # = - (4*e*(6*frac6 - 12*frac12) / dist
+        time4a = timer.time()
+        LJforces = np.multiply(diff[atomPairs[0],atomPairs[1]],V[:,np.newaxis])
+        np.add.at(forces, atomPairs[0], LJforces) #only at atomPairs[0], as atomPairs[1] would yield duplicates (right?)
+        #forces[atomPairs[0]] += LJforces
+        
         
         time5 = timer.time()
         potentials[3] = np.sum(U)
-        #print('LJ time: ', time5 - time0)
-        #print('dist,pair,frac,eps,force', time1 - time0, time2 - time1, time3 - time2, time4 - time3, time5 - time4)
-    
+        # print('LJ time: ', time5 - time0)
+        #print('dist,pair,frac,eps,reshape,force', time1 - time0, time2 - time1, time3 - time2, time4 - time3, time5 - time4)
+        print('dist: ', time1 - time0)
+        print('pair: ', time2 - time1)
+        print('frac: ', time3 - time2)
+        print('eps: ', time4 - time3)
+        print('force: ', time4a - time4)
+        print('shape: ', time5 - time4a)
     
     # forces check
     if checkForces:
@@ -365,7 +416,7 @@ def setSimulation(substance, small = True, therm = True):
     outputFileName = substance + size + thermo + 'Output.xyz'
     thermostat = therm
 
-#setSimulation('Water', therm = False)
+setSimulation('Ethanol')
 
 # inputFileName = "MixedMolecules.xyz"
 # inputTimeStep = 0
@@ -381,6 +432,15 @@ topologyFileName = "Water150Topology.txt"
 outputFileName = "Water150Output.xyz"
 thermostat = True
 distAtomsPBC.boxSize = 19
+
+# # example 2: one ethanol molecule
+# inputFileName = "Ethanol2.xyz"
+# inputTimeStep = 0
+# topologyFileName = "Ethanol2Topology.txt"
+# outputFileName = "Ethanol2Output.xyz"
+# thermostat = True
+# distAtomsPBC.boxSize = 10
+
 
 ### SIMULATION ###
 types, x, m = readXYZfile(inputFileName, inputTimeStep)
@@ -422,10 +482,11 @@ with open(outputFileName, "a") as outputFile:
     while (time <= endTime) : 
         loopTime = timer.time()
         print(time, " out of ", endTime)
-        outputFile.write(f"{len(types)}\n")
-        outputFile.write(f"This is a comment and the time is {time:5.4f}\n")
-        for i, atom in enumerate(x):
-            outputFile.write(f"{types[i]} {x[i,0]:10.5f} {x[i,1]:10.5f} {x[i,2]:10.5f}\n")  
+        if (time % (10*dt) < dt or True): #to print every 10th frame. '==0' does not work, as floats are not exact. add 'or True' to print all
+            outputFile.write(f"{len(types)}\n")
+            outputFile.write(f"This is a comment and the time is {time:5.4f}\n")
+            for i, atom in enumerate(x):
+                outputFile.write(f"{types[i]} {x[i,0]:10.5f} {x[i,1]:10.5f} {x[i,2]:10.5f}\n")  
         
         
         if thermostat: 
@@ -444,7 +505,7 @@ with open(outputFileName, "a") as outputFile:
         Ekin.append(EkinSyst)
         EpotSyst =  np.sum(potentials)
         Epot.append(EpotSyst)
-        #print('Loop time: ', timer.time() - loopTime)
+        print('Loop time: ', timer.time() - loopTime)
         
 
 duration = timer.time() - simStartTime
@@ -453,14 +514,14 @@ print("Simulation duration was ", duration, " seconds")
 
 ### PLOT ENERGY ###
 
-# import matplotlib.pyplot as plt
-# t = np.arange(0,time-dt, dt)
-# Etot = np.array(Ekin) + np.array(Epot)
-# plt.plot(t, Ekin, label = 'Kinetic energy')
-# plt.plot(t, Epot, label = 'Potential energy')
-# plt.plot(t, Etot, label = 'Total energy')
-# plt.title('Energy in the system')
-# plt.xlabel('Time (ps)')
-# plt.ylabel('Energy')
-# plt.legend()
-# plt.show()
+plt.clf() # Clears current figure
+t = np.arange(0,time-dt, dt)
+Etot = np.array(Ekin) + np.array(Epot)
+plt.plot(t, Ekin, label = 'Kinetic energy')
+plt.plot(t, Epot, label = 'Potential energy')
+plt.plot(t, Etot, label = 'Total energy')
+plt.title('Energy in the system')
+plt.xlabel('Time (ps)')
+plt.ylabel('Energy')
+plt.legend()
+plt.show()

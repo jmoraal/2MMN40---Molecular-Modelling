@@ -110,11 +110,8 @@ def readTopologyFile(fileNameTopology):
 
 def distAtomsPBC(x):
     """ Computes distances between all atoms in closest copies, taking boundaries into account"""    
-    time0 = timer.time()
     diff = x - x[:,np.newaxis] 
-    time1 = timer.time()
     diff = diff - np.floor(0.5 + diff/distAtomsPBC.boxSize)*distAtomsPBC.boxSize #TODO must be a faster way
-    time2 = timer.time()
     dist = np.linalg.norm(diff,axis = 2)
     #print('diff,floor,dist: ', time1 - time0, time2 - time1, timer.time() - time2)
     return(diff,dist) 
@@ -130,7 +127,6 @@ def projectMolecules(x):
     centers = np.zeros([len(types),3]) 
     #centers[molecules] = sum(x[molecules]  / sum([molecules])) #should be doable without forloop
     for i in range(0, len(molecules)):
-        # centers[molecules[i]] = sum(x[molecules[i]] * m[molecules[i], np.newaxis]) / sum(m[molecules[i]]) # weighted avg
         centers[molecules[i]] = np.sum(x[molecules[i]], axis=0) / len(molecules[i]) # unweighted avg
     centersProj = centers % distAtomsPBC.boxSize
     x = x + (centersProj - centers)
@@ -188,7 +184,7 @@ def integratorEuler(x, v, a):
 def integratorVerlocity(x, v, a):  
     """ Implementation of a single step for Velocty Verlet integrator. """ 
     x_new = x + v*dt + (dt**2)/2*a
-    forces, potential = computeForces(x_new, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon, LJcutoff)
+    forces, potential = computeForces(x_new, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigPair, epsPair, LJcutoff)
     a_new = forces/m[:,np.newaxis]
     v = v + dt/2*(a_new + a)
     return(x_new, v, a_new, potential)
@@ -297,66 +293,17 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         
         
     # Lennard Jones forces
-    if sigma.size > 0:
-        ### Version 1: With tuples. very slow (especially for larger cutoff) but working
-        global atomPairs, atomPairsLJ, distReciprocal, frac, e, U, LJforces, V, diff
-        # time0 = timer.time()
-        # diff,dist = distAtomsPBC(x)
-        # V = np.zeros((len(types),len(types)))
-        
-        # time1 = timer.time()
-        # atomPairs = np.where(np.multiply((dist < LJcutoff), notInSameMolecule) == True) #tuple of arrays; for 1D array computation
-        # atomPairsLJ = (tuple(atomPairs[0]), tuple(atomPairs[1])) #tuple of tuples; for 2D computations
-        
-        # time2 = timer.time()
-        # distReciprocal = np.power(dist[atomPairsLJ], -1)
-        # frac = np.multiply(sigPair[atomPairsLJ], distReciprocal)
-        # frac6 = np.power(frac, 6)
-        # #frac12 = np.multiply(frac6, frac6)
-        # e = epsPair[atomPairsLJ]
-        
-        # time3 = timer.time()
-        # epsFrac6 = np.multiply(4*e,frac6)
-        # epsFrac12 = np.multiply(epsFrac6, frac6)
-        
-        # time4 = timer.time()
-        # U = epsFrac12 - epsFrac6
-        # #U = 4*e*(frac12 - frac6) # potential
-        # V[atomPairsLJ] = np.multiply(12*epsFrac12 - 6*epsFrac6, distReciprocal)
-        # #V[atomPairsLJ] =  -4*e*(6*frac6 - 12*frac12) * distReciprocal 
-        # time4a = timer.time()
-        # V = np.repeat(V, 3).reshape(len(types), len(types), 3)
-        # forces += np.sum(V*diff, axis = 1)
-        
-        # time5 = timer.time()
-        # potentials[3] = np.sum(U)
-        # # print('LJ time: ', time5 - time0)
-        # #print('dist,pair,frac,eps,reshape,force', time1 - time0, time2 - time1, time3 - time2, time4 - time3, time5 - time4)
-        # print('dist: ', time1 - time0)
-        # print('pair: ', time2 - time1)
-        # print('frac: ', time3 - time2)
-        # print('eps: ', time4 - time3)
-        # print('force: ', time4a - time4)
-        # print('shape: ', time5 - time4a)
-        
-        
-        
-        
-        ## Version 2: With arrays. faster, but not working properly (yet)
-        global atomPairs, atomPairsLJ, distReciprocal, frac, e, U, LJforces, V, diff
+    if sigPair.size > 0:  
         time0 = timer.time()
         diff,dist = distAtomsPBC(x)
         
         time1 = timer.time()
-        atomPairs = np.where(np.multiply((dist < LJcutoff), notInSameMolecule) == True) #tuple of arrays; for 1D array computation
-        #atomPairs = atomPairs[0:int(len(atomPairs)/2)]
-        #TODO: still contains duplicates!!! Now fixed by only adding to atomPairs[0], not also [1]
+        atomPairs = np.where(np.multiply((dist < LJcutoff), notInSameMolecule) == True) #tuple of arrays; sort of adjacency list
         
         time2 = timer.time()
         distReciprocal = np.power(dist[atomPairs[0],atomPairs[1]], -1)
         frac = np.multiply(sigPair[atomPairs[0],atomPairs[1]], distReciprocal) #sigPair is precomputed for all pairs of sigma
         frac6 = np.power(frac, 6)
-        # frac12 = np.multiply(frac6, frac6)
         e = epsPair[atomPairs[0],atomPairs[1]] #epsPair is precomputed for all pairs of epsilons
         
         time3 = timer.time()
@@ -365,23 +312,21 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         
         time4 = timer.time()
         U = epsFrac12 - epsFrac6 # = 4*e*(frac12 - frac6); potential
-        V = np.multiply(12*epsFrac12 - 6*epsFrac6, distReciprocal) # = - (4*e*(6*frac6 - 12*frac12) / dist
+        V = np.multiply((12*epsFrac12 - 6*epsFrac6), distReciprocal) # = - (4*e*(6*frac6 - 12*frac12) / dist
         time4a = timer.time()
         LJforces = np.multiply(diff[atomPairs[0],atomPairs[1]],V[:,np.newaxis])
-        np.add.at(forces, atomPairs[0], LJforces) #only at atomPairs[0], as atomPairs[1] would yield duplicates (right?)
-        #forces[atomPairs[0]] += LJforces
-        
+        np.add.at(forces, atomPairs[0], -LJforces) #only at atomPairs[0], as atomPairs[1] would yield duplicates (right?)
+        np.add.at(forces, atomPairs[1], LJforces)
         
         time5 = timer.time()
         potentials[3] = np.sum(U)
-        # print('LJ time: ', time5 - time0)
-        #print('dist,pair,frac,eps,reshape,force', time1 - time0, time2 - time1, time3 - time2, time4 - time3, time5 - time4)
-        print('dist: ', time1 - time0)
-        print('pair: ', time2 - time1)
-        print('frac: ', time3 - time2)
-        print('eps: ', time4 - time3)
-        print('force: ', time4a - time4)
-        print('shape: ', time5 - time4a)
+        print('LJ time: ', time5 - time0)
+        # print('dist: ', time1 - time0)
+        # print('pair: ', time2 - time1)
+        # print('frac: ', time3 - time2)
+        # print('eps: ', time4 - time3)
+        # print('force: ', time4a - time4)
+        # print('shape: ', time5 - time4a)
     
     # forces check
     if checkForces:
@@ -416,22 +361,22 @@ def setSimulation(substance, small = True, therm = True):
     outputFileName = substance + size + thermo + 'Output.xyz'
     thermostat = therm
 
-setSimulation('Ethanol')
+setSimulation('Water')
 
 # inputFileName = "MixedMolecules.xyz"
 # inputTimeStep = 0
 # topologyFileName = "MixedMoleculesTopology.txt"
 # outputFileName = "MixedMoleculesOutput.xyz"
-# distAtomsPBC.boxSize = 48.42
+# distAtomsPBC.boxSize = 5
 # thermostat = False
 
-# example 4: 150 water molecules
-inputFileName = "WaterInitial150.xyz"
-inputTimeStep = 0
-topologyFileName = "Water150Topology.txt"
-outputFileName = "Water150Output.xyz"
-thermostat = True
-distAtomsPBC.boxSize = 19
+# # example 4: 150 water molecules
+# inputFileName = "WaterInitial150.xyz"
+# inputTimeStep = 0
+# topologyFileName = "Water150Topology.txt"
+# outputFileName = "Water150Output.xyz"
+# thermostat = True
+# distAtomsPBC.boxSize = 19
 
 # # example 2: one ethanol molecule
 # inputFileName = "Ethanol2.xyz"
@@ -440,6 +385,7 @@ distAtomsPBC.boxSize = 19
 # outputFileName = "Ethanol2Output.xyz"
 # thermostat = True
 # distAtomsPBC.boxSize = 10
+# LJcutoff = 1
 
 
 ### SIMULATION ###
@@ -448,7 +394,7 @@ molecules, notInSameMolecule, bonds, bondConstants, angles, angleConstants, dihe
 LJcutoff = 2.5*np.max(sigma) #advised in literature: 2.5
 
 time = 0 #ps
-endTime = 1 #ps; should be 1ns = 1000ps in final simulation
+endTime = 2 #ps; should be 1ns = 1000ps in final simulation
 dt = 0.002 #ps; suggestion was to start at 2fs for final simulations, paper uses 0.5fs
 
 u = np.random.uniform(size=3*len(types)).reshape((len(types),3)) # random starting velocity vector
@@ -471,13 +417,13 @@ checkForces = False
 # Precomputations: 
 sigPair = 0.5*(sigma + sigma[:, np.newaxis]) 
 epsPair = np.sqrt(epsilon * epsilon[:, np.newaxis])
+f_init, pot = computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigPair, epsPair, LJcutoff)
+a = f_init / m[:,np.newaxis]
 
 with open(outputFileName, "w") as outputFile: # clear file
     outputFile.write("") 
 simStartTime = timer.time()
 with open(outputFileName, "a") as outputFile:
-    f_init, pot = computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigPair, epsPair, LJcutoff)
-    a = f_init / m[:,np.newaxis]
     
     while (time <= endTime) : 
         loopTime = timer.time()
@@ -514,14 +460,14 @@ print("Simulation duration was ", duration, " seconds")
 
 ### PLOT ENERGY ###
 
-plt.clf() # Clears current figure
-t = np.arange(0,time-dt, dt)
-Etot = np.array(Ekin) + np.array(Epot)
-plt.plot(t, Ekin, label = 'Kinetic energy')
-plt.plot(t, Epot, label = 'Potential energy')
-plt.plot(t, Etot, label = 'Total energy')
-plt.title('Energy in the system')
-plt.xlabel('Time (ps)')
-plt.ylabel('Energy')
-plt.legend()
-plt.show()
+# plt.clf() # Clears current figure
+# t = np.arange(0,time-dt, dt)
+# Etot = np.array(Ekin) + np.array(Epot)
+# plt.plot(t, Ekin, label = 'Kinetic energy')
+# plt.plot(t, Epot, label = 'Potential energy')
+# plt.plot(t, Etot, label = 'Total energy')
+# plt.title('Energy in the system')
+# plt.xlabel('Time (ps)')
+# plt.ylabel('Energy')
+# plt.legend()
+# plt.show()

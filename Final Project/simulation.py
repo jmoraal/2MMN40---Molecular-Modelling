@@ -300,40 +300,9 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
     if sigPair.size > 0:  
         #time0 = timer.time()
         diff,dist = distAtomsPBC(x)
-<<<<<<< Updated upstream
         
         #time1 = timer.time()
         atomPairs = np.where(np.multiply((dist < LJcutoff), notInSameMolecule) == True) #tuple of arrays; sort of adjacency list
-=======
-        global V
-        
-        # old way
-        # V = np.zeros((len(types),len(types)))
-        
-        # e = np.sqrt(epsilon*epsilon[:,np.newaxis])
-        # s = 0.5*(sigma+sigma[:,np.newaxis])
-        # frac = np.divide(s, dist, out=np.zeros_like(s), where=dist!=0) # avoid division by 0
-        # frac6 = frac**6
-        # frac12 = frac6 ** 2
-        # U = 4*e*(frac12 - frac6) # potential
-        # V = np.sign(U)*np.divide(4*e*(6*frac6 - 12*frac12), dist, out=np.zeros_like(s), where=dist!=0) # avoid division by 0. 
-        # # TODO is the sign correct? 
-       
-        # V = V*notInSameMolecule*(dist < LJcutoff) # these forces do not apply on atoms in the same molecule, and only apply when dist < cutoff
-        
-        # V = np.repeat(V, 3).reshape(len(types), len(types), 3)
-        
-        # forces += np.sum(V*diff, axis = 1)
-        # print(np.sum(V*diff, axis = 1))
-        
-        # new way
-        V = np.zeros((len(types),len(types)))
-        
-        shouldComputePair = (dist < LJcutoff) * notInSameMolecule
-        atomPairs = np.where(shouldComputePair == True) #tuple of arrays; for 1D array computation
-        
-        atomPairsLJ = tuple(map(tuple, atomPairs)) #tuple of tuples; for 2D computations
->>>>>>> Stashed changes
         
         #ime2 = timer.time()
         distReciprocal = np.power(dist[atomPairs[0],atomPairs[1]], -1)
@@ -345,7 +314,6 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         epsFrac6 = np.multiply(4*e,frac6) # to re-use in computation of both U and V
         epsFrac12 = np.multiply(epsFrac6, frac6)
         
-<<<<<<< Updated upstream
         #time4 = timer.time()
         U = epsFrac12 - epsFrac6 # = 4*e*(frac12 - frac6); potential
         V = np.multiply((12*epsFrac12 - 6*epsFrac6), distReciprocal) # = - (4*e*(6*frac6 - 12*frac12) / dist
@@ -353,17 +321,9 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         LJforces = np.multiply(diff[atomPairs[0],atomPairs[1]],V[:,np.newaxis])
         np.add.at(forces, atomPairs[0], -LJforces) #only at atomPairs[0], as atomPairs[1] would yield duplicates (right?)
         np.add.at(forces, atomPairs[1], LJforces)
-=======
-        U = 4*e*(frac12 - frac6) # potential
-        V[atomPairsLJ] =  -4*e*(6*frac6 - 12*frac12) * distReciprocal # forceConstant = -dU/dr
-        V = np.repeat(V, 3).reshape(len(types), len(types), 3)
-        
-        forces += np.sum(V*diff, axis = 1) # forces = forcesConstant * differenceVector
->>>>>>> Stashed changes
         
         #time5 = timer.time()
         potentials[3] = np.sum(U)
-<<<<<<< Updated upstream
         #print('LJ time: ', time5 - time0)
         # print('dist: ', time1 - time0)
         # print('pair: ', time2 - time1)
@@ -371,11 +331,6 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         # print('eps: ', time4 - time3)
         # print('force: ', time4a - time4)
         # print('shape: ', time5 - time4a)
-=======
-        
-    duration = timer.time() - startTime
-    # print(duration)
->>>>>>> Stashed changes
     
     # forces check
     if checkForces:
@@ -451,13 +406,8 @@ molecules, notInSameMolecule, bonds, bondConstants, angles, angleConstants, dihe
 LJcutoff = 2.5*np.max(sigma) #advised in literature: 2.5
 
 time = 0 #ps
-<<<<<<< Updated upstream
 endTime = 10 #ps; should be 1ns = 1000ps in final simulation
 dt = 0.002 #ps; suggestion was to start at 2fs for final simulations, paper uses 0.5fs
-=======
-endTime = 0 #ps; should be 1ns = 1000ps in final simulation
-dt = 0.003 #ps; suggestion was to start at 2fs for final simulations, larger might be better (without exploding at least)
->>>>>>> Stashed changes
 
 u = np.random.uniform(size=3*len(types)).reshape((len(types),3)) # random starting velocity vector
 u = u/np.linalg.norm(u,axis = 1)[:,np.newaxis] # normalize

@@ -306,7 +306,8 @@ def findSize(approxSize, substance):
             d.append(boxSize)
     return d
 
-
+writeEthanolTopology(2, 20)
+writeEthanolXYZ(2, 20)
 #print(findSize(50,'mixture'))
 
 # writeConfig('water', 31.08)

@@ -15,8 +15,8 @@ Created on Mon Nov  9 16:30:44 2020
 import time as timer
 import numpy as np
 import matplotlib.pyplot as plt
-import warnings
-warnings.filterwarnings("error") # allows try/except-constructions for warnings (i.e. stop computation when dividing by 0)
+# import warnings
+# warnings.filterwarnings("error") # allows try/except-constructions for warnings (i.e. stop computation when dividing by 0)
 #import functions as fun # idea was to put all fcts there, but too many non-parametrised variables
 
 
@@ -295,7 +295,6 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
                 
         potentials[2] = np.sum(Vdihedral(theta, dihedralConstants[:,0], dihedralConstants[:,1], dihedralConstants[:,2], dihedralConstants[:,3]))
         
-    startTime = timer.time   () 
     # Lennard Jones forces
     if sigPair.size > 0:  
         #time0 = timer.time()
@@ -365,7 +364,7 @@ def setSimulation(substance, small = True, therm = True):
     outputFileName = substance + size + thermo + 'Output.xyz'
     thermostat = therm
 
-setSimulation('Water', therm = False)
+# setSimulation('Water', therm = False)
 
 # inputFileName = "MixedMolecules.xyz"
 # inputTimeStep = 0
@@ -382,32 +381,32 @@ setSimulation('Water', therm = False)
 # thermostat = True
 # distAtomsPBC.boxSize = 19
 
-# # example 2: one ethanol molecule
-# inputFileName = "Ethanol2.xyz"
-# inputTimeStep = 0
-# topologyFileName = "Ethanol2Topology.txt"
-# outputFileName = "Ethanol2Output.xyz"
-# thermostat = True
-# distAtomsPBC.boxSize = 10
-# LJcutoff = 1
+# # example 2: two ethanol molecules
+inputFileName = "Ethanol20Initial.xyz"
+inputTimeStep = 0
+topologyFileName = "Ethanol20Topology.txt"
+outputFileName = "Ethanol20Output.xyz"
+thermostat = True
+distAtomsPBC.boxSize = 50
 
 
 # inputFileName = "WaterInitial150.xyz"
 # inputTimeStep = 0
 # topologyFileName = "Water150Topology.txt"
 # outputFileName = "WaterOutput150.xyz"
-# distAtomsPBC.boxSize = 48.42
-# thermostat = False
+# distAtomsPBC.boxSize = 25
+# thermostat = True
 
 
 ### SIMULATION ###
 types, x, m = readXYZfile(inputFileName, inputTimeStep)
 molecules, notInSameMolecule, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon = readTopologyFile(topologyFileName)
 LJcutoff = 2.5*np.max(sigma) #advised in literature: 2.5
+# LJcutoff = 1
 
 time = 0 #ps
-endTime = 10 #ps; should be 1ns = 1000ps in final simulation
-dt = 0.002 #ps; suggestion was to start at 2fs for final simulations, paper uses 0.5fs
+endTime = 3 #ps; should be 1ns = 1000ps in final simulation
+dt = 0.0005 #ps; suggestion was to start at 2fs for final simulations, paper uses 0.5fs
 
 u = np.random.uniform(size=3*len(types)).reshape((len(types),3)) # random starting velocity vector
 u = u/np.linalg.norm(u,axis = 1)[:,np.newaxis] # normalize
@@ -419,7 +418,6 @@ if thermostat:
     kB = 0.8314459727525677 # = 1.38064852  * 6.02214076 * 10 **(-23 + 20 - 24 + 26) [A^2 AMU] / [ps^2 K]
     Nf = 3*len(x) # 3*, as atoms have 3D velocity vector and only translational freedom matters
     c = 1/( kB * Nf) 
-    
     
 # For measuring:
 Ekin = []
@@ -440,6 +438,7 @@ with open(outputFileName, "a") as outputFile:
     while (time <= endTime) : 
         #loopTime = timer.time()
         print(time, " out of ", endTime)
+        
         if (time % (8*dt) < dt): #to print every 8th frame. '==0' does not work, as floats are not exact. add 'or True' to print all
             outputFile.write(f"{len(types)}\n")
             outputFile.write(f"This is a comment and the time is {time:5.4f}\n")
@@ -472,14 +471,14 @@ print("Simulation duration was ", duration/60, " minutes")
 
 ### PLOT ENERGY ###
 
-plt.clf() # Clears current figure
-t = np.arange(0,time-dt, dt)
-Etot = np.array(Ekin) + np.array(Epot)
-plt.plot(t, Ekin, label = 'Kinetic energy')
-plt.plot(t, Epot, label = 'Potential energy')
-plt.plot(t, Etot, label = 'Total energy')
-plt.title('Energy in the system')
-plt.xlabel('Time (ps)')
-plt.ylabel('Energy')
-plt.legend()
-plt.show()
+# plt.clf() # Clears current figure
+# t = np.arange(0,time-dt, dt)
+# Etot = np.array(Ekin) + np.array(Epot)
+# plt.plot(t, Ekin, label = 'Kinetic energy')
+# plt.plot(t, Epot, label = 'Potential energy')
+# plt.plot(t, Etot, label = 'Total energy')
+# plt.title('Energy in the system')
+# plt.xlabel('Time (ps)')
+# plt.ylabel('Energy')
+# plt.legend()
+# plt.show()

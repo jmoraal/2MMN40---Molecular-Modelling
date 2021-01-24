@@ -7,6 +7,7 @@ Created on Wed Jan 20 13:04:55 2021
 """
 import numpy as np
 from matplotlib import pyplot as plt 
+import seaborn as sns
 
 def readTopologyFile(fileNameTopology): 
     """Read a topology file."""
@@ -15,21 +16,21 @@ def readTopologyFile(fileNameTopology):
         
         nrOfMolecules = int(lines[0].split()[1])
     
-        molecule = np.zeros(len(types))
+        moleculeofAtom = np.zeros(len(types)) # 0 water, 1 ethanol
         atom = 0
         for i in range(1,nrOfMolecules+1):
             for j in range(0,len(lines[i].split())):
                 if len(lines[i].split()) == 3:
-                    molecule[atom] = 0
+                    moleculeofAtom[atom] = 0
                 elif len(lines[i].split()) == 9:
-                    molecule[atom] = 1
+                    moleculeofAtom[atom] = 1
                 atom += 1       
         
         # molecule = molecule.tolist()
         # molecule = list(map(int, molecule))
-        return(molecule)
+        return(moleculeofAtom)
     
-def readXYZOutput(fileName): 
+def readXYZOutput(fileName, nrOfTimeSteps): 
     """Read a .xyz file.
     
     Reads entire file for arbitrary number of timesteps
@@ -47,7 +48,6 @@ def readXYZOutput(fileName):
         
     nrOfAtoms = int(firstColumn[0])
     
-    nrOfTimeSteps = 1
     
     atomTypesList = firstColumn[2:2+nrOfAtoms]
     typesDict = {'O': 0, 'H': 1, 'C': 2} # 0 oxygen, 1 hydrogen, 2 carbon
@@ -72,17 +72,23 @@ def distAtomsPBC(x, x2):
     dist = np.linalg.norm(diff,axis = 2)
     return(dist) 
 
-outputFileName = "Water29Output.xyz"
-topologyFileName = "Water29Topology.txt"
+# outputFileName = "Water29Output.xyz"
+# topologyFileName = "Water29Topology.txt"
 
 # outputFileName = "MixedMoleculesOutput.xyz"
 # topologyFileName = "MixedMoleculesTopology.txt"
 
-outputFileName = "Mixture29Output.xyz"
-topologyFileName = "Mixture29Topology.txt"
+# outputFileName = "Mixture29Output.xyz"
+# topologyFileName = "Mixture29Topology.txt"
 
-distAtomsPBC.boxSize = 29
-types, x = readXYZOutput(outputFileName)
+outputFileName = "Water31.08ThermostatOutput.xyz"
+topologyFileName = "Water31.08Topology.txt"
+
+nrOfTimeSteps = 3
+timeStep = 0 # in range [0,nrOfTimeSteps - 1]
+
+distAtomsPBC.boxSize = 31.08
+types, x = readXYZOutput(outputFileName, nrOfTimeSteps)
 molecule = readTopologyFile(topologyFileName)
 
 xOwater = x[:,np.where((types == 0) & (molecule == 0)),:]
@@ -95,30 +101,56 @@ nrOethanol = np.shape(xOethanol)[2]
 nrHwater = np.shape(xHwater)[2]
 nrHethanol = np.shape(xHethanol)[2]
 
-timeStep = 0
 xOwater = xOwater[timeStep,:,:,:].reshape(nrOwater,3)
-rOwaterOwater = distAtomsPBC(xOwater, xOwater)
 xOethanol = xOethanol[timeStep,:,:,:].reshape(nrOethanol,3)
-rOwaterOethanol = distAtomsPBC(xOwater, xOethanol)
 xHwater = xHwater[timeStep,:,:,:].reshape(nrHwater,3)
-rHwaterOethanol = distAtomsPBC(xHwater, xOethanol)
+
+rOwaterOwater = distAtomsPBC(xOwater, xOwater)
+rOwaterOethanol = distAtomsPBC(xOwater, xOethanol)
+rOethanolHwater = distAtomsPBC(xOethanol, xHwater)
+rHwaterHwater = distAtomsPBC(xHwater, xHwater)
+rOwaterHwater = distAtomsPBC(xOwater, xHwater)
 
 rOwaterOwater = np.around(rOwaterOwater,2).reshape(nrOwater*nrOwater)
 rOwaterOethanol = np.around(rOwaterOethanol,2).reshape(nrOwater*nrOethanol)
-rHwaterOethanol = np.around(rHwaterOethanol,2).reshape(nrHwater*nrOethanol)
-
-dr = distAtomsPBC.boxSize/10
-
-fig = plt.figure(figsize =(10, 7)) 
-bins = [0, dr, 2*dr, 3*dr, 4*dr, 5*dr, 6*dr, 7*dr, 8*dr, 9*dr, 10*dr]
-plt.hist(rOwaterOwater, bins = bins)
-
-plt.title("RDF") 
-plt.show()
+rOethanolHwater = np.around(rOethanolHwater,2).reshape(nrHwater*nrOethanol)
+rHwaterHwater = np.around(rHwaterHwater,2).reshape(nrHwater*nrHwater)
+rOwaterHwater = np.around(rOwaterHwater,2).reshape(nrOwater*nrHwater)
 
 
-fig = plt.figure(figsize =(10, 7)) 
-plt.hist(rHwaterOethanol, bins = bins, color = "black")
+dr = distAtomsPBC.boxSize/50
+
+
+def plotHist(data, dr):
+    bins = np.arange(0, distAtomsPBC.boxSize, dr)
+    plt.hist(data, bins = bins, color = "black", density = True)
+    plt.title("RDF") 
+    plt.show()
+
+def plotDensity(*data):
+    fig = plt.figure(figsize =(10, 7)) 
+    labels = ["O-O", "O-H", "H-H"]
+    for i in range(0, len(data)):
+        sns.distplot(data[i], hist = False, kde = True, label = labels[i])
+    plt.legend(prop={'size': 16})
+    plt.title("Radial Distribution Density")
+    plt.xlabel("r $(\AA)$")
+    plt.ylabel("Density")
+    
+    
+
+# plotHist(rOwaterOwater, dr)
+# plotHist(rHwaterHwater, dr)
+# plotHist(rOwaterOwater, dr)
+print(np.max(rOwaterOwater) <= np.sqrt(2*(distAtomsPBC.boxSize/2)**2 + (distAtomsPBC.boxSize/2)**2)) 
+print(np.mean(rOwaterOwater))
+print(np.mean(rHwaterHwater))
+plotDensity(rOwaterOwater, rOwaterHwater, rHwaterHwater)
+# plotDensity(rHwaterHwater)
+
+
+
+
 # TODO: shapes of the two histograms are too identical, cant be right
 
 

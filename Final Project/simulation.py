@@ -294,33 +294,33 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         
     # Lennard Jones forces
     if sigPair.size > 0:  
-        time0 = timer.time()
+        #time0 = timer.time()
         diff,dist = distAtomsPBC(x)
         
-        time1 = timer.time()
+        #time1 = timer.time()
         atomPairs = np.where(np.multiply((dist < LJcutoff), notInSameMolecule) == True) #tuple of arrays; sort of adjacency list
         
-        time2 = timer.time()
+        #ime2 = timer.time()
         distReciprocal = np.power(dist[atomPairs[0],atomPairs[1]], -1)
         frac = np.multiply(sigPair[atomPairs[0],atomPairs[1]], distReciprocal) #sigPair is precomputed for all pairs of sigma
         frac6 = np.power(frac, 6)
         e = epsPair[atomPairs[0],atomPairs[1]] #epsPair is precomputed for all pairs of epsilons
         
-        time3 = timer.time()
+        #time3 = timer.time()
         epsFrac6 = np.multiply(4*e,frac6) # to re-use in computation of both U and V
         epsFrac12 = np.multiply(epsFrac6, frac6)
         
-        time4 = timer.time()
+        #time4 = timer.time()
         U = epsFrac12 - epsFrac6 # = 4*e*(frac12 - frac6); potential
         V = np.multiply((12*epsFrac12 - 6*epsFrac6), distReciprocal) # = - (4*e*(6*frac6 - 12*frac12) / dist
-        time4a = timer.time()
+        #time4a = timer.time()
         LJforces = np.multiply(diff[atomPairs[0],atomPairs[1]],V[:,np.newaxis])
         np.add.at(forces, atomPairs[0], -LJforces) #only at atomPairs[0], as atomPairs[1] would yield duplicates (right?)
         np.add.at(forces, atomPairs[1], LJforces)
         
-        time5 = timer.time()
+        #time5 = timer.time()
         potentials[3] = np.sum(U)
-        print('LJ time: ', time5 - time0)
+        #print('LJ time: ', time5 - time0)
         # print('dist: ', time1 - time0)
         # print('pair: ', time2 - time1)
         # print('frac: ', time3 - time2)
@@ -394,7 +394,7 @@ molecules, notInSameMolecule, bonds, bondConstants, angles, angleConstants, dihe
 LJcutoff = 2.5*np.max(sigma) #advised in literature: 2.5
 
 time = 0 #ps
-endTime = 2 #ps; should be 1ns = 1000ps in final simulation
+endTime = 10 #ps; should be 1ns = 1000ps in final simulation
 dt = 0.002 #ps; suggestion was to start at 2fs for final simulations, paper uses 0.5fs
 
 u = np.random.uniform(size=3*len(types)).reshape((len(types),3)) # random starting velocity vector
@@ -426,9 +426,9 @@ simStartTime = timer.time()
 with open(outputFileName, "a") as outputFile:
     
     while (time <= endTime) : 
-        loopTime = timer.time()
+        #loopTime = timer.time()
         print(time, " out of ", endTime)
-        if (time % (10*dt) < dt or True): #to print every 10th frame. '==0' does not work, as floats are not exact. add 'or True' to print all
+        if (time % (8*dt) < dt): #to print every 8th frame. '==0' does not work, as floats are not exact. add 'or True' to print all
             outputFile.write(f"{len(types)}\n")
             outputFile.write(f"This is a comment and the time is {time:5.4f}\n")
             for i, atom in enumerate(x):
@@ -451,23 +451,23 @@ with open(outputFileName, "a") as outputFile:
         Ekin.append(EkinSyst)
         EpotSyst =  np.sum(potentials)
         Epot.append(EpotSyst)
-        print('Loop time: ', timer.time() - loopTime)
+        #print('Loop time: ', timer.time() - loopTime)
         
 
 duration = timer.time() - simStartTime
-print("Simulation duration was ", duration, " seconds")
+print("Simulation duration was ", duration/60, " minutes")
          
 
 ### PLOT ENERGY ###
 
-# plt.clf() # Clears current figure
-# t = np.arange(0,time-dt, dt)
-# Etot = np.array(Ekin) + np.array(Epot)
-# plt.plot(t, Ekin, label = 'Kinetic energy')
-# plt.plot(t, Epot, label = 'Potential energy')
-# plt.plot(t, Etot, label = 'Total energy')
-# plt.title('Energy in the system')
-# plt.xlabel('Time (ps)')
-# plt.ylabel('Energy')
-# plt.legend()
-# plt.show()
+plt.clf() # Clears current figure
+t = np.arange(0,time-dt, dt)
+Etot = np.array(Ekin) + np.array(Epot)
+plt.plot(t, Ekin, label = 'Kinetic energy')
+plt.plot(t, Epot, label = 'Potential energy')
+plt.plot(t, Etot, label = 'Total energy')
+plt.title('Energy in the system')
+plt.xlabel('Time (ps)')
+plt.ylabel('Energy')
+plt.legend()
+plt.show()

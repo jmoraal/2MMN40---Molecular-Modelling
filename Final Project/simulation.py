@@ -294,13 +294,15 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         
     # Lennard Jones forces
     if sigPair.size > 0:  
+        global atomPairs
         #time0 = timer.time()
         diff,dist = distAtomsPBC(x)
         
         #time1 = timer.time()
-        atomPairs = np.where(np.multiply((dist < LJcutoff), notInSameMolecule) == True) #tuple of arrays; sort of adjacency list
+        atomPairs = np.where(np.multiply((dist < LJcutoff), np.triu(notInSameMolecule)) == True) #tuple of arrays; sort of adjacency list. triu to avoid duplicates
+        #atomPairs = atomPairs[atomPairs[0] > atomPairs[1]]
         
-        #ime2 = timer.time()
+        #time2 = timer.time()
         distReciprocal = np.power(dist[atomPairs[0],atomPairs[1]], -1)
         frac = np.multiply(sigPair[atomPairs[0],atomPairs[1]], distReciprocal) #sigPair is precomputed for all pairs of sigma
         frac6 = np.power(frac, 6)
@@ -315,12 +317,12 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         V = np.multiply((12*epsFrac12 - 6*epsFrac6), distReciprocal) # = - (4*e*(6*frac6 - 12*frac12) / dist
         #time4a = timer.time()
         LJforces = np.multiply(diff[atomPairs[0],atomPairs[1]],V[:,np.newaxis])
-        np.add.at(forces, atomPairs[0], -LJforces) #only at atomPairs[0], as atomPairs[1] would yield duplicates (right?)
+        np.add.at(forces, atomPairs[0], -LJforces) 
         np.add.at(forces, atomPairs[1], LJforces)
         
         #time5 = timer.time()
         potentials[3] = np.sum(U)
-        #print('LJ time: ', time5 - time0)
+        # print('LJ time: ', time5 - time0)
         # print('dist: ', time1 - time0)
         # print('pair: ', time2 - time1)
         # print('frac: ', time3 - time2)
@@ -361,7 +363,7 @@ def setSimulation(substance, small = True, therm = True):
     outputFileName = substance + size + thermo + 'Output.xyz'
     thermostat = therm
 
-setSimulation('Water')
+setSimulation('Ethanol')
 
 # inputFileName = "MixedMolecules.xyz"
 # inputTimeStep = 0
@@ -395,7 +397,7 @@ LJcutoff = 2.5*np.max(sigma) #advised in literature: 2.5
 
 time = 0 #ps
 endTime = 10 #ps; should be 1ns = 1000ps in final simulation
-dt = 0.002 #ps; suggestion was to start at 2fs for final simulations, paper uses 0.5fs
+dt = 0.0004 #ps; suggestion was to start at 2fs for final simulations, paper uses 0.5fs
 
 u = np.random.uniform(size=3*len(types)).reshape((len(types),3)) # random starting velocity vector
 u = u/np.linalg.norm(u,axis = 1)[:,np.newaxis] # normalize
@@ -428,7 +430,7 @@ with open(outputFileName, "a") as outputFile:
     while (time <= endTime) : 
         #loopTime = timer.time()
         print(time, " out of ", endTime)
-        if (time % (8*dt) < dt): #to print every 8th frame. '==0' does not work, as floats are not exact. add 'or True' to print all
+        if (time % (10*dt) < dt): #to print every nth frame. '==0' does not work, as floats are not exact. add 'or True' to print all
             outputFile.write(f"{len(types)}\n")
             outputFile.write(f"This is a comment and the time is {time:5.4f}\n")
             for i, atom in enumerate(x):
@@ -455,7 +457,7 @@ with open(outputFileName, "a") as outputFile:
         
 
 duration = timer.time() - simStartTime
-print("Simulation duration was ", duration/60, " minutes")
+print("Simulation duration was ", int(duration/3600), 'hours, ', int((duration%3600)/60), " minutes and ", int(duration%60), "seconds")
          
 
 ### PLOT ENERGY ###

@@ -366,7 +366,7 @@ def setSimulation(substance, small = True, therm = True):
     outputFileName = substance + size + thermo + 'Output.xyz'
     thermostat = therm
 
-setSimulation('Ethanol')
+setSimulation('Mixture')
 
 # inputFileName = "MixedMolecules.xyz"
 # inputTimeStep = 0
@@ -383,13 +383,13 @@ setSimulation('Ethanol')
 # thermostat = True
 # distAtomsPBC.boxSize = 19
 
-# # example 2: two ethanol molecules
-inputFileName = "Ethanol20Initial.xyz"
-inputTimeStep = 0
-topologyFileName = "Ethanol20Topology.txt"
-outputFileName = "Ethanol20Output.xyz"
-thermostat = True
-distAtomsPBC.boxSize = 50
+# # # example 2: two ethanol molecules
+# inputFileName = "Ethanol20Initial.xyz"
+# inputTimeStep = 0
+# topologyFileName = "Ethanol20Topology.txt"
+# outputFileName = "Ethanol20Output.xyz"
+# thermostat = True
+# distAtomsPBC.boxSize = 50
 
 
 # inputFileName = "WaterInitial150.xyz"
@@ -440,7 +440,7 @@ with open(outputFileName, "a") as outputFile:
     while (time <= endTime) : 
         #loopTime = timer.time()
         print(time, " out of ", endTime)
-        if (time % (10*dt) < dt): #to print every nth frame. '==0' does not work, as floats are not exact. add 'or True' to print all
+        if (time % (30*dt) < dt or True): #to print every nth frame. '==0' does not work, as floats are not exact. add 'or True' to print all
             outputFile.write(f"{len(types)}\n")
             outputFile.write(f"This is a comment and the time is {time:5.4f}\n")
             for i, atom in enumerate(x):

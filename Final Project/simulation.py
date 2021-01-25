@@ -15,8 +15,8 @@ Created on Mon Nov  9 16:30:44 2020
 import time as timer
 import numpy as np
 import matplotlib.pyplot as plt
-import warnings
-warnings.filterwarnings("error") # allows try/except-constructions for warnings (i.e. stop computation when dividing by 0)
+# import warnings
+# warnings.filterwarnings("error") # allows try/except-constructions for warnings (i.e. stop computation when dividing by 0)
 #import functions as fun # idea was to put all fcts there, but too many non-parametrised variables
 
 
@@ -221,6 +221,8 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         np.add.at(forces, bonds[:,0], Fbonds)
         np.add.at(forces, bonds[:,1], -Fbonds)  
         
+        # print(Fbonds[0,0])
+        
         potentials[0] = np.sum(Vbond(r,bondConstants[:,0], bondConstants[:,1]))
     
     # angles 
@@ -244,7 +246,9 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         
         np.add.at(forces, angles[:,0], FangleAtomLeft)
         np.add.at(forces, angles[:,1], FangleAtomMiddle)
-        np.add.at(forces, angles[:,2], FangleAtomRight)   
+        np.add.at(forces, angles[:,2], FangleAtomRight)  
+        
+        # print(FangleAtomLeft[0,0])
         
         potentials[1] = np.sum(Vangle(t, angleConstants[:,0], angleConstants[:,1]))
         
@@ -290,7 +294,6 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
                 print(f"Warning: sum of torques not equal to 0 but {np.sum(np.sum(torqueSum, axis = 0), axis = 0)}")
                 
         potentials[2] = np.sum(Vdihedral(theta, dihedralConstants[:,0], dihedralConstants[:,1], dihedralConstants[:,2], dihedralConstants[:,3]))
-        
         
     # Lennard Jones forces
     if sigPair.size > 0:  
@@ -380,20 +383,28 @@ setSimulation('Ethanol')
 # thermostat = True
 # distAtomsPBC.boxSize = 19
 
-# # example 2: one ethanol molecule
-# inputFileName = "Ethanol2.xyz"
+# # example 2: two ethanol molecules
+inputFileName = "Ethanol20Initial.xyz"
+inputTimeStep = 0
+topologyFileName = "Ethanol20Topology.txt"
+outputFileName = "Ethanol20Output.xyz"
+thermostat = True
+distAtomsPBC.boxSize = 50
+
+
+# inputFileName = "WaterInitial150.xyz"
 # inputTimeStep = 0
-# topologyFileName = "Ethanol2Topology.txt"
-# outputFileName = "Ethanol2Output.xyz"
+# topologyFileName = "Water150Topology.txt"
+# outputFileName = "WaterOutput150.xyz"
+# distAtomsPBC.boxSize = 25
 # thermostat = True
-# distAtomsPBC.boxSize = 10
-# LJcutoff = 1
 
 
 ### SIMULATION ###
 types, x, m = readXYZfile(inputFileName, inputTimeStep)
 molecules, notInSameMolecule, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon = readTopologyFile(topologyFileName)
 LJcutoff = 2.5*np.max(sigma) #advised in literature: 2.5
+# LJcutoff = 1
 
 time = 0 #ps
 endTime = 10 #ps; should be 1ns = 1000ps in final simulation
@@ -409,7 +420,6 @@ if thermostat:
     kB = 0.8314459727525677 # = 1.38064852  * 6.02214076 * 10 **(-23 + 20 - 24 + 26) [A^2 AMU] / [ps^2 K]
     Nf = 3*len(x) # 3*, as atoms have 3D velocity vector and only translational freedom matters
     c = 1/( kB * Nf) 
-    
     
 # For measuring:
 Ekin = []
@@ -462,14 +472,14 @@ print("Simulation duration was ", int(duration/3600), 'hours, ', int((duration%3
 
 ### PLOT ENERGY ###
 
-plt.clf() # Clears current figure
-t = np.arange(0,time-dt, dt)
-Etot = np.array(Ekin) + np.array(Epot)
-plt.plot(t, Ekin, label = 'Kinetic energy')
-plt.plot(t, Epot, label = 'Potential energy')
-plt.plot(t, Etot, label = 'Total energy')
-plt.title('Energy in the system')
-plt.xlabel('Time (ps)')
-plt.ylabel('Energy')
-plt.legend()
-plt.show()
+# plt.clf() # Clears current figure
+# t = np.arange(0,time-dt, dt)
+# Etot = np.array(Ekin) + np.array(Epot)
+# plt.plot(t, Ekin, label = 'Kinetic energy')
+# plt.plot(t, Epot, label = 'Potential energy')
+# plt.plot(t, Etot, label = 'Total energy')
+# plt.title('Energy in the system')
+# plt.xlabel('Time (ps)')
+# plt.ylabel('Energy')
+# plt.legend()
+# plt.show()

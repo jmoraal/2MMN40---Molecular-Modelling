@@ -239,12 +239,14 @@ def writeEthanolXYZ(nrOfMolecules, boxSize):
 
 
 def writeMixtureXYZ(nrOfMolecules, boxSize):
+    global nrEthanol, indEthanol
     outputFileName = 'Mixture' + str(boxSize) + 'Initial.xyz'
     nrEthanol = int(nrOfMolecules * 228 / 3716) #based on 14.3% mass ethanol
     nrWater = nrOfMolecules - nrEthanol
     rand = createGrid(nrOfMolecules, boxSize)
     indWater = np.array(range(0, nrOfMolecules))
-    indEthanol = np.random.choice(indWater, size=nrEthanol, replace=False) 
+    # indEthanol = np.random.choice(indWater, size=nrEthanol, replace=False)
+    indEthanol = np.arange(0,nrOfMolecules,round(nrOfMolecules/nrEthanol))[:nrEthanol]
     indWater = np.delete(indWater, indEthanol, axis=0)
     
     with open(outputFileName, "w") as outputFile: # clear file

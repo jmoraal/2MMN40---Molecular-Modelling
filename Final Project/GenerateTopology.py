@@ -51,10 +51,19 @@ def writeEthanolTopology(nrOfMolecules, boxSize):
         
         outputFile.write(f"bonds {nrOfMolecules*8}\n")
         for i in range(0,nrOfMolecules):
-            outputFile.write(f"{9*i +1} {9*i + 0} 2845.12 1.09 \n" )
-            outputFile.write(f"{9*i +2} {9*i + 0} 2845.12 1.09 \n" )
-            outputFile.write(f"{9*i +3} {9*i + 0} 2845.12 1.09 \n" )
+            # outputFile.write(f"{9*i +1} {9*i + 0} 2845.12 1.09 \n" )
+            # outputFile.write(f"{9*i +2} {9*i + 0} 2845.12 1.09 \n" )
+            # outputFile.write(f"{9*i +3} {9*i + 0} 2845.12 1.09 \n" )
+            # outputFile.write(f"{9*i +0} {9*i + 4} 2242.624 1.529 \n" )
+            # outputFile.write(f"{9*i +5} {9*i + 4} 2845.12 1.09 \n" )
+            # outputFile.write(f"{9*i +6} {9*i + 4} 2845.12 1.09 \n" )
+            # outputFile.write(f"{9*i +4} {9*i + 7} 2677.76 1.41 \n" )
+            # outputFile.write(f"{9*i +7} {9*i + 8} 4627.5 0.945 \n" )
+            
             outputFile.write(f"{9*i +0} {9*i + 4} 2242.624 1.529 \n" )
+            outputFile.write(f"{9*i +0} {9*i + 2} 2845.12 1.09 \n" )
+            outputFile.write(f"{9*i +0} {9*i + 3} 2845.12 1.09 \n" )
+            outputFile.write(f"{9*i +0} {9*i + 1} 2845.12 1.09 \n" )
             outputFile.write(f"{9*i +5} {9*i + 4} 2845.12 1.09 \n" )
             outputFile.write(f"{9*i +6} {9*i + 4} 2845.12 1.09 \n" )
             outputFile.write(f"{9*i +4} {9*i + 7} 2677.76 1.41 \n" )
@@ -128,10 +137,19 @@ def writeMixtureTopology(nrOfMolecules, boxSize):
             outputFile.write(f"{3*i} {3*i+1} 5024.16 0.9572 \n")
             outputFile.write(f"{3*i} {3*i+2} 5024.16 0.9572 \n")
         for i in range(0,nrEthanol):
-            outputFile.write(f"{nrWater*3 + 9*i +1} {nrWater*3 + 9*i + 0} 2845.12 1.09 \n" )
-            outputFile.write(f"{nrWater*3 + 9*i +2} {nrWater*3 + 9*i + 0} 2845.12 1.09 \n" )
-            outputFile.write(f"{nrWater*3 + 9*i +3} {nrWater*3 + 9*i + 0} 2845.12 1.09 \n" )
+            # outputFile.write(f"{nrWater*3 + 9*i +1} {nrWater*3 + 9*i + 0} 2845.12 1.09 \n" )
+            # outputFile.write(f"{nrWater*3 + 9*i +2} {nrWater*3 + 9*i + 0} 2845.12 1.09 \n" )
+            # outputFile.write(f"{nrWater*3 + 9*i +3} {nrWater*3 + 9*i + 0} 2845.12 1.09 \n" )
+            # outputFile.write(f"{nrWater*3 + 9*i +0} {nrWater*3 + 9*i + 4} 2242.624 1.529 \n" )
+            # outputFile.write(f"{nrWater*3 + 9*i +5} {nrWater*3 + 9*i + 4} 2845.12 1.09 \n" )
+            # outputFile.write(f"{nrWater*3 + 9*i +6} {nrWater*3 + 9*i + 4} 2845.12 1.09 \n" )
+            # outputFile.write(f"{nrWater*3 + 9*i +4} {nrWater*3 + 9*i + 7} 2677.76 1.41 \n" )
+            # outputFile.write(f"{nrWater*3 + 9*i +7} {nrWater*3 + 9*i + 8} 4627.5 0.945 \n" )
+            
             outputFile.write(f"{nrWater*3 + 9*i +0} {nrWater*3 + 9*i + 4} 2242.624 1.529 \n" )
+            outputFile.write(f"{nrWater*3 + 9*i +0} {nrWater*3 + 9*i + 2} 2845.12 1.09 \n" )
+            outputFile.write(f"{nrWater*3 + 9*i +0} {nrWater*3 + 9*i + 3} 2845.12 1.09 \n" )
+            outputFile.write(f"{nrWater*3 + 9*i +0} {nrWater*3 + 9*i + 1} 2845.12 1.09 \n" )
             outputFile.write(f"{nrWater*3 + 9*i +5} {nrWater*3 + 9*i + 4} 2845.12 1.09 \n" )
             outputFile.write(f"{nrWater*3 + 9*i +6} {nrWater*3 + 9*i + 4} 2845.12 1.09 \n" )
             outputFile.write(f"{nrWater*3 + 9*i +4} {nrWater*3 + 9*i + 7} 2677.76 1.41 \n" )
@@ -204,7 +222,9 @@ def createGrid(nrOfMolecules, boxSize):
 
 def writeWaterXYZ(nrOfMolecules, boxSize):
     outputFileName = 'Water' + str(boxSize) + 'Initial.xyz'
+    global rand
     rand = createGrid(nrOfMolecules, boxSize)
+    
     
     with open(outputFileName, "w") as outputFile: # clear file
         outputFile.write("") 
@@ -218,6 +238,7 @@ def writeWaterXYZ(nrOfMolecules, boxSize):
             
 def writeEthanolXYZ(nrOfMolecules, boxSize):
     outputFileName = 'Ethanol' + str(boxSize) + 'Initial.xyz'
+    global rand
     rand = createGrid(nrOfMolecules, boxSize)
     
     with open(outputFileName, "w") as outputFile: # clear file
@@ -226,26 +247,40 @@ def writeEthanolXYZ(nrOfMolecules, boxSize):
         outputFile.write(f"{nrOfMolecules*9}\n")
         outputFile.write("Comment t = 0\n")
         for i in range(0,nrOfMolecules):
-            outputFile.write(f'C {rand[i][0] + -0.846410161513776} {rand[i][1] + -1} {rand[i][2] + 0.666025403784439} \n')
-            outputFile.write(f'H {rand[i][0] + -1.10621778264911} {rand[i][1] + -2} {rand[i][2] + 0.516025403784439} \n')
-            outputFile.write(f'H {rand[i][0] + -0.826794919243112} {rand[i][1] + -1} {rand[i][2] + 1.83205080756888} \n')
-            outputFile.write(f'H {rand[i][0] + -1.19282032302755} {rand[i][1] + 0} {rand[i][2] + 0.466025403784438} \n')
-            outputFile.write(f'C {rand[i][0] + 0.25} {rand[i][1] + -1} {rand[i][2] + -0.433012701892219} \n')
-            outputFile.write(f'H {rand[i][0] + 0.942820323027551} {rand[i][1] + -0.2} {rand[i][2] + -0.0330127018922192} \n')
-            outputFile.write(f'H {rand[i][0] + 0.942820323027551} {rand[i][1] + -1.7} {rand[i][2] + -0.0330127018922192} \n')
-            outputFile.write(f'O {rand[i][0] + 0.566987298107781} {rand[i][1] + -1} {rand[i][2] + -1.98205080756888} \n')
-            outputFile.write(f'H {rand[i][0] + 0.643782217350893} {rand[i][1] + -0.5} {rand[i][2] + -2.5150635094611} \n')
+            # outputFile.write(f'C {rand[i][0] + -0.846410161513776} {rand[i][1] + -1} {rand[i][2] + 0.666025403784439} \n')
+            # outputFile.write(f'H {rand[i][0] + -1.10621778264911} {rand[i][1] + -2} {rand[i][2] + 0.516025403784439} \n')
+            # outputFile.write(f'H {rand[i][0] + -0.826794919243112} {rand[i][1] + -1} {rand[i][2] + 1.83205080756888} \n')
+            # outputFile.write(f'H {rand[i][0] + -1.19282032302755} {rand[i][1] + 0} {rand[i][2] + 0.466025403784438} \n')
+            # outputFile.write(f'C {rand[i][0] + 0.25} {rand[i][1] + -1} {rand[i][2] + -0.433012701892219} \n')
+            # outputFile.write(f'H {rand[i][0] + 0.942820323027551} {rand[i][1] + -0.2} {rand[i][2] + -0.0330127018922192} \n')
+            # outputFile.write(f'H {rand[i][0] + 0.942820323027551} {rand[i][1] + -1.7} {rand[i][2] + -0.0330127018922192} \n')
+            # outputFile.write(f'O {rand[i][0] + 0.566987298107781} {rand[i][1] + -1} {rand[i][2] + -1.98205080756888} \n')
+            # outputFile.write(f'H {rand[i][0] + 0.643782217350893} {rand[i][1] + -0.5} {rand[i][2] + -2.5150635094611} \n')
+
+
+            outputFile.write(f'C {rand[i][0] + 3.326028} {rand[i][1] + 2.09962} {rand[i][2] + 1.673972} \n')
+            outputFile.write(f'H {rand[i][0] + 3.92445} {rand[i][1] + 1.46277} {rand[i][2] + 2.328371} \n')
+            outputFile.write(f'H {rand[i][0] + 3.99617} {rand[i][1] + 2.6448} {rand[i][2] + 1.00383} \n')
+            outputFile.write(f'H {rand[i][0] + 2.671629} {rand[i][1] + 1.46277} {rand[i][2] + 1.07555} \n')
+            outputFile.write(f'C {rand[i][0] + 2.5} {rand[i][1] + 3.05946} {rand[i][2] + 2.5} \n')
+            outputFile.write(f'H {rand[i][0] + 1.903} {rand[i][1] + 3.70751} {rand[i][2] + 1.842751} \n')
+            outputFile.write(f'H {rand[i][0] + 3.157249} {rand[i][1] + 3.70751} {rand[i][2] + 3.09706} \n')
+            outputFile.write(f'O {rand[i][0] + 1.658486} {rand[i][1] + 2.27233} {rand[i][2] + 3.341514} \n')
+            outputFile.write(f'H {rand[i][0] + 1.12353} {rand[i][1] + 2.88153} {rand[i][2] + 3.8764700} \n')
 
 
 
 def writeMixtureXYZ(nrOfMolecules, boxSize):
-    global nrEthanol, indEthanol
+    global nrEthanol, indEthanol, indWater
     outputFileName = 'Mixture' + str(boxSize) + 'Initial.xyz'
     nrEthanol = int(nrOfMolecules * 228 / 3716) #based on 14.3% mass ethanol
     nrWater = nrOfMolecules - nrEthanol
     rand = createGrid(nrOfMolecules, boxSize)
     indWater = np.array(range(0, nrOfMolecules))
     # indEthanol = np.random.choice(indWater, size=nrEthanol, replace=False)
+    print(nrOfMolecules)
+    print(nrEthanol)
+    print(nrOfMolecules/nrEthanol)
     indEthanol = np.arange(0,nrOfMolecules,round(nrOfMolecules/nrEthanol))[:nrEthanol]
     indWater = np.delete(indWater, indEthanol, axis=0)
     
@@ -259,15 +294,30 @@ def writeMixtureXYZ(nrOfMolecules, boxSize):
             outputFile.write(f"H {rand[i][0]-1} {rand[i][1]} {rand[i][2]}\n")
             outputFile.write(f"H {rand[i][0]} {rand[i][1]-0.3} {rand[i][2]-0.9}\n")
         for i in indEthanol:
-            outputFile.write(f'C {rand[i][0] + -0.95} {rand[i][1] + 0.95} {rand[i][2] + 0.777817459305202} \n')
-            outputFile.write(f'H {rand[i][0] + -1.80710678118655} {rand[i][1] + 0.392893218813452} {rand[i][2] + 0.565685424949238} \n')
-            outputFile.write(f'H {rand[i][0] + -1.15} {rand[i][1] + 1.15} {rand[i][2] + 1.90918830920368} \n')
-            outputFile.write(f'H {rand[i][0] + -0.442893218813453} {rand[i][1] + 1.85710678118655} {rand[i][2] + 0.494974746830583} \n')
-            outputFile.write(f'C {rand[i][0] + 0} {rand[i][1] + 0} {rand[i][2] + 0} \n')
-            outputFile.write(f'H {rand[i][0] + 0.965685424949238} {rand[i][1] + 0.165685424949238} {rand[i][2] + 0.565685424949238} \n')
-            outputFile.write(f'H {rand[i][0] + -0.0949747468305832} {rand[i][1] + -0.894974746830583} {rand[i][2] + 0.565685424949238} \n')
-            outputFile.write(f'O {rand[i][0] + 0.5} {rand[i][1] + -0.5} {rand[i][2] + -1.41421356237309} \n')
-            outputFile.write(f'H {rand[i][0] + 1.00355339059327} {rand[i][1] + -0.296446609406726} {rand[i][2] + -1.90918830920368} \n')
+            # outputFile.write(f'C {rand[i][0] + -0.95} {rand[i][1] + 0.95} {rand[i][2] + 0.777817459305202} \n')
+            # outputFile.write(f'H {rand[i][0] + -1.80710678118655} {rand[i][1] + 0.392893218813452} {rand[i][2] + 0.565685424949238} \n')
+            # outputFile.write(f'H {rand[i][0] + -1.15} {rand[i][1] + 1.15} {rand[i][2] + 1.90918830920368} \n')
+            # outputFile.write(f'H {rand[i][0] + -0.442893218813453} {rand[i][1] + 1.85710678118655} {rand[i][2] + 0.494974746830583} \n')
+            # outputFile.write(f'C {rand[i][0] + 0} {rand[i][1] + 0} {rand[i][2] + 0} \n')
+            # outputFile.write(f'H {rand[i][0] + 0.965685424949238} {rand[i][1] + 0.165685424949238} {rand[i][2] + 0.565685424949238} \n')
+            # outputFile.write(f'H {rand[i][0] + -0.0949747468305832} {rand[i][1] + -0.894974746830583} {rand[i][2] + 0.565685424949238} \n')
+            # outputFile.write(f'O {rand[i][0] + 0.5} {rand[i][1] + -0.5} {rand[i][2] + -1.41421356237309} \n')
+            # outputFile.write(f'H {rand[i][0] + 1.00355339059327} {rand[i][1] + -0.296446609406726} {rand[i][2] + -1.90918830920368} \n')
+            
+            
+            xshift = -3
+            yshift = -3
+            zshift = -2
+            scale = 0.9
+            outputFile.write(f'C {rand[i][0] + scale*(xshift + 3.326028)} {rand[i][1] + scale*(yshift + 2.09962)} {rand[i][2] + scale*(zshift + 1.673972)} \n')
+            outputFile.write(f'H {rand[i][0] + scale*(xshift + 3.92445)} {rand[i][1] + scale*(yshift + 1.46277)} {rand[i][2] + scale*(zshift + 2.328371)} \n')
+            outputFile.write(f'H {rand[i][0] + scale*(xshift + 3.99617)} {rand[i][1] + scale*(yshift + 2.6448)} {rand[i][2] + scale*(zshift + 1.00383)} \n')
+            outputFile.write(f'H {rand[i][0] + scale*(xshift + 2.671629)} {rand[i][1] + scale*(yshift + 1.46277)} {rand[i][2] + scale*(zshift + 1.07555)} \n')
+            outputFile.write(f'C {rand[i][0] + scale*(xshift + 2.5)} {rand[i][1] + scale*(yshift + 3.05946)} {rand[i][2] + scale*(zshift + 2.5)} \n')
+            outputFile.write(f'H {rand[i][0] + scale*(xshift + 1.903)} {rand[i][1] + scale*(yshift + 3.70751)} {rand[i][2] + scale*(zshift + 1.842751)} \n')
+            outputFile.write(f'H {rand[i][0] + scale*(xshift + 3.157249)} {rand[i][1] + scale*(yshift + 3.70751)} {rand[i][2] + scale*(zshift + 3.09706)} \n')
+            outputFile.write(f'O {rand[i][0] + scale*(xshift + 1.658486)} {rand[i][1] + scale*(yshift + 2.27233)} {rand[i][2] + scale*(zshift + 3.341514)} \n')
+            outputFile.write(f'H {rand[i][0] + scale*(xshift + 1.12353)} {rand[i][1] + scale*(yshift + 2.88153)} {rand[i][2] + scale*(zshift + 3.8764700)} \n')
 
 
 def writeConfig(type, boxSize):
@@ -312,8 +362,9 @@ def findSize(approxSize, substance):
 
 # writeConfig('water', 31.08)
 # writeConfig('ethanol', 32.22)
+# writeConfig('mixture', 51.65)
 writeConfig('mixture', 32.29)
 
 # writeConfig('water', 29)
-# writeConfig('ethanol', 50.61)
-writeConfig('mixture', 51.65)
+# writeConfig('ethanol', 32.22)
+# writeConfig('mixture', 51.65)

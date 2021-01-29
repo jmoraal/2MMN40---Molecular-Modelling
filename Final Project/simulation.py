@@ -158,12 +158,12 @@ def Fangle(t, kt, t0):
 # DIHEDRAL
 def Vdihedral(t, C1, C2, C3, C4):
     """ Calculates periodic dihedral potential for given forcefield constants C """
-    psi = np.pi - t
+    psi = t - np.pi
     return 0.5*(C1*(1+np.cos(psi)) + C2*(1-np.cos(2*psi)) + C3*(1+np.cos(3*psi)) + C4*(1-np.cos(4*psi)))
 
 def Fdihedral(t, C1, C2, C3, C4):
     """ Calculates periodic dihedral force magnitude """
-    psi = np.pi - t
+    psi =  t - np.pi
     return 0.5*(-C1*np.sin(psi) + 2*C2*np.sin(2*psi) - 3*C3*np.sin(3*psi) + 4*C4*np.sin(4*psi))
 
 
@@ -262,6 +262,10 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         
         normalVec1 = np.cross(rij,rjk)
         normalVec2 = np.cross(rjk,rkl)
+        #TODO do we need to normalise?
+        normalVec1 = normalVec1/np.linalg.norm(normalVec1, axis = 1)[:, np.newaxis]
+        normalVec2 = normalVec2/np.linalg.norm(normalVec2, axis = 1)[:, np.newaxis]
+        
         
         theta = np.arctan2(np.linalg.norm(np.cross(normalVec1,normalVec2), axis = 1),np.sum(normalVec1*normalVec2, axis = 1))*np.sign(np.sum(rij*normalVec2, axis = 1)) # corrected for floating point division
         
@@ -366,7 +370,7 @@ def setSimulation(substance, small = True, therm = True):
     outputFileName = substance + size + thermo + 'Output.xyz'
     thermostat = therm
 
-setSimulation('Mixture')
+# setSimulation('Mixture')
 
 # inputFileName = "MixedMolecules.xyz"
 # inputTimeStep = 0
@@ -383,11 +387,19 @@ setSimulation('Mixture')
 # thermostat = True
 # distAtomsPBC.boxSize = 19
 
-# # # example 2: two ethanol molecules
-# inputFileName = "Ethanol20Initial.xyz"
+# example: one ethanol molecule
+inputFileName = "Ethanol.xyz"
+inputTimeStep = 0
+topologyFileName = "EthanolTopology.txt"
+outputFileName = "EthanolOutput.xyz"
+thermostat = True
+distAtomsPBC.boxSize = 10
+
+# # example 2: two ethanol molecules
+# inputFileName = "Ethanol2.xyz"
 # inputTimeStep = 0
-# topologyFileName = "Ethanol20Topology.txt"
-# outputFileName = "Ethanol20Output.xyz"
+# topologyFileName = "Ethanol2Topology.txt"
+# outputFileName = "Ethanol2Output.xyz"
 # thermostat = True
 # distAtomsPBC.boxSize = 50
 
@@ -440,7 +452,7 @@ with open(outputFileName, "a") as outputFile:
     while (time <= endTime) : 
         #loopTime = timer.time()
         print(time, " out of ", endTime)
-        if (time % (30*dt) < dt or True): #to print every nth frame. '==0' does not work, as floats are not exact. add 'or True' to print all
+        if (time % (10*dt) < dt): #to print every nth frame. '==0' does not work, as floats are not exact. add 'or True' to print all
             outputFile.write(f"{len(types)}\n")
             outputFile.write(f"This is a comment and the time is {time:5.4f}\n")
             for i, atom in enumerate(x):

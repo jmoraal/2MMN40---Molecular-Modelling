@@ -281,7 +281,7 @@ def writeMixtureXYZ(nrOfMolecules, boxSize):
     print(nrOfMolecules)
     print(nrEthanol)
     print(nrOfMolecules/nrEthanol)
-    indEthanol = np.arange(0,nrOfMolecules,round(nrOfMolecules/nrEthanol))[:nrEthanol]
+    indEthanol = np.arange(0,nrOfMolecules,round(nrOfMolecules/nrEthanol))[:nrEthanol] # TODO for large mixture SUBSTRACT 2 from round(nrOfMolecules/nrEthanol)-2
     indWater = np.delete(indWater, indEthanol, axis=0)
     
     with open(outputFileName, "w") as outputFile: # clear file
@@ -363,8 +363,8 @@ def findSize(approxSize, substance):
 # writeConfig('water', 31.08)
 # writeConfig('ethanol', 32.22)
 # writeConfig('mixture', 51.65)
-writeConfig('mixture', 32.29)
+# writeConfig('mixture', 32.29)
 
 # writeConfig('water', 29)
 # writeConfig('ethanol', 32.22)
-# writeConfig('mixture', 51.65)
+writeConfig('mixture', 51.65)

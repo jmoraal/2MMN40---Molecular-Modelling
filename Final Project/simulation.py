@@ -124,6 +124,7 @@ def projectMolecules(x):
     Now computes weighted average for centre of mass. Is this worth the computation time?
     Might be that approximate centre of mass (e.g. unweighted) is good enough"""
     #TODO make faster?
+    global centers
     centers = np.zeros([len(types),3]) 
     #centers[molecules] = sum(x[molecules]  / sum([molecules])) #should be doable without forloop
     for i in range(0, len(molecules)):
@@ -225,7 +226,7 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         
         potentials[0] = np.sum(Vbond(r,bondConstants[:,0], bondConstants[:,1]))
     
-    # angles 
+    angles 
     if angles.size > 0:
         atomLeft = x[angles[:,0]]
         atomMiddle = x[angles[:,1]]
@@ -270,11 +271,11 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         Fdihedrals = Fdihedral(theta, dihedralConstants[:,0], dihedralConstants[:,1], dihedralConstants[:,2], dihedralConstants[:,3])
         # angleAtomsijk = np.arccos(np.sum(rij*rjk, axis = 1)/(np.linalg.norm(rij, axis = 1)*np.linalg.norm(rjk, axis = 1))) # not corrected for floating point division
         # angleAtomsjkl = np.arccos(np.sum(rjk*rkl, axis = 1)/(np.linalg.norm(rjk, axis = 1)*np.linalg.norm(rkl, axis = 1)))
-        angleAtomsijk = np.arctan2(np.linalg.norm(np.cross(rij,rjk), axis = 1),np.sum(rij*rjk, axis = 1)) # corrected for floating point division. Sign not needed since angle always > 0
+        angleAtomsijk = np.arctan2(np.linalg.norm(np.cross(rij,rjk), axis = 1),np.sum(rij*rjk, axis = 1)) # *np.sign(?) # corrected for floating point division. TODO: must be the sign?
         angleAtomsjkl = np.arctan2(np.linalg.norm(np.cross(rjk,rkl), axis = 1),np.sum(rjk*rkl, axis = 1))
         
-        FdihedralAtomi = -Fdihedrals[:,np.newaxis]/((np.linalg.norm(rij, axis = 1)*np.sin(angleAtomsijk))[:,np.newaxis]) * -normalVec1/np.linalg.norm(normalVec1, axis = 1)[:,np.newaxis]
-        FdihedralAtoml = -Fdihedrals[:,np.newaxis]/((np.linalg.norm(rkl, axis = 1)*np.sin(angleAtomsjkl))[:,np.newaxis]) * normalVec2/np.linalg.norm(normalVec2, axis = 1)[:,np.newaxis] 
+        FdihedralAtomi = Fdihedrals[:,np.newaxis]/((np.linalg.norm(rij, axis = 1)*np.sin(angleAtomsijk))[:,np.newaxis]) * -normalVec1/np.linalg.norm(normalVec1, axis = 1)[:,np.newaxis]
+        FdihedralAtoml = Fdihedrals[:,np.newaxis]/((np.linalg.norm(rkl, axis = 1)*np.sin(angleAtomsjkl))[:,np.newaxis]) * normalVec2/np.linalg.norm(normalVec2, axis = 1)[:,np.newaxis] 
         
         FdihedralAtomk = (1/np.linalg.norm(rok, axis = 1)[:,np.newaxis]**2) * np.cross(-(np.cross(rok,FdihedralAtoml) + 0.5*np.cross(rkl, FdihedralAtoml) + 0.5*np.cross(rij, -FdihedralAtomi)),rok)
         
@@ -284,6 +285,7 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         np.add.at(forces, dihedrals[:,1], FdihedralAtomj)
         np.add.at(forces, dihedrals[:,2], FdihedralAtomk)
         np.add.at(forces, dihedrals[:,3], FdihedralAtoml)
+        
         
           # check that sum of torques is (approx) 0
         if checkForces:
@@ -299,75 +301,58 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
                 
         potentials[2] = np.sum(Vdihedral(theta, dihedralConstants[:,0], dihedralConstants[:,1], dihedralConstants[:,2], dihedralConstants[:,3]))
         
-    # # Lennard Jones forces
-    # if sigPair.size > 0:  
-    #     global atomPairs
+    # Lennard Jones forces
+    if sigPair.size > 0:  
+        global atomPairs
+        #time0 = timer.time()
         
-    #     #time0 = timer.time()
+        #time1 = timer.time()
+        # print(np.min(dist[np.nonzero(dist)]))
+        # print(dist[(dist < LJcutoff) & (dist > lowerbound)])
         
+        atomPairs = np.where(np.multiply(np.multiply(dist < LJcutoff, dist > LJlower), np.triu(notInSameMolecule)) == True) #tuple of arrays; sort of adjacency list. triu to avoid duplicates
+        # atomPairs = np.where(np.multiply(dist < LJcutoff, np.triu(notInSameMolecule)) == True) #tuple of arrays; sort of adjacency list. triu to avoid duplicates
+        # print(len(atomPairs[0]))
         
-    #     #time1 = timer.time()
-    #     atomPairs = np.where(np.multiply((dist < LJcutoff), np.triu(notInSameMolecule)) == True) #tuple of arrays; sort of adjacency list. triu to avoid duplicates
+        #time2 = timer.time()
+        distReciprocal = np.power(dist[atomPairs[0],atomPairs[1]], -1)
+        frac = np.multiply(sigPair[atomPairs[0],atomPairs[1]], distReciprocal) #sigPair is precomputed for all pairs of sigma
+        frac6 = np.power(frac, 6)
+        e = epsPair[atomPairs[0],atomPairs[1]] #epsPair is precomputed for all pairs of epsilons
         
-    #     #time2 = timer.time()
+        #time3 = timer.time()
+        epsFrac6 = np.multiply(4*e,frac6) # to re-use in computation of both U and V
+        epsFrac12 = np.multiply(epsFrac6, frac6)
         
-    #     distReciprocal = np.power(dist[atomPairs[0],atomPairs[1]], -1)
-    #     frac = np.multiply(sigPair[atomPairs[0],atomPairs[1]], distReciprocal) #sigPair is precomputed for all pairs of sigma
-    #     frac6 = np.power(frac, 6)
-    #     e = epsPair[atomPairs[0],atomPairs[1]] #epsPair is precomputed for all pairs of epsilons
+        #time4 = timer.time()
+        U = epsFrac12 - epsFrac6 # = 4*e*(frac12 - frac6); potential
         
-    #     #time3 = timer.time()
-    #     epsFrac6 = np.multiply(4*e,frac6) # to re-use in computation of both U and V
-    #     epsFrac12 = np.multiply(epsFrac6, frac6)
+        V = np.multiply((12*epsFrac12 - 6*epsFrac6), distReciprocal) # = - (4*e*(6*frac6 - 12*frac12) / dist
         
-    #     #time4 = timer.time()
-    #     U = epsFrac12 - epsFrac6 # = 4*e*(frac12 - frac6); potential
+        # old: non normalized difference vector
+        # LJforces = np.multiply(diff[atomPairs[0],atomPairs[1]],V[:,np.newaxis])
         
-    #     V = np.multiply((12*epsFrac12 - 6*epsFrac6), distReciprocal) # = - (4*e*(6*frac6 - 12*frac12) / dist
+        # new: normalized difference vector
+        # print(atomPairs[0])
+        # print(dist[atomPairs[0],atomPairs[1]])
+        LJforces = np.multiply(np.multiply(diff[atomPairs[0],atomPairs[1]], distReciprocal[:,np.newaxis]), V[:,np.newaxis])
+        # print(np.where(distReciprocal > 1))
+        # print(np.where(V > 1000))
+        np.add.at(forces, atomPairs[0], LJforces) 
+        np.add.at(forces, atomPairs[1], -LJforces)
         
-    #     # old: non normalized difference vector
-    #     # LJforces = np.multiply(diff[atomPairs[0],atomPairs[1]],V[:,np.newaxis])
+        # print(forces)
         
-    #     # new: normalized difference vector
-    #     # print(distReciprocal[:,np.newaxis]**2)
-    #     LJforces = np.multiply(np.multiply(diff[atomPairs[0],atomPairs[1]], distReciprocal[:,np.newaxis]), V[:,np.newaxis])
-    #     # print(LJforces)
-    #     # LJforces = V[:,np.newaxis]*diff[atomPairs[0],atomPairs[1]]*distReciprocal[:,np.newaxis]
-    #     # print(np.multiply(diff[atomPairs[0],atomPairs[1]], distReciprocal[:,np.newaxis]))
-    #     # print(atomPairs[0])
-    #     # print(atomPairs[1])
-    #     # print(diff)
-    #     # print(diff[atomPairs[0],atomPairs[1]])
-
+        #time5 = timer.time()
+        potentials[3] = np.sum(U)
+        # print('LJ time: ', time5 - time0)
+        # print('dist: ', time1 - time0)
+        # print('pair: ', time2 - time1)
+        # print('frac: ', time3 - time2)
+        # print('eps: ', time4 - time3)
+        # print('force: ', time4a - time4)
+        # print('shape: ', time5 - time4a)
         
-    #     # print(distReciprocal)
-    #     # print(LJforces)
-            
-    #     # print(LJforces)
-    #     # print(diff[atomPairs[0],atomPairs[1]].shape)
-    #     # print(V[:,np.newaxis].shape)
-    #     # print(-.119249705*5)
-    #     # print(atomPairs[0])
-    #     # print(LJforces.shape)
-    #     # print(LJforces)
-    #     # print(LJforces[1,0])
-    #     # print(np.sum(LJforces[0:17,1]))
-    #     # print(diff[atomPairs[0],atomPairs[1]])
-    #     # print(LJforces.shape)
-    #     # print(forces)
-    #     np.add.at(forces, atomPairs[0], LJforces) 
-    #     np.add.at(forces, atomPairs[1], -LJforces)
-    #     # print(forces)
-        
-    #     #time5 = timer.time()
-    #     potentials[3] = np.sum(U)
-    #     # print('LJ time: ', time5 - time0)
-    #     # print('dist: ', time1 - time0)
-    #     # print('pair: ', time2 - time1)
-    #     # print('frac: ', time3 - time2)
-    #     # print('eps: ', time4 - time3)
-    #     # print('force: ', time4a - time4)
-    #     # print('shape: ', time5 - time4a)
     
     # forces check
     if checkForces:
@@ -418,12 +403,12 @@ def setSimulation(substance, small = True, therm = True):
 # distAtomsPBC.boxSize = 19
 
 # example: one ethanol molecule
-inputFileName = "Ethanol.xyz"
-inputTimeStep = 0
-topologyFileName = "EthanolTopology.txt"
-outputFileName = "EthanolOutput.xyz"
-thermostat = True
-distAtomsPBC.boxSize = 10
+# inputFileName = "Ethanol.xyz"
+# inputTimeStep = 0
+# topologyFileName = "EthanolTopology.txt"
+# outputFileName = "EthanolOutput.xyz"
+# thermostat = True
+# distAtomsPBC.boxSize = 10
 
 # # example 2: two ethanol molecules
 # inputFileName = "Ethanol2.xyz"
@@ -454,11 +439,12 @@ setSimulation('Mixture', small = True, therm = False)
 types, x, m = readXYZfile(inputFileName, inputTimeStep)
 molecules, notInSameMolecule, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon = readTopologyFile(topologyFileName)
 LJcutoff = 2.5*np.max(sigma) #advised in literature: 2.5
+LJlower = 0.01
 # LJcutoff = 1000
 
-time = 0 #ps
-endTime = .5 #ps; should be 1ns = 1000ps in final simulation
-dt = 0.01 #ps; suggestion was to start at 2fs for final simulations, paper uses 0.5fs
+time = 0 # ps
+endTime = 0.01#ps; should be 1ns = 1000ps in final simulation or 0.1ns = 100ps 
+dt = 0.00001 # ps; suggestion was to start at 2fs for final simulations, paper uses 0.5fs
 
 u = np.random.uniform(size=3*len(types)).reshape((len(types),3)) # random starting velocity vector
 u = u/np.linalg.norm(u,axis = 1)[:,np.newaxis] # normalize
@@ -490,7 +476,7 @@ with open(outputFileName, "a") as outputFile:
     while (time < endTime) : 
         #loopTime = timer.time()
         print(time, " out of ", endTime)
-        if (time % (10*dt) < dt): #to print every nth frame. '==0' does not work, as floats are not exact. add 'or True' to print all
+        if (time % (10*dt) < dt or True): #to print every nth frame. '==0' does not work, as floats are not exact. add 'or True' to print all
             outputFile.write(f"{len(types)}\n")
             outputFile.write(f"This is a comment and the time is {time:5.4f}\n")
             for i, atom in enumerate(x):
@@ -505,7 +491,8 @@ with open(outputFileName, "a") as outputFile:
             v = v * np.sqrt(temperatureDesired/temperatureSystem) 
         
         x, v, a, potentials = integratorVerlocity(x, v, a)
-        x = projectMolecules(x) 
+        x = projectMolecules(x)
+        
         time += dt
         
         # measurables
@@ -517,6 +504,7 @@ with open(outputFileName, "a") as outputFile:
         
 
 duration = timer.time() - simStartTime
+print(x)
 print("Simulation duration was ", int(duration/3600), 'hours, ', int((duration%3600)/60), " minutes and ", int(duration%60), "seconds")
          
 

@@ -417,7 +417,6 @@ def setSimulation(substance, small = True, therm = True):
 # thermostat = True
 # distAtomsPBC.boxSize = 19
 
-<<<<<<< Updated upstream
 # example: one ethanol molecule
 inputFileName = "Ethanol.xyz"
 inputTimeStep = 0
@@ -427,27 +426,12 @@ thermostat = True
 distAtomsPBC.boxSize = 10
 
 # # example 2: two ethanol molecules
-=======
-# # # example 2: two ethanol molecules
->>>>>>> Stashed changes
 # inputFileName = "Ethanol2.xyz"
 # inputTimeStep = 0
 # topologyFileName = "Ethanol2Topology.txt"
 # outputFileName = "Ethanol2Output.xyz"
-<<<<<<< Updated upstream
 # thermostat = True
 # distAtomsPBC.boxSize = 50
-=======
-# thermostat = False
-# distAtomsPBC.boxSize = 500
-
-# inputFileName = "Ethanol1.xyz"
-# inputTimeStep = 0
-# topologyFileName = "Ethanol1Topology.txt"
-# outputFileName = "Ethanol1Output.xyz"
-# thermostat = False
-# distAtomsPBC.boxSize = 500
->>>>>>> Stashed changes
 
 
 # inputFileName = "WaterInitial150.xyz"

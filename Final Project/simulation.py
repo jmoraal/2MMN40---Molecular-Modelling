@@ -338,8 +338,8 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         LJforces = np.multiply(np.multiply(diff[atomPairs[0],atomPairs[1]], distReciprocal[:,np.newaxis]), V[:,np.newaxis])
         # print(np.where(distReciprocal > 1))
         # print(np.where(V > 1000))
-        np.add.at(forces, atomPairs[0], LJforces) 
-        np.add.at(forces, atomPairs[1], -LJforces)
+        np.add.at(forces, atomPairs[0], -LJforces) 
+        np.add.at(forces, atomPairs[1], LJforces)
         
         # print(forces)
         
@@ -403,12 +403,12 @@ def setSimulation(substance, small = True, therm = True):
 # distAtomsPBC.boxSize = 19
 
 # example: one ethanol molecule
-# inputFileName = "Ethanol.xyz"
-# inputTimeStep = 0
-# topologyFileName = "EthanolTopology.txt"
-# outputFileName = "EthanolOutput.xyz"
-# thermostat = True
-# distAtomsPBC.boxSize = 10
+inputFileName = "Ethanol.xyz"
+inputTimeStep = 0
+topologyFileName = "EthanolTopology.txt"
+outputFileName = "EthanolOutput.xyz"
+thermostat = False
+distAtomsPBC.boxSize = 10
 
 # # example 2: two ethanol molecules
 # inputFileName = "Ethanol2.xyz"
@@ -426,25 +426,25 @@ def setSimulation(substance, small = True, therm = True):
 # distAtomsPBC.boxSize = 25
 # thermostat = True
 
-# inputFileName = "test.xyz"
-# inputTimeStep = 0
-# topologyFileName = "testTopology.txt"
-# outputFileName = "testOutput.xyz"
-# distAtomsPBC.boxSize = 100
-# thermostat = False
+inputFileName = "test2.xyz"
+inputTimeStep = 0
+topologyFileName = "testTopology.txt"
+outputFileName = "testOutput.xyz"
+distAtomsPBC.boxSize = 10
+thermostat = False
 
-setSimulation('Mixture', small = True, therm = False)
+# setSimulation('Mixture', small = True, therm = False)
 
 ### SIMULATION ###
 types, x, m = readXYZfile(inputFileName, inputTimeStep)
 molecules, notInSameMolecule, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon = readTopologyFile(topologyFileName)
 LJcutoff = 2.5*np.max(sigma) #advised in literature: 2.5
-LJlower = 0.01
+LJlower = .1
 # LJcutoff = 1000
 
 time = 0 # ps
-endTime = 0.01#ps; should be 1ns = 1000ps in final simulation or 0.1ns = 100ps 
-dt = 0.00001 # ps; suggestion was to start at 2fs for final simulations, paper uses 0.5fs
+endTime = 5 #ps; should be 1ns = 1000ps in final simulation or 0.1ns = 100ps 
+dt = 0.0001 # ps; suggestion was to start at 2fs for final simulations, paper uses 0.5fs
 
 u = np.random.uniform(size=3*len(types)).reshape((len(types),3)) # random starting velocity vector
 u = u/np.linalg.norm(u,axis = 1)[:,np.newaxis] # normalize
@@ -476,7 +476,7 @@ with open(outputFileName, "a") as outputFile:
     while (time < endTime) : 
         #loopTime = timer.time()
         print(time, " out of ", endTime)
-        if (time % (10*dt) < dt or True): #to print every nth frame. '==0' does not work, as floats are not exact. add 'or True' to print all
+        if (time % (30*dt) < dt ): #to print every nth frame. '==0' does not work, as floats are not exact. add 'or True' to print all
             outputFile.write(f"{len(types)}\n")
             outputFile.write(f"This is a comment and the time is {time:5.4f}\n")
             for i, atom in enumerate(x):

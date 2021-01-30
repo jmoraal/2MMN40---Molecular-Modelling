@@ -400,12 +400,12 @@ def setSimulation(substance, small = True, therm = True):
 # distAtomsPBC.boxSize = 19
 
 # example: one ethanol molecule
-# inputFileName = "Ethanol.xyz"
-# inputTimeStep = 0
-# topologyFileName = "EthanolTopology.txt"
-# outputFileName = "EthanolOutput.xyz"
-# thermostat = True
-# distAtomsPBC.boxSize = 10
+inputFileName = "Ethanol.xyz"
+inputTimeStep = 0
+topologyFileName = "EthanolTopology.txt"
+outputFileName = "EthanolOutput.xyz"
+thermostat = False
+distAtomsPBC.boxSize = 10
 
 # # example 2: two ethanol molecules
 # inputFileName = "Ethanol2.xyz"
@@ -473,7 +473,7 @@ with open(outputFileName, "a") as outputFile:
     while (time < endTime) : 
         #loopTime = timer.time()
         print(time, " out of ", endTime)
-        if (time % (0.002) < dt): #to print frames every 0.002ns. '==0' does not work, as floats are not exact. add 'or True' to print all
+        if (time % (30*dt) < dt ): #to print every nth frame. '==0' does not work, as floats are not exact. add 'or True' to print all
             outputFile.write(f"{len(types)}\n")
             outputFile.write(f"This is a comment and the time is {time:5.4f}\n")
             for i, atom in enumerate(x):

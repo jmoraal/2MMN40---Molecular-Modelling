@@ -261,9 +261,6 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         
         normalVec1 = np.cross(rij,rjk)
         normalVec2 = np.cross(rjk,rkl)
-        #TODO do we need to normalise?
-        normalVec1 = normalVec1/np.linalg.norm(normalVec1, axis = 1)[:, np.newaxis]
-        normalVec2 = normalVec2/np.linalg.norm(normalVec2, axis = 1)[:, np.newaxis]
         
         
         theta = np.arctan2(np.linalg.norm(np.cross(normalVec1,normalVec2), axis = 1),np.sum(normalVec1*normalVec2, axis = 1))*np.sign(np.sum(rij*normalVec2, axis = 1)) # corrected for floating point division
@@ -310,8 +307,8 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         # print(np.min(dist[np.nonzero(dist)]))
         # print(dist[(dist < LJcutoff) & (dist > lowerbound)])
         
-        atomPairs = np.where(np.multiply(np.multiply(dist < LJcutoff, dist > LJlower), np.triu(notInSameMolecule)) == True) #tuple of arrays; sort of adjacency list. triu to avoid duplicates
-        # atomPairs = np.where(np.multiply(dist < LJcutoff, np.triu(notInSameMolecule)) == True) #tuple of arrays; sort of adjacency list. triu to avoid duplicates
+        # atomPairs = np.where(np.multiply(np.multiply(dist < LJcutoff, dist > LJlower), np.triu(notInSameMolecule)) == True) #tuple of arrays; sort of adjacency list. triu to avoid duplicates
+        atomPairs = np.where(np.multiply(dist < LJcutoff, np.triu(notInSameMolecule)) == True) #tuple of arrays; sort of adjacency list. triu to avoid duplicates
         # print(len(atomPairs[0]))
         
         #time2 = timer.time()
@@ -338,8 +335,8 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         LJforces = np.multiply(np.multiply(diff[atomPairs[0],atomPairs[1]], distReciprocal[:,np.newaxis]), V[:,np.newaxis])
         # print(np.where(distReciprocal > 1))
         # print(np.where(V > 1000))
-        np.add.at(forces, atomPairs[0], LJforces) 
-        np.add.at(forces, atomPairs[1], -LJforces)
+        np.add.at(forces, atomPairs[0], -LJforces) 
+        np.add.at(forces, atomPairs[1], LJforces)
         
         # print(forces)
         
@@ -416,7 +413,7 @@ def setSimulation(substance, small = True, therm = True):
 # topologyFileName = "Ethanol2Topology.txt"
 # outputFileName = "Ethanol2Output.xyz"
 # thermostat = True
-# distAtomsPBC.boxSize = 50
+# distAtomsPBC.boxSize = 20
 
 
 # inputFileName = "WaterInitial150.xyz"
@@ -431,20 +428,20 @@ def setSimulation(substance, small = True, therm = True):
 # topologyFileName = "testTopology.txt"
 # outputFileName = "testOutput.xyz"
 # distAtomsPBC.boxSize = 100
-# thermostat = False
+# thermostat = True
 
-setSimulation('Mixture', small = True, therm = False)
+setSimulation('Ethanol')
 
 ### SIMULATION ###
 types, x, m = readXYZfile(inputFileName, inputTimeStep)
 molecules, notInSameMolecule, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon = readTopologyFile(topologyFileName)
 LJcutoff = 2.5*np.max(sigma) #advised in literature: 2.5
-LJlower = 0.01
+LJlower = 0.0
 # LJcutoff = 1000
 
 time = 0 # ps
-endTime = 0.01#ps; should be 1ns = 1000ps in final simulation or 0.1ns = 100ps 
-dt = 0.00001 # ps; suggestion was to start at 2fs for final simulations, paper uses 0.5fs
+endTime = 1#ps; should be 1ns = 1000ps in final simulation or 0.1ns = 100ps 
+dt = 0.0002 # ps; suggestion was to start at 2fs for final simulations, paper uses 0.5fs
 
 u = np.random.uniform(size=3*len(types)).reshape((len(types),3)) # random starting velocity vector
 u = u/np.linalg.norm(u,axis = 1)[:,np.newaxis] # normalize
@@ -452,7 +449,7 @@ v = 0.01*u # A/ps
 
 #For Gaussian Thermostat:
 if thermostat: 
-    temperatureDesired = 120.27#298.15 # Kelvin TODO or 120.27?
+    temperatureDesired = 298.15 # Kelvin TODO or 120.27?
     kB = 0.8314459727525677 # = 1.38064852  * 6.02214076 * 10 **(-23 + 20 - 24 + 26) [A^2 AMU] / [ps^2 K]
     Nf = 3*len(x) # 3*, as atoms have 3D velocity vector and only translational freedom matters
     c = 1/( kB * Nf) 
@@ -476,7 +473,7 @@ with open(outputFileName, "a") as outputFile:
     while (time < endTime) : 
         #loopTime = timer.time()
         print(time, " out of ", endTime)
-        if (time % (10*dt) < dt or True): #to print every nth frame. '==0' does not work, as floats are not exact. add 'or True' to print all
+        if (time % (0.002) < dt): #to print frames every 0.002ns. '==0' does not work, as floats are not exact. add 'or True' to print all
             outputFile.write(f"{len(types)}\n")
             outputFile.write(f"This is a comment and the time is {time:5.4f}\n")
             for i, atom in enumerate(x):
@@ -504,7 +501,6 @@ with open(outputFileName, "a") as outputFile:
         
 
 duration = timer.time() - simStartTime
-print(x)
 print("Simulation duration was ", int(duration/3600), 'hours, ', int((duration%3600)/60), " minutes and ", int(duration%60), "seconds")
          
 

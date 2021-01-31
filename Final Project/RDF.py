@@ -83,11 +83,11 @@ def distAtomsPBC(x, x2):
 
 outputFileName = "Water31.08ThermostatOutput.xyz"
 topologyFileName = "Water31.08Topology.txt"
+distAtomsPBC.boxSize = 31.08
 
 nrOfTimeSteps = 3
 timeStep = 0 # in range [0,nrOfTimeSteps - 1]
 
-distAtomsPBC.boxSize = 31.08
 types, x = readXYZOutput(outputFileName, nrOfTimeSteps)
 molecule = readTopologyFile(topologyFileName)
 
@@ -118,11 +118,13 @@ rHwaterHwater = np.around(rHwaterHwater,2).reshape(nrHwater*nrHwater)
 rOwaterHwater = np.around(rOwaterHwater,2).reshape(nrOwater*nrHwater)
 
 
-dr = distAtomsPBC.boxSize/50
+binSize = distAtomsPBC.boxSize/50
 
 
 def plotHist(data, dr):
-    bins = np.arange(0, distAtomsPBC.boxSize, dr)
+    fig = plt.figure(figsize =(10, 7)) 
+    # bins = np.arange(0, distAtomsPBC.boxSize, dr)
+    bins = np.arange(0, 10, dr)
     plt.hist(data, bins = bins, color = "black", density = True)
     plt.title("RDF") 
     plt.show()
@@ -139,13 +141,13 @@ def plotDensity(*data):
     
     
 
-# plotHist(rOwaterOwater, dr)
-# plotHist(rHwaterHwater, dr)
-# plotHist(rOwaterOwater, dr)
+# plotHist(rOwaterOwater, binSize)
+# plotHist(rHwaterHwater, binSize)
+plotHist(rOwaterOwater, binSize)
 print(np.max(rOwaterOwater) <= np.sqrt(2*(distAtomsPBC.boxSize/2)**2 + (distAtomsPBC.boxSize/2)**2)) 
 print(np.mean(rOwaterOwater))
 print(np.mean(rHwaterHwater))
-plotDensity(rOwaterOwater, rOwaterHwater, rHwaterHwater)
+# plotDensity(rOwaterOwater, rOwaterHwater, rHwaterHwater)
 # plotDensity(rHwaterHwater)
 
 

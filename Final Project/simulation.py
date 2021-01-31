@@ -261,9 +261,6 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         
         normalVec1 = np.cross(rij,rjk)
         normalVec2 = np.cross(rjk,rkl)
-        #TODO do we need to normalise?
-        normalVec1 = normalVec1/np.linalg.norm(normalVec1, axis = 1)[:, np.newaxis]
-        normalVec2 = normalVec2/np.linalg.norm(normalVec2, axis = 1)[:, np.newaxis]
         
         
         theta = np.arctan2(np.linalg.norm(np.cross(normalVec1,normalVec2), axis = 1),np.sum(normalVec1*normalVec2, axis = 1))*np.sign(np.sum(rij*normalVec2, axis = 1)) # corrected for floating point division
@@ -310,8 +307,8 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         # print(np.min(dist[np.nonzero(dist)]))
         # print(dist[(dist < LJcutoff) & (dist > lowerbound)])
         
-        atomPairs = np.where(np.multiply(np.multiply(dist < LJcutoff, dist > LJlower), np.triu(notInSameMolecule)) == True) #tuple of arrays; sort of adjacency list. triu to avoid duplicates
-        # atomPairs = np.where(np.multiply(dist < LJcutoff, np.triu(notInSameMolecule)) == True) #tuple of arrays; sort of adjacency list. triu to avoid duplicates
+        # atomPairs = np.where(np.multiply(np.multiply(dist < LJcutoff, dist > LJlower), np.triu(notInSameMolecule)) == True) #tuple of arrays; sort of adjacency list. triu to avoid duplicates
+        atomPairs = np.where(np.multiply(dist < LJcutoff, np.triu(notInSameMolecule)) == True) #tuple of arrays; sort of adjacency list. triu to avoid duplicates
         # print(len(atomPairs[0]))
         
         #time2 = timer.time()
@@ -344,7 +341,7 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
         # print(forces)
         
         #time5 = timer.time()
-        potentials[3] = np.sum(U)
+        potentials[3] = np.sum(U) #TODO absolute value?
         # print('LJ time: ', time5 - time0)
         # print('dist: ', time1 - time0)
         # print('pair: ', time2 - time1)
@@ -384,7 +381,7 @@ def setSimulation(substance, small = True, therm = True):
     inputTimeStep = 0
     inputFileName = substance + size + 'Initial.xyz'
     topologyFileName = substance + size + 'Topology.txt'
-    outputFileName = substance + size + thermo + 'Output.xyz'
+    outputFileName = substance + size + thermo 
     thermostat = therm
 
 # inputFileName = "MixedMolecules.xyz"
@@ -407,7 +404,7 @@ inputFileName = "Ethanol.xyz"
 inputTimeStep = 0
 topologyFileName = "EthanolTopology.txt"
 outputFileName = "EthanolOutput.xyz"
-thermostat = False
+thermostat = True
 distAtomsPBC.boxSize = 10
 
 # # example 2: two ethanol molecules
@@ -416,7 +413,7 @@ distAtomsPBC.boxSize = 10
 # topologyFileName = "Ethanol2Topology.txt"
 # outputFileName = "Ethanol2Output.xyz"
 # thermostat = True
-# distAtomsPBC.boxSize = 50
+# distAtomsPBC.boxSize = 20
 
 
 # inputFileName = "WaterInitial150.xyz"
@@ -426,25 +423,25 @@ distAtomsPBC.boxSize = 10
 # distAtomsPBC.boxSize = 25
 # thermostat = True
 
-inputFileName = "test2.xyz"
-inputTimeStep = 0
-topologyFileName = "testTopology.txt"
-outputFileName = "testOutput.xyz"
-distAtomsPBC.boxSize = 10
-thermostat = False
+# inputFileName = "test.xyz"
+# inputTimeStep = 0
+# topologyFileName = "testTopology.txt"
+# outputFileName = "testOutput.xyz"
+# distAtomsPBC.boxSize = 100
+# thermostat = True
 
-# setSimulation('Mixture', small = True, therm = False)
+# setSimulation('Ethanol')
 
 ### SIMULATION ###
 types, x, m = readXYZfile(inputFileName, inputTimeStep)
 molecules, notInSameMolecule, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon = readTopologyFile(topologyFileName)
 LJcutoff = 2.5*np.max(sigma) #advised in literature: 2.5
-LJlower = .1
+LJlower = 0.0
 # LJcutoff = 1000
 
 time = 0 # ps
-endTime = 5 #ps; should be 1ns = 1000ps in final simulation or 0.1ns = 100ps 
-dt = 0.0001 # ps; suggestion was to start at 2fs for final simulations, paper uses 0.5fs
+endTime = 1#ps; should be 1ns = 1000ps in final simulation or 0.1ns = 100ps 
+dt = 0.002 # ps; suggestion was to start at 2fs for final simulations, paper uses 0.5fs
 
 u = np.random.uniform(size=3*len(types)).reshape((len(types),3)) # random starting velocity vector
 u = u/np.linalg.norm(u,axis = 1)[:,np.newaxis] # normalize
@@ -452,14 +449,17 @@ v = 0.01*u # A/ps
 
 #For Gaussian Thermostat:
 if thermostat: 
-    temperatureDesired = 120.27#298.15 # Kelvin TODO or 120.27?
-    kB = 0.8314459727525677 # = 1.38064852  * 6.02214076 * 10 **(-23 + 20 - 24 + 26) [A^2 AMU] / [ps^2 K]
-    Nf = 3*len(x) # 3*, as atoms have 3D velocity vector and only translational freedom matters
-    c = 1/( kB * Nf) 
+    temperatureDesired = 298.15 # Kelvin 
+kB = 0.8314459727525677 # = 1.38064852  * 6.02214076 * 10 **(-23 + 20 - 24 + 26) [A^2 AMU] / [ps^2 K]
+Nf = 3*len(x) # 3*, as atoms have 3D velocity vector and only translational freedom matters
+c = 1/( kB * Nf) 
     
 # For measuring:
-Ekin = []
-Epot = []
+nrSteps = int(np.ceil(endTime/dt))
+Ekin = np.zeros(nrSteps)
+Epot = np.zeros((nrSteps,4))
+temperatures = np.zeros(nrSteps)
+j = 0
 checkForces = False
 
 # Precomputations: 
@@ -467,57 +467,65 @@ sigPair = 0.5*(sigma + sigma[:, np.newaxis])
 epsPair = np.sqrt(epsilon * epsilon[:, np.newaxis])
 f_init, pot = computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigPair, epsPair, LJcutoff)
 a = f_init / m[:,np.newaxis]
+temperatureSystem = np.sum(m * np.linalg.norm(v, axis = 1)**2) / (Nf * kB)
+if thermostat: 
+    v = v * np.sqrt(temperatureDesired/temperatureSystem) 
 
-with open(outputFileName, "w") as outputFile: # clear file
+with open(outputFileName + 'Output.xyz', "w") as outputFile: # clear file
     outputFile.write("") 
+with open(outputFileName + 'Measurables.txt', "w") as outputFileMeas: # clear file
+    outputFileMeas.write("") 
 simStartTime = timer.time()
-with open(outputFileName, "a") as outputFile:
+with open(outputFileName + 'Output.xyz', "a") as outputFile:
+    with open(outputFileName + 'Measurables.txt', "a") as measurables:
+        measurables.write("Kinetic,  Bond potential, Angle pot, Dihedral pot, LJ pot, Temp. before scaling, temperature after \n")
     
-    while (time < endTime) : 
-        #loopTime = timer.time()
-        print(time, " out of ", endTime)
-        if (time % (30*dt) < dt ): #to print every nth frame. '==0' does not work, as floats are not exact. add 'or True' to print all
-            outputFile.write(f"{len(types)}\n")
-            outputFile.write(f"This is a comment and the time is {time:5.4f}\n")
-            for i, atom in enumerate(x):
-                outputFile.write(f"{types[i]} {x[i,0]:10.5f} {x[i,1]:10.5f} {x[i,2]:10.5f}\n")  
-        
-        
-        if thermostat: 
-            #temperatureSystem = np.sum(m)  * (np.linalg.norm(v)**2) / (Nf * kB) # calculates w/ AVERAGE kinetic energy
+        while (time < endTime) : 
+            #loopTime = timer.time()
+            print(time, " out of ", endTime)
+            if (time % (30*dt) < dt): #to print every nth frame. '==0' does not work, as floats are not exact. add 'or True' to print all
+                outputFile.write(f"{len(types)}\n")
+                outputFile.write(f"This is a comment and the time is {time:5.4f}\n")
+                for i, atom in enumerate(x):
+                    outputFile.write(f"{types[i]} {x[i,0]:10.5f} {x[i,1]:10.5f} {x[i,2]:10.5f}\n")  
+            
+            
+            x, v, a, potentials = integratorVerlocity(x, v, a)
+            x = projectMolecules(x)
+            time += dt
+            
             temperatureSystem = np.sum(m * np.linalg.norm(v, axis = 1)**2) / (Nf * kB)
-            #temperatureSystem = c*np.sum((np.linalg.norm(v, axis=1)**2) * m) / dt #via equipartition theorem
-            #print(temperatureSystem)
-            v = v * np.sqrt(temperatureDesired/temperatureSystem) 
-        
-        x, v, a, potentials = integratorVerlocity(x, v, a)
-        x = projectMolecules(x)
-        
-        time += dt
-        
-        # measurables
-        EkinSyst = np.sum(0.5 * m * (np.linalg.norm(v, axis=1)**2))
-        Ekin.append(EkinSyst)
-        EpotSyst =  np.sum(potentials)
-        Epot.append(EpotSyst)
+            if thermostat: 
+                v = v * np.sqrt(temperatureDesired/temperatureSystem) 
+            
+            # measurables
+            EkinSyst = np.sum(0.5 * m * (np.linalg.norm(v, axis=1)**2))
+            tempAfter = 2*EkinSyst / (Nf * kB)
+            Ekin[j] = EkinSyst
+            Epot[j] = potentials
+            temperatures[j] = temperatureSystem
+            measurables.write(f"{EkinSyst:10.5f} {potentials[0]:10.5f} {potentials[1]:10.5f} {potentials[2]:10.5f} {potentials[3]:10.5f} {temperatureSystem:10.5f} {tempAfter:10.5f} \n")
+            j += 1
+            
         #print('Loop time: ', timer.time() - loopTime)
         
 
 duration = timer.time() - simStartTime
-print(x)
 print("Simulation duration was ", int(duration/3600), 'hours, ', int((duration%3600)/60), " minutes and ", int(duration%60), "seconds")
          
 
 ### PLOT ENERGY ###
-
-# plt.clf() # Clears current figure
-# t = np.arange(0,time-dt, dt)
-# Etot = np.array(Ekin) + np.array(Epot)
-# plt.plot(t, Ekin, label = 'Kinetic energy')
-# plt.plot(t, Epot, label = 'Potential energy')
-# plt.plot(t, Etot, label = 'Total energy')
-# plt.title('Energy in the system')
-# plt.xlabel('Time (ps)')
-# plt.ylabel('Energy')
-# plt.legend()
-# plt.show()
+EpotTotal = np.sum(Epot, axis = 1)
+plt.clf() # Clears current figure
+t = np.arange(0,nrSteps*dt, dt)
+# t = np.arange(0,time-dt, dt) # in case simulation was interrupted; select lines and use F9 to run
+Etot = np.array(Ekin) + np.array(EpotTotal)
+plt.plot(t, Ekin, label = 'Kinetic energy')
+plt.plot(t, EpotTotal, label = 'Potential energy')
+plt.plot(t, Etot, label = 'Total energy')
+plt.title('Energy in the system')
+plt.xlabel('Time (ps)')
+plt.ylabel('Energy (AMU Å² / ps²)')
+plt.legend()
+plt.show()
+plt.savefig(outputFileName + ".pdf")

@@ -430,7 +430,7 @@ distAtomsPBC.boxSize = 10
 # distAtomsPBC.boxSize = 100
 # thermostat = True
 
-# setSimulation('Ethanol')
+setSimulation('Ethanol')
 
 ### SIMULATION ###
 types, x, m = readXYZfile(inputFileName, inputTimeStep)
@@ -440,8 +440,8 @@ LJlower = 0.0
 # LJcutoff = 1000
 
 time = 0 # ps
-endTime = 1#ps; should be 1ns = 1000ps in final simulation or 0.1ns = 100ps 
-dt = 0.002 # ps; suggestion was to start at 2fs for final simulations, paper uses 0.5fs
+endTime = 100#ps; should be 1ns = 1000ps in final simulation or 0.1ns = 100ps 
+dt = 0.003 # ps; suggestion was to start at 2fs for final simulations, paper uses 0.5fs
 
 u = np.random.uniform(size=3*len(types)).reshape((len(types),3)) # random starting velocity vector
 u = u/np.linalg.norm(u,axis = 1)[:,np.newaxis] # normalize

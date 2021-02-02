@@ -296,7 +296,7 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
             if np.abs(np.sum(np.sum(torqueSum, axis = 0), axis = 0)) > 10**(-5): 
                 print(f"Warning: sum of torques not equal to 0 but {np.sum(np.sum(torqueSum, axis = 0), axis = 0)}")
                 
-        potentials[2] = np.sum(Vdihedral(theta, dihedralConstants[:,0], dihedralConstants[:,1], dihedralConstants[:,2], dihedralConstants[:,3]))
+        potentials[2] = -np.sum(Vdihedral(theta, dihedralConstants[:,0], dihedralConstants[:,1], dihedralConstants[:,2], dihedralConstants[:,3])) #TODO waarom dit minteken? Klopt overduidelijk met plot dus moet wel zo, maar moet uitgelegd worden
         
     # Lennard Jones forces
     if sigPair.size > 0:  
@@ -399,13 +399,13 @@ def setSimulation(substance, small = True, therm = True):
 # thermostat = True
 # distAtomsPBC.boxSize = 19
 
-# example: one ethanol molecule
-inputFileName = "Ethanol.xyz"
-inputTimeStep = 0
-topologyFileName = "EthanolTopology.txt"
-outputFileName = "EthanolOutput.xyz"
-thermostat = True
-distAtomsPBC.boxSize = 10
+# # example: one ethanol molecule
+# inputFileName = "Ethanol.xyz"
+# inputTimeStep = 0
+# topologyFileName = "EthanolTopology.txt"
+# outputFileName = "EthanolOutput.xyz"
+# thermostat = True
+# distAtomsPBC.boxSize = 10
 
 # # example 2: two ethanol molecules
 # inputFileName = "Ethanol2.xyz"
@@ -416,12 +416,12 @@ distAtomsPBC.boxSize = 10
 # distAtomsPBC.boxSize = 20
 
 
-# inputFileName = "WaterInitial150.xyz"
-# inputTimeStep = 0
-# topologyFileName = "Water150Topology.txt"
-# outputFileName = "WaterOutput150.xyz"
-# distAtomsPBC.boxSize = 25
-# thermostat = True
+inputFileName = "WaterInitial150.xyz"
+inputTimeStep = 0
+topologyFileName = "Water150Topology.txt"
+outputFileName = "WaterOutput150.xyz"
+distAtomsPBC.boxSize = 20
+thermostat = False
 
 # inputFileName = "test.xyz"
 # inputTimeStep = 0
@@ -441,15 +441,15 @@ LJlower = 0.0
 
 time = 0 # ps
 endTime = 1#ps; should be 1ns = 1000ps in final simulation or 0.1ns = 100ps 
-dt = 0.002 # ps; suggestion was to start at 2fs for final simulations, paper uses 0.5fs
+dt = 0.003 # ps; suggestion was to start at 2fs for final simulations, paper uses 0.5fs
 
 u = np.random.uniform(size=3*len(types)).reshape((len(types),3)) # random starting velocity vector
 u = u/np.linalg.norm(u,axis = 1)[:,np.newaxis] # normalize
 v = 0.01*u # A/ps
 
 #For Gaussian Thermostat:
-if thermostat: 
-    temperatureDesired = 298.15 # Kelvin 
+# if thermostat: 
+temperatureDesired = 298.15 # Kelvin 
 kB = 0.8314459727525677 # = 1.38064852  * 6.02214076 * 10 **(-23 + 20 - 24 + 26) [A^2 AMU] / [ps^2 K]
 Nf = 3*len(x) # 3*, as atoms have 3D velocity vector and only translational freedom matters
 c = 1/( kB * Nf) 
@@ -468,8 +468,8 @@ epsPair = np.sqrt(epsilon * epsilon[:, np.newaxis])
 f_init, pot = computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigPair, epsPair, LJcutoff)
 a = f_init / m[:,np.newaxis]
 temperatureSystem = np.sum(m * np.linalg.norm(v, axis = 1)**2) / (Nf * kB)
-if thermostat: 
-    v = v * np.sqrt(temperatureDesired/temperatureSystem) 
+# if thermostat: 
+v = v * np.sqrt(temperatureDesired/temperatureSystem) 
 
 with open(outputFileName + 'Output.xyz', "w") as outputFile: # clear file
     outputFile.write("") 

@@ -84,12 +84,13 @@ def distAtomsPBC(x):
     return(dist) 
 
 def plotHist(*data, sizexAxis, nrBins):
-    global binSize, ballVolumes, binVolumes, histo, normalizedHisto
+    global binSize, bins, ballVolumes, binVolumes, histo, normalizedHisto
     fig = plt.figure(figsize =(10, 7)) 
     binSize = sizexAxis/nrBins
     bins = np.arange(0, sizexAxis, binSize)
     ballVolumes = (4/3)*np.pi*bins**3
     binVolumes = (np.roll(ballVolumes, -1) - ballVolumes)[0:len(bins)-1]
+    
     # print(bins)
     # print(binVolumes)
     # print(binVolumes*rho)
@@ -97,7 +98,7 @@ def plotHist(*data, sizexAxis, nrBins):
     for i in range(0, len(data)):
         histo = np.histogram(data[i], bins = bins, density=False)
         # print(histo)
-        normalizedHisto = histo[0]/(binVolumes*rho*nrOfMolecules) # normalize for volume of shell and average density
+        normalizedHisto = histo[0]/(binVolumes*rho*len(types))  #nrOfMolecules) # normalize for volume of shell and average density
         # print(normalizedHisto)
         labels = ["O-O", "O-H"]
         plt.plot(bins[0:len(bins)-1], normalizedHisto, label=labels[i])
@@ -139,7 +140,7 @@ def RDFPerTimeStep(x, timeStep):
 outputFileName = "Water31.08ThermostatOutput.xyz"
 topologyFileName = "Water31.08Topology.txt"
 distAtomsPBC.boxSize = 31.08
-rho = 0.032592 # particles per Anstrom^3 3.345
+rho = 0.0999 # 0.032592 # particles per Anstrom^3 3.345
 nrOfTimeSteps = 10
 
 # outputFileName = "Ethanol32.22ThermostatOutput.xyz"
@@ -157,7 +158,7 @@ nrOfTimeSteps = 10
 
 # outputFileName = "Water150Output.xyz"
 # topologyFileName = "Water150Topology.txt"
-# distAtomsPBC.boxSize = 31.08
+# distAtomsPBC.boxSize = 20
 # rho = 0.032592 # particles per Anstrom^3 3.345
 # nrOfTimeSteps = 10
 
@@ -189,7 +190,7 @@ plotHist(OwOw, OwHw, sizexAxis = sizexAxis, nrBins = nrBins)
     
     
     
-# Hieronder de vorige versie, aub nog even niet wissen   
+### Hieronder de vorige versie, aub nog even niet wissen ###
     
 # def distAtomsPBC(x, x2):
 #     """ Computes distances between all atoms in closest copies, taking boundaries into account"""   

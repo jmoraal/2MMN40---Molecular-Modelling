@@ -100,7 +100,7 @@ def plotHist(*data, sizexAxis, nrBins):
     for i in range(0, len(data)):
         histo = np.histogram(data[i], bins = bins, density=False)
         # print(histo)
-        normalizedHisto = histo[0]/(binVolumes*rho*len(types))  #nrOfMolecules) # normalize for volume of shell and average density
+        normalizedHisto = histo[0]/(binVolumes*rho*nrOfMolecules*nrOfTimeSteps)  #nrOfMolecules) # normalize for volume of shell and average density. Also, avg over number of timesteps
         # print(normalizedHisto)
         labels = ["O-O", "O-H"]
         plt.plot(bins[0:len(bins)-1], normalizedHisto, label=labels[i])
@@ -111,7 +111,7 @@ def plotHist(*data, sizexAxis, nrBins):
 def RDFPerTimeStep(x, timeStep):
     global OwaterInd, HwaterInd, rOwaterHwater
     dist = distAtomsPBC(x[i,:,:])
-    dist[np.where(notInSameMolecule == False)] = 0
+    #dist[np.where(notInSameMolecule == False)] = 0
     
     OwaterInd = np.array(np.where((types == 0) & (molecule == 0))).flatten()
     HwaterInd = np.array(np.where((types == 1) & (molecule == 0))).flatten()
@@ -143,7 +143,7 @@ def RDFPerTimeStep(x, timeStep):
 outputFileName = "Water31.08ThermostatOutput.xyz"
 topologyFileName = "Water31.08Topology.txt"
 distAtomsPBC.boxSize = 31.08
-rho = 0.0999 # 0.032592 # particles per Anstrom^3 3.345
+rho = 0.032592 # molecules per Anstrom^3 (0.0999 atoms per Angstrom^3)
 nrOfTimeSteps = 20
 
 # outputFileName = "Ethanol32.22ThermostatOutput.xyz"

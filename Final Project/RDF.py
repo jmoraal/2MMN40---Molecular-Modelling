@@ -40,12 +40,12 @@ def readTopologyFile(fileNameTopology):
         
         return(nrOfMolecules, moleculeofAtom, notInSameMolecule)
     
-def readXYZOutput(fileName, nrOfTimeSteps): 
+def readXYZOutput(fileName, nrOfTimeSteps, Nskip = 1): 
     """Read a .xyz file.
     
-    Reads entire file for arbitrary number of timesteps
-    INPUT: .xyz file 
-    OUTPUT:  atom types and array of xyz-coord for every atom at every timestep.
+    Reads rest of file starting at nrOfTimeSteps from the end
+    INPUT: .xyz file, desired number of timesteps and indicator of how many steps to skip inbetween
+    OUTPUT:  atom types and array of xyz-coord for atoms for given number of timesteps
     """
     lines = []
     firstColumn = []
@@ -64,15 +64,17 @@ def readXYZOutput(fileName, nrOfTimeSteps):
     
     atomPositions = np.zeros([nrOfTimeSteps,nrOfAtoms,3])
     
-    lineNr = len(lines) - nrOfTimeSteps*(nrOfAtoms + 2)# start reading here, until the end
+    lineNr = len(lines) - Nskip * nrOfTimeSteps*(nrOfAtoms + 2)# start reading here, until the end
     
-    i = 0
-    while lineNr < len(lines):
+    #i = 0
+    #while lineNr < len(lines):
+    for i in range(0,nrOfTimeSteps): 
         atomPositions[i,:,:] = np.asarray(lines[lineNr+2:lineNr+2+nrOfAtoms], dtype=float)
-        lineNr = lineNr + nrOfAtoms + 2
-        i += 1
+        lineNr = lineNr + Nskip *(nrOfAtoms + 2)
+        #i += 1
         
     return(atomTypes, atomPositions)
+
 
 def distAtomsPBC(x):
     """ Computes distances between all atoms in closest copies, taking boundaries into account"""   
@@ -107,6 +109,7 @@ def plotHist(*data, sizexAxis, nrBins):
     plt.legend(prop={'size': 16})
     
 def RDFPerTimeStep(x, timeStep):
+    global OwaterInd, HwaterInd, rOwaterHwater
     dist = distAtomsPBC(x[i,:,:])
     dist[np.where(notInSameMolecule == False)] = 0
     
@@ -141,7 +144,7 @@ outputFileName = "Water31.08ThermostatOutput.xyz"
 topologyFileName = "Water31.08Topology.txt"
 distAtomsPBC.boxSize = 31.08
 rho = 0.0999 # 0.032592 # particles per Anstrom^3 3.345
-nrOfTimeSteps = 10
+nrOfTimeSteps = 20
 
 # outputFileName = "Ethanol32.22ThermostatOutput.xyz"
 # topologyFileName = "Ethanol32.22Topology.txt"
@@ -162,7 +165,7 @@ nrOfTimeSteps = 10
 # rho = 0.032592 # particles per Anstrom^3 3.345
 # nrOfTimeSteps = 10
 
-types, x = readXYZOutput(outputFileName, nrOfTimeSteps)
+types, x = readXYZOutput(outputFileName, nrOfTimeSteps, Nskip = 4)
 nrOfMolecules, molecule, notInSameMolecule = readTopologyFile(topologyFileName)
 
 OwOw = []

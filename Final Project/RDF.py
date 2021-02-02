@@ -93,6 +93,9 @@ def plotHist(*data, sizexAxis, nrBins):
     ballVolumes = (4/3)*np.pi*bins**3
     binVolumes = (np.roll(ballVolumes, -1) - ballVolumes)[0:len(bins)-1]
     
+    # Alternatively:
+    # dr = bins[1] - bins[0]
+    # binVolumes = 4*np.pi*bins[1:]**2 * dr
     # print(bins)
     # print(binVolumes)
     # print(binVolumes*rho)
@@ -109,9 +112,9 @@ def plotHist(*data, sizexAxis, nrBins):
     plt.legend(prop={'size': 16})
     
 def RDFPerTimeStep(x, timeStep):
-    global OwaterInd, HwaterInd, rOwaterHwater
+    global OwaterInd, HwaterInd, rOwaterHwater, dist
     dist = distAtomsPBC(x[i,:,:])
-    #dist[np.where(notInSameMolecule == False)] = 0
+    dist[np.where(notInSameMolecule == False)] = 0
     
     OwaterInd = np.array(np.where((types == 0) & (molecule == 0))).flatten()
     HwaterInd = np.array(np.where((types == 1) & (molecule == 0))).flatten()
@@ -144,7 +147,7 @@ outputFileName = "Water31.08ThermostatOutput.xyz"
 topologyFileName = "Water31.08Topology.txt"
 distAtomsPBC.boxSize = 31.08
 rho = 0.032592 # molecules per Anstrom^3 (0.0999 atoms per Angstrom^3)
-nrOfTimeSteps = 20
+nrOfTimeSteps = 10
 
 # outputFileName = "Ethanol32.22ThermostatOutput.xyz"
 # topologyFileName = "Ethanol32.22Topology.txt"
@@ -165,7 +168,7 @@ nrOfTimeSteps = 20
 # rho = 0.032592 # particles per Anstrom^3 3.345
 # nrOfTimeSteps = 10
 
-types, x = readXYZOutput(outputFileName, nrOfTimeSteps, Nskip = 4)
+types, x = readXYZOutput(outputFileName, nrOfTimeSteps)
 nrOfMolecules, molecule, notInSameMolecule = readTopologyFile(topologyFileName)
 
 OwOw = []
@@ -183,7 +186,7 @@ for i in range(0,nrOfTimeSteps):
     OeHe.append(rOethanolHethanol.flatten())
     OeHw.append(rOethanolHwater.flatten())
 
-nrBins = 100
+nrBins = 200
 sizexAxis = 10
 
 plotHist(OwOw, OwHw, sizexAxis = sizexAxis, nrBins = nrBins)

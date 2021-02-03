@@ -390,7 +390,7 @@ LJcutoff = 1000
 
 
 time = 0 # ps
-endTime = 1 # ps; should be 1ns = 1000ps in final simulation or 0.1ns = 100ps 
+endTime = 2 # ps; should be 1ns = 1000ps in final simulation or 0.1ns = 100ps 
 dt = 0.001*0.0284798 # ps; H2 has oscillation of 0.0284798
 
 

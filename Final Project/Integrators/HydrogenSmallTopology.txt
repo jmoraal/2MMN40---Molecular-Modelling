@@ -1,0 +1,7 @@
+molecules 1
+0 1
+bonds 1
+0 1 245.31 0.74
+angles 0
+dihedrals 0
+LJ 0

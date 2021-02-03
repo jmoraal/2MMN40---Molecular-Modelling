@@ -175,7 +175,7 @@ def integratorEuler(x, v):
     a = forces/m[:,np.newaxis]
     x = x + dt*v + (dt**2)/2*a
     v = v + dt*a
-    return(x, v)
+    return(x, v, potential)
 
 def integratorVerlet(x, xold, v):
     """ Implementation of a single step for Verlet integrator. """ 
@@ -183,7 +183,7 @@ def integratorVerlet(x, xold, v):
     a = forces/m[:,np.newaxis]
     x_new = 2*x - xold + (dt**2)/2*a
     v = 1/(2*dt)*(x_new + xold)
-    return(x_new, x, v)
+    return(x_new, x, v, potential)
     
 # def integratorVerlocity(x, v, a, a_new):  #TODO: should be able to do this with these parameters w/o computeForces for cleaner code
 #     """ Implementation of a single step for Velocty Verlet integrator. """ 
@@ -203,16 +203,20 @@ def integratorVerlocity(x, v, a):
 def integratorRK4(x, v, a):
     """ Implementation of a single step for Runge-Kutta order 4 integrator. """ 
     x1 = x + dt*v + (dt**2)/2*a 
-    v1 = dt*computeForces(x1, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon, LJcutoff)/m[:,np.newaxis]
+    f1, potential1 = computeForces(x1, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigPair, epsPair, LJcutoff)
+    v1 = dt*f1/m[:,np.newaxis]
     x2 = x + dt/2*(v+v1/2) + (dt**2)/2*a 
-    v2 = dt*computeForces(x2, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon, LJcutoff)/m[:,np.newaxis]
+    f2, potential2 = computeForces(x2, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigPair, epsPair, LJcutoff)
+    v2 = dt*f2/m[:,np.newaxis]
     x3 = x + dt/2*(v+v2/2) + (dt**2)/2*a
-    v3 = dt*computeForces(x3, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon, LJcutoff)/m[:,np.newaxis]
+    f3, potential3 = computeForces(x3, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon, LJcutoff)
+    v3 = dt*f3/m[:,np.newaxis]
     x4 = x + dt*(v+v3) + (dt**2)/2*a 
-    v4 = dt*computeForces(x4, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon, LJcutoff)/m[:,np.newaxis]
+    f4, potential4 = computeForces(x4, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon, LJcutoff)
+    v4 = dt*f4/m[:,np.newaxis]
     
     v = v + (v1+2*v2+2*v3+v4)/6
-    return(x1, v, a)
+    return(x1, v, a, potential1)
 
 
 
@@ -386,8 +390,8 @@ LJcutoff = 1000
 
 
 time = 0 # ps
-endTime = 1500 # ps; should be 1ns = 1000ps in final simulation or 0.1ns = 100ps 
-dt = 4.4*0.0284798 # ps; H2 has oscillation of 0.0284798
+endTime = 1 # ps; should be 1ns = 1000ps in final simulation or 0.1ns = 100ps 
+dt = 0.001*0.0284798 # ps; H2 has oscillation of 0.0284798
 
 
 
@@ -417,16 +421,13 @@ sigPair = 0.5*(sigma + sigma[:, np.newaxis])
 epsPair = np.sqrt(epsilon * epsilon[:, np.newaxis])
 f_init, pot = computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigPair, epsPair, LJcutoff)
 a = f_init / m[:,np.newaxis]
-
-
-# temperatureSystem = np.sum(m * np.linalg.norm(v, axis = 1)**2) / (Nf * kB)
+temperatureSystem = np.sum(m * np.linalg.norm(v, axis = 1)**2) / (Nf * kB)
 # if thermostat: 
-# v = v * np.sqrt(temperatureDesired/temperatureSystem) 
-
+v = v * np.sqrt(temperatureDesired/temperatureSystem) 
 
 # for verlet integrator:
-xnew, v = integratorEuler(x, v) 
-# print(xnew)
+# xnew, v, potentials = integratorEuler(x, v) 
+
 
 
 with open(outputFileName, "w") as outputFile: # clear file
@@ -449,28 +450,29 @@ with open(outputFileName, "a") as outputFile:
             
             
             
-            # x, v = integratorEuler(x, v) 
+            x, v, potentials = integratorEuler(x, v) 
             
-            xnew, x, v = integratorVerlet(xnew, x, v) 
-            # print(xnew)
+            # xnew, x, v, potentials = integratorVerlet(xnew, x, v) 
             
             # x, v, a, potentials = integratorVerlocity(x, v, a)
+            
+            # x, v, a, potentials = integratorRK4(x, v, a)
             
             x = projectMolecules(x)
             time += dt
             
-            # temperatureSystem = np.sum(m * np.linalg.norm(v, axis = 1)**2) / (Nf * kB)
-            # if thermostat: 
-                # v = v * np.sqrt(temperatureDesired/temperatureSystem) 
+            temperatureSystem = np.sum(m * np.linalg.norm(v, axis = 1)**2) / (Nf * kB)
+            if thermostat: 
+                v = v * np.sqrt(temperatureDesired/temperatureSystem) 
             
             # # measurables
-            # EkinSyst = np.sum(0.5 * m * (np.linalg.norm(v, axis=1)**2))
-            # tempAfter = 2*EkinSyst / (Nf * kB)
-            # Ekin[j] = EkinSyst
-            # Epot[j] = potentials
-            # temperatures[j] = temperatureSystem
-            # measurables.write(f"{EkinSyst:10.5f} {potentials[0]:10.5f} {potentials[1]:10.5f} {potentials[2]:10.5f} {potentials[3]:10.5f} {temperatureSystem:10.5f} {tempAfter:10.5f} \n")
-            # j += 1
+            EkinSyst = np.sum(0.5 * m * (np.linalg.norm(v, axis=1)**2))
+            tempAfter = 2*EkinSyst / (Nf * kB)
+            Ekin[j] = EkinSyst
+            Epot[j] = potentials
+            temperatures[j] = temperatureSystem
+            measurables.write(f"{EkinSyst:10.5f} {potentials[0]:10.5f} {potentials[1]:10.5f} {potentials[2]:10.5f} {potentials[3]:10.5f} {temperatureSystem:10.5f} {tempAfter:10.5f} \n")
+            j += 1
             
         # print('Loop time: ', timer.time() - loopTime)
         
@@ -480,17 +482,17 @@ print("Simulation duration was ", int(duration/3600), 'hours, ', int((duration%3
 print(x)
 
 ### PLOT ENERGY ###
-# EpotTotal = np.sum(Epot, axis = 1)
-# plt.clf() # Clears current figure
-# t = np.arange(0,nrSteps*dt, dt)
-# # t = np.arange(0,time-dt, dt) # in case simulation was interrupted; select lines and use F9 to run
-# Etot = np.array(Ekin) + np.array(EpotTotal)
-# plt.plot(t, Ekin, label = 'Kinetic energy')
-# plt.plot(t, EpotTotal, label = 'Potential energy')
-# plt.plot(t, Etot, label = 'Total energy')
-# plt.title('Energy in the system')
-# plt.xlabel('Time (ps)')
-# plt.ylabel('Energy (AMU Å² / ps²)')
-# plt.legend()
-# plt.show()
-# plt.savefig(outputFileName + ".pdf")
+EpotTotal = np.sum(Epot, axis = 1)
+plt.clf() # Clears current figure
+t = np.arange(0,nrSteps*dt, dt)
+# t = np.arange(0,time-dt, dt) # in case simulation was interrupted; select lines and use F9 to run
+Etot = np.array(Ekin) + np.array(EpotTotal)
+plt.plot(t, Ekin, label = 'Kinetic energy')
+plt.plot(t, EpotTotal, label = 'Potential energy')
+plt.plot(t, Etot, label = 'Total energy')
+plt.title('Energy in the system')
+plt.xlabel('Time (ps)')
+plt.ylabel('Energy (AMU Å² / ps²)')
+plt.legend()
+plt.show()
+plt.savefig(outputFileName + ".pdf")

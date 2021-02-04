@@ -389,7 +389,7 @@ def setSimulation(substance, small = True, therm = True):
 # inputFileName = "MixedMolecules.xyz"
 # inputTimeStep = 0
 # topologyFileName = "MixedMoleculesTopology.txt"
-# outputFileName = "MixedMoleculesOutput.xyz"
+# outputFileName = "MixedMolecules"
 # distAtomsPBC.boxSize = 5
 # thermostat = False
 
@@ -401,34 +401,26 @@ def setSimulation(substance, small = True, therm = True):
 # thermostat = True
 # distAtomsPBC.boxSize = 19
 
-# # example: one ethanol molecule
-# inputFileName = "Ethanol.xyz"
-# inputTimeStep = 0
-# topologyFileName = "EthanolTopology.txt"
-# outputFileName = "EthanolOutput.xyz"
-# thermostat = True
-# distAtomsPBC.boxSize = 10
+# example: one ethanol molecule
+inputFileName = "Ethanol.xyz"
+inputTimeStep = 0
+topologyFileName = "EthanolTopology.txt"
+outputFileName = "Ethanol"
+thermostat = False
+distAtomsPBC.boxSize = 10
 
 # # example 2: two ethanol molecules
 # inputFileName = "Ethanol2.xyz"
 # inputTimeStep = 0
 # topologyFileName = "Ethanol2Topology.txt"
-# outputFileName = "Ethanol2Output.xyz"
+# outputFileName = "Ethanol2"
 # thermostat = True
 # distAtomsPBC.boxSize = 20
-
-
-inputFileName = "WaterInitial150.xyz"
-inputTimeStep = 0
-topologyFileName = "Water150Topology.txt"
-outputFileName = "WaterOutput150.xyz"
-distAtomsPBC.boxSize = 20
-thermostat = False
 
 # inputFileName = "test.xyz"
 # inputTimeStep = 0
 # topologyFileName = "testTopology.txt"
-# outputFileName = "testOutput.xyz"
+# outputFileName = "test"
 # distAtomsPBC.boxSize = 100
 # thermostat = True
 
@@ -443,7 +435,7 @@ LJlower = 0.0
 
 time = 0 # ps
 endTime = 1#ps; should be 1ns = 1000ps in final simulation or 0.1ns = 100ps 
-dt = 0.003 # ps; suggestion was to start at 2fs for final simulations, paper uses 0.5fs
+dt = 0.002 # ps; suggestion was to start at 2fs for final simulations, paper uses 0.5fs
 
 u = np.random.uniform(size=3*len(types)).reshape((len(types),3)) # random starting velocity vector
 u = u/np.linalg.norm(u,axis = 1)[:,np.newaxis] # normalize

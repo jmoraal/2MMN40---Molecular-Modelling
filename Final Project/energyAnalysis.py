@@ -28,7 +28,7 @@ def readMeasurables(fileName):
             (kinetic[i],  bondPot[i], anglePot[i], dihedralPot[i], LJpot[i], tempBefore[i], tempAfter[i]) = lines[i+1].split()
             
     #IMPORTANT: for older runs, return MINUS dihedralPot! Original code contained wrong sign
-    return(kinetic,  bondPot, anglePot, -dihedralPot, LJpot, tempBefore, tempAfter)
+    return(kinetic,  bondPot, anglePot, dihedralPot, LJpot, tempBefore, tempAfter)
     
 #kinetic, bondPot, anglePot, dihedralPot, LJpot, tempBefore, tempAfter = readMeasurables("Ethanol32.22ThermostatMeasurables.txt")
 
@@ -71,11 +71,14 @@ def plotPotentials(fileName, dt):
     
 
 
-plotEnergy("Ethanol32.22" + "ThermostatMeasurables.txt", 0.003)
-plotPotentials("Ethanol32.22" + "ThermostatMeasurables.txt", 0.003)
+# plotEnergy("Ethanol32.22" + "ThermostatMeasurables.txt", 0.003)
+# plotPotentials("Ethanol32.22" + "ThermostatMeasurables.txt", 0.003)
 
-plotEnergy("Mixture32.29" + "ThermostatMeasurables.txt", 0.002)
-plotPotentials("Mixture32.29" + "ThermostatMeasurables.txt", 0.002)
+# plotEnergy("Mixture32.29" + "ThermostatMeasurables.txt", 0.002)
+# plotPotentials("Mixture32.29" + "ThermostatMeasurables.txt", 0.002)
 
-plotEnergy("Water31.08" + "ThermostatMeasurables2fs.txt", 0.002)
-plotPotentials("Water31.08" + "ThermostatMeasurables2fs.txt", 0.002)
+# plotEnergy("Water31.08" + "ThermostatMeasurables2fs.txt", 0.002)
+# plotPotentials("Water31.08" + "ThermostatMeasurables2fs.txt", 0.002)
+
+plotEnergy("Ethanol_ex_noThermMeasurables.txt", 0.002)
+plotEnergy("Ethanol_ex_thermMeasurables.txt", 0.002)

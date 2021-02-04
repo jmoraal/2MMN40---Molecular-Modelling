@@ -175,6 +175,7 @@ def integratorEuler(x, v):
     a = forces/m[:,np.newaxis]
     x = x + dt*v + (dt**2)/2*a
     v = v + dt*a
+    
     return(x, v, potential)
 
 def integratorVerlet(x, xold, v):
@@ -183,6 +184,7 @@ def integratorVerlet(x, xold, v):
     a = forces/m[:,np.newaxis]
     x_new = 2*x - xold + (dt**2)/2*a
     v = 1/(2*dt)*(x_new + xold)
+    
     return(x_new, x, v, potential)
     
 # def integratorVerlocity(x, v, a, a_new):  #TODO: should be able to do this with these parameters w/o computeForces for cleaner code
@@ -200,23 +202,27 @@ def integratorVerlocity(x, v, a):
     v = v + dt/2*(a_new + a)
     return(x_new, v, a_new, potential)
 
-def integratorRK4(x, v, a):
+def integratorRK4(x, v):
     """ Implementation of a single step for Runge-Kutta order 4 integrator. """ 
-    x1 = x + dt*v + (dt**2)/2*a 
+    x1 = x + dt*v 
     f1, potential1 = computeForces(x1, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigPair, epsPair, LJcutoff)
     v1 = dt*f1/m[:,np.newaxis]
-    x2 = x + dt/2*(v+v1/2) + (dt**2)/2*a 
+    x2 = x + dt/2*(v+v1/2)
     f2, potential2 = computeForces(x2, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigPair, epsPair, LJcutoff)
     v2 = dt*f2/m[:,np.newaxis]
-    x3 = x + dt/2*(v+v2/2) + (dt**2)/2*a
+    x3 = x + dt/2*(v+v2/2)
     f3, potential3 = computeForces(x3, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon, LJcutoff)
     v3 = dt*f3/m[:,np.newaxis]
-    x4 = x + dt*(v+v3) + (dt**2)/2*a 
+    x4 = x + dt*(v+v3)
     f4, potential4 = computeForces(x4, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon, LJcutoff)
     v4 = dt*f4/m[:,np.newaxis]
     
+    x = x + dt*v + dt**2*(v1+v2+v3)/6
     v = v + (v1+2*v2+2*v3+v4)/6
-    return(x1, v, a, potential1)
+    
+    f, potential = computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon, LJcutoff)
+    
+    return(x, v, potential1)
 
 
 
@@ -228,7 +234,7 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
     global forces
     forces = np.zeros((len(types),3), dtype = float)
     potentials = np.zeros(4, dtype = float)
-    diff,dist = distAtomsPBC(x)
+    # diff,dist = distAtomsPBC(x)
     
     # bonds
     if bonds.size > 0:
@@ -376,8 +382,8 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
 inputFileName = "HydrogenSmall.xyz"
 inputTimeStep = 0
 topologyFileName = "HydrogenSmallTopology.txt"
-outputFileName = "VV.xyz"
-distAtomsPBC.boxSize = 20
+outputFileName = "Euler"
+# distAtomsPBC.boxSize = 20
 thermostat = False
 
 
@@ -391,14 +397,16 @@ LJcutoff = 1000
 
 time = 0 # ps
 endTime = 2 # ps; should be 1ns = 1000ps in final simulation or 0.1ns = 100ps 
-dt = 0.001*0.0284798 # ps; H2 has oscillation of 0.0284798
-
+dt = .1*0.0284798 # ps; H2 has oscillation of 0.0284798
+momenta = [] # for phase space diagrams
+positions = []
+reducedMass = m[0]*m[1]/(m[0]+m[1])
 
 
 
 u = np.random.uniform(size=3*len(types)).reshape((len(types),3)) # random starting velocity vector
 u = u/np.linalg.norm(u,axis = 1)[:,np.newaxis] # normalize
-v = 0.001*u  #0.01*u # A/ps
+v = 0.000*u  #0.01*u # A/ps
 
 #For Gaussian Thermostat:
 # if thermostat: 
@@ -421,21 +429,20 @@ sigPair = 0.5*(sigma + sigma[:, np.newaxis])
 epsPair = np.sqrt(epsilon * epsilon[:, np.newaxis])
 f_init, pot = computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigPair, epsPair, LJcutoff)
 a = f_init / m[:,np.newaxis]
-temperatureSystem = np.sum(m * np.linalg.norm(v, axis = 1)**2) / (Nf * kB)
+# temperatureSystem = np.sum(m * np.linalg.norm(v, axis = 1)**2) / (Nf * kB)
 # if thermostat: 
-v = v * np.sqrt(temperatureDesired/temperatureSystem) 
+# v = v * np.sqrt(temperatureDesired/temperatureSystem) 
 
 # for verlet integrator:
-# xnew, v, potentials = integratorEuler(x, v) 
+xnew, v, potentials = integratorEuler(x, v) 
 
 
-
-with open(outputFileName, "w") as outputFile: # clear file
+with open(outputFileName + ".xyz", "w") as outputFile: # clear file
     outputFile.write("") 
 with open(outputFileName + 'Measurables.txt', "w") as outputFileMeas: # clear file
     outputFileMeas.write("") 
 simStartTime = timer.time()
-with open(outputFileName, "a") as outputFile:
+with open(outputFileName + ".xyz", "a") as outputFile:
     with open(outputFileName + 'Measurables.txt', "a") as measurables:
         measurables.write("Kinetic,  Bond potential, Angle pot, Dihedral pot, LJ pot, Temp. before scaling, temperature after \n")
     
@@ -448,7 +455,8 @@ with open(outputFileName, "a") as outputFile:
                 for i, atom in enumerate(x):
                     outputFile.write(f"{types[i]} {x[i,0]:10.5f} {x[i,1]:10.5f} {x[i,2]:10.5f}\n")  
             
-            
+            momenta.append((v[1,2]-v[0,2])/reducedMass)
+            positions.append(x[1,2]-x[0,2])
             
             x, v, potentials = integratorEuler(x, v) 
             
@@ -456,22 +464,24 @@ with open(outputFileName, "a") as outputFile:
             
             # x, v, a, potentials = integratorVerlocity(x, v, a)
             
-            # x, v, a, potentials = integratorRK4(x, v, a)
+            # x, v, potentials = integratorRK4(x, v)
             
-            x = projectMolecules(x)
+            # x = projectMolecules(x)
             time += dt
             
-            temperatureSystem = np.sum(m * np.linalg.norm(v, axis = 1)**2) / (Nf * kB)
-            if thermostat: 
-                v = v * np.sqrt(temperatureDesired/temperatureSystem) 
+            # temperatureSystem = np.sum(m * np.linalg.norm(v, axis = 1)**2) / (Nf * kB)
+            # if thermostat: 
+                # v = v * np.sqrt(temperatureDesired/temperatureSystem) 
             
             # # measurables
+            # print(v)
             EkinSyst = np.sum(0.5 * m * (np.linalg.norm(v, axis=1)**2))
+            # print(EkinSyst)
             tempAfter = 2*EkinSyst / (Nf * kB)
             Ekin[j] = EkinSyst
             Epot[j] = potentials
-            temperatures[j] = temperatureSystem
-            measurables.write(f"{EkinSyst:10.5f} {potentials[0]:10.5f} {potentials[1]:10.5f} {potentials[2]:10.5f} {potentials[3]:10.5f} {temperatureSystem:10.5f} {tempAfter:10.5f} \n")
+            # temperatures[j] = temperatureSystem
+            # measurables.write(f"{EkinSyst:10.5f} {potentials[0]:10.5f} {potentials[1]:10.5f} {potentials[2]:10.5f} {potentials[3]:10.5f} {temperatureSystem:10.5f} {tempAfter:10.5f} \n")
             j += 1
             
         # print('Loop time: ', timer.time() - loopTime)
@@ -483,6 +493,7 @@ print(x)
 
 ### PLOT ENERGY ###
 EpotTotal = np.sum(Epot, axis = 1)
+fig = plt.figure(figsize =(10, 7)) 
 plt.clf() # Clears current figure
 t = np.arange(0,nrSteps*dt, dt)
 # t = np.arange(0,time-dt, dt) # in case simulation was interrupted; select lines and use F9 to run
@@ -496,3 +507,17 @@ plt.ylabel('Energy (AMU Å² / ps²)')
 plt.legend()
 plt.show()
 plt.savefig(outputFileName + ".pdf")
+
+### PLOT PHASE SPACE DIAGRAMS ###
+# fig = plt.figure(figsize =(10, 7)) 
+# plt.clf()
+# plt.plot(positions, momenta)
+# # plt.title('Phase space diagram')
+# plt.xlabel('r ($\AA$)')
+# plt.ylabel('p (AMU $\AA$ / ps)')
+# plt.legend()
+# plt.show()
+# plt.savefig(outputFileName + ".pdf")
+
+
+

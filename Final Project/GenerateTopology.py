@@ -291,8 +291,8 @@ def writeMixtureXYZ(nrOfMolecules, boxSize):
         outputFile.write("Comment t = 0\n")
         for i in indWater:
             outputFile.write(f"O {rand[i][0]} {rand[i][1]} {rand[i][2]}\n")
-            outputFile.write(f"H {rand[i][0]-1} {rand[i][1]} {rand[i][2]}\n")
-            outputFile.write(f"H {rand[i][0]} {rand[i][1]-0.3} {rand[i][2]-0.9}\n")
+            outputFile.write(f"H {rand[i][0]-0.98505} {rand[i][1]+0.001286} {rand[i][2]+0.0099}\n")
+            outputFile.write(f"H {rand[i][0]+0.011297} {rand[i][1]-0.32759} {rand[i][2]-0.93691}\n")
         for i in indEthanol:
             # outputFile.write(f'C {rand[i][0] + -0.95} {rand[i][1] + 0.95} {rand[i][2] + 0.777817459305202} \n')
             # outputFile.write(f'H {rand[i][0] + -1.80710678118655} {rand[i][1] + 0.392893218813452} {rand[i][2] + 0.565685424949238} \n')
@@ -360,8 +360,8 @@ def findSize(approxSize, substance):
 
 #print(findSize(50,'mixture'))
 
-writeConfig('water', 31.08)
+# writeConfig('water', 31.08)
 # writeConfig('ethanol', 32.22)
 # writeConfig('mixture', 51.65)
-# writeConfig('mixture', 32.29)
+writeConfig('mixture', 32.29)
 

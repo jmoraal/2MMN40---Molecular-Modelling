@@ -40,19 +40,18 @@ def plotEnergy(fileName, dt):
     Epot = np.transpose(np.array(measurables[1:4]))
     EpotTotal = np.sum(Epot, axis = 1)
     plt.clf() # Clears current figure
+    plt.rcParams.update({'font.size': 12})
     t = np.arange(0,len(Ekin)*dt, dt)
     Etot = np.array(Ekin) + np.array(EpotTotal)
     plt.plot(t, Ekin, label = 'Kinetic energy')
     plt.plot(t, EpotTotal, label = 'Potential energy')
     plt.plot(t, Etot, label = 'Total energy')
-    plt.title('Energy in the system')
     plt.xlabel('Time (ps)')
     plt.ylabel('Energy (AMU Å² / ps²)')
     plt.legend()
     plt.show()
-    plt.savefig(fileName + "Energies.pdf")
+    plt.savefig(fileName + "Energies.pdf", bbox_inches = 'tight')
     
-plotEnergy("Ethanol32.22ThermostatMeasurables.txt", 0.003)
 
 
 def plotPotentials(fileName, dt): 
@@ -61,13 +60,22 @@ def plotPotentials(fileName, dt):
     Epot = np.transpose(np.array(measurables[1:5]))
     #EpotTotal = np.sum(Epot, axis = 1)
     plt.clf() # Clears current figure
+    plt.rcParams.update({'font.size': 12})
     t = np.arange(0,len(Epot)*dt, dt)
     plt.plot(t, Epot)
-    plt.title('Levels of potential energy')
     plt.xlabel('Time (ps)')
     plt.ylabel('Energy (AMU Å² / ps²)')
     plt.legend( ('Bonds', 'Angles', 'Dihedrals', 'Lennard-Jones'), loc = 'best', bbox_to_anchor=(0.5, 0., 0.5, 0.5))
     plt.show()
-    plt.savefig(fileName + "Potentials.pdf")
+    plt.savefig(fileName + "Potentials.pdf", bbox_inches = 'tight')
     
-plotPotentials("Ethanol32.22ThermostatMeasurables.txt", 0.003)
+
+
+plotEnergy("Ethanol32.22" + "ThermostatMeasurables.txt", 0.003)
+plotPotentials("Ethanol32.22" + "ThermostatMeasurables.txt", 0.003)
+
+plotEnergy("Mixture32.29" + "ThermostatMeasurables.txt", 0.002)
+plotPotentials("Mixture32.29" + "ThermostatMeasurables.txt", 0.002)
+
+plotEnergy("Water31.08" + "ThermostatMeasurables2fs.txt", 0.002)
+plotPotentials("Water31.08" + "ThermostatMeasurables2fs.txt", 0.002)

@@ -62,9 +62,11 @@ def plotPotentials(fileName, dt):
     plt.clf() # Clears current figure
     plt.rcParams.update({'font.size': 12})
     t = np.arange(0,len(Epot)*dt, dt)
+    # plt.plot(t, Epot[:,0], t, Epot[:,1], t, Epot[:,3]) #for water, which does not have dihedral potential
     plt.plot(t, Epot)
     plt.xlabel('Time (ps)')
     plt.ylabel('Energy (AMU Å² / ps²)')
+    # plt.legend( ('Bonds', 'Angles', 'Lennard-Jones'), loc = 'best') #for water
     plt.legend( ('Bonds', 'Angles', 'Dihedrals', 'Lennard-Jones'), loc = 'best', bbox_to_anchor=(0.5, 0., 0.5, 0.5))
     plt.show()
     plt.savefig(fileName + "Potentials.pdf", bbox_inches = 'tight')
@@ -77,8 +79,8 @@ def plotPotentials(fileName, dt):
 # plotEnergy("Mixture32.29" + "ThermostatMeasurables.txt", 0.002)
 # plotPotentials("Mixture32.29" + "ThermostatMeasurables.txt", 0.002)
 
-# plotEnergy("Water31.08" + "ThermostatMeasurables2fs.txt", 0.002)
-# plotPotentials("Water31.08" + "ThermostatMeasurables2fs.txt", 0.002)
+# plotEnergy("Water31.08" + "ThermostatMeasurables.txt", 0.004)
+# plotPotentials("Water31.08" + "ThermostatMeasurables.txt", 0.004)
 
-plotEnergy("Ethanol_ex_noThermMeasurables.txt", 0.002)
-plotEnergy("Ethanol_ex_thermMeasurables.txt", 0.002)
+# plotEnergy("Ethanol_ex_noThermMeasurables.txt", 0.002)
+# plotEnergy("Ethanol_ex_thermMeasurables.txt", 0.002)

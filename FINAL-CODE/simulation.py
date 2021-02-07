@@ -7,9 +7,8 @@ Created on Mon Nov  9 16:30:44 2020
 """
 import time as timer
 import numpy as np
-import matplotlib.pyplot as plt
 # import warnings
-# warnings.filterwarnings("error") # allows try/except-constructions for warnings (i.e. stop computation when dividing by 0)
+# warnings.filterwarnings("error") # treats warning as error; to stop computation when dividing by 0
 
 ### READ INPUT ###
 
@@ -36,7 +35,7 @@ def readXYZfile(fileName, timeStep):
     atomPositions = lines[(2+(2+nrOfAtoms)*timeStep):((2+nrOfAtoms)*(timeStep+1))]
         
     atomPositions = np.asarray(atomPositions).astype(np.float)
-    massesDict = {'H': 1.0080, 'O': 15.9994, 'C': 12.0110} # in Dalton 
+    massesDict = {'H': 1.0080, 'O': 15.9994, 'C': 12.0110} # in AMU (or Dalton )
     m = np.vectorize(massesDict.get)(atomTypes)
     return(atomTypes, atomPositions ,m)
 
@@ -111,7 +110,6 @@ def projectMolecules(x):
     Note: single atoms are not projected without the rest of their molecule."""
     global centers
     centers = np.zeros([len(types),3]) 
-    #centers[molecules] = sum(x[molecules]  / sum([molecules])) #should be doable without forloop
     for i in range(0, len(molecules)):
         centers[molecules[i]] = np.sum(x[molecules[i]], axis=0) / len(molecules[i]) # unweighted avg
     centersProj = centers % distAtomsPBC.boxSize
@@ -199,6 +197,11 @@ def integratorRK4(x, v):
 ### FORCES ###
 
 def computeBondForces(x, bonds, bondConstants):
+    '''Computes forces and potentials acting on all bonds
+    
+    INPUT: Coordinates of all atoms, indices which atoms have bonds, bond force constants
+    OUTPUT: bond forces acting on all particles, total bond potential over all particles
+    '''
     r = np.linalg.norm(x[bonds[:,0]] - x[bonds[:,1]], axis = 1)
     Fbonds = Fbond(r, bondConstants[:,0], bondConstants[:,1])[:,np.newaxis]*(x[bonds[:,0]]-x[bonds[:,1]])/r[:,np.newaxis]
     
@@ -206,6 +209,11 @@ def computeBondForces(x, bonds, bondConstants):
     return(Fbonds, pBonds)
 
 def computeAngleForces(x, angles, angleConstants):
+    '''Computes all angular forces and potentials
+    
+    INPUT: Coordinates of all atoms, indices which atoms form angles, angle force constants
+    OUTPUT: angular forces acting on all particles, total angular potential over all particles
+    '''
     atomLeft = x[angles[:,0]]
     atomMiddle = x[angles[:,1]]
     atomRight = x[angles[:,2]]
@@ -227,6 +235,11 @@ def computeAngleForces(x, angles, angleConstants):
     return(FangleAtomLeft, FangleAtomMiddle, FangleAtomRight, pAngles)
 
 def computeDihedralForces():
+    '''Computes dihedral forces and potentials
+    
+    INPUT: Coordinates of all atoms, indices which atoms form dihedrals, dihedral force constants
+    OUTPUT: dihedral forces acting on all particles, total dihedral potential over all particles
+    '''
     rij = x[dihedrals[:,1]] - x[dihedrals[:,0]]
     rjk = x[dihedrals[:,2]] - x[dihedrals[:,1]] 
     rkl = x[dihedrals[:,3]] - x[dihedrals[:,2]]
@@ -239,9 +252,7 @@ def computeDihedralForces():
     theta = np.arctan2(np.linalg.norm(np.cross(normalVec1,normalVec2), axis = 1),np.sum(normalVec1*normalVec2, axis = 1))*np.sign(np.sum(rij*normalVec2, axis = 1)) # corrected for floating point division
     
     Fdihedrals = Fdihedral(theta, dihedralConstants[:,0], dihedralConstants[:,1], dihedralConstants[:,2], dihedralConstants[:,3])
-    # angleAtomsijk = np.arccos(np.sum(rij*rjk, axis = 1)/(np.linalg.norm(rij, axis = 1)*np.linalg.norm(rjk, axis = 1))) # not corrected for floating point division
-    # angleAtomsjkl = np.arccos(np.sum(rjk*rkl, axis = 1)/(np.linalg.norm(rjk, axis = 1)*np.linalg.norm(rkl, axis = 1)))
-    angleAtomsijk = np.arctan2(np.linalg.norm(np.cross(rij,rjk), axis = 1),np.sum(rij*rjk, axis = 1)) # *np.sign(?) # corrected for floating point division. TODO: must be the sign?
+    angleAtomsijk = np.arctan2(np.linalg.norm(np.cross(rij,rjk), axis = 1),np.sum(rij*rjk, axis = 1)) #wrong sign?
     angleAtomsjkl = np.arctan2(np.linalg.norm(np.cross(rjk,rkl), axis = 1),np.sum(rjk*rkl, axis = 1))
     
     FdihedralAtomi = Fdihedrals[:,np.newaxis]/((np.linalg.norm(rij, axis = 1)*np.sin(angleAtomsijk))[:,np.newaxis]) * -normalVec1/np.linalg.norm(normalVec1, axis = 1)[:,np.newaxis]
@@ -255,6 +266,11 @@ def computeDihedralForces():
     return(FdihedralAtomi, FdihedralAtomj, FdihedralAtomk, FdihedralAtoml, pDihedrals)
 
 def computeLJForces(x, sigma, epsilon, LJcutoff):
+    '''Computes Lennard-Jones forces and potentials for all pairs closer together than given cutoff
+    
+    INPUT: Coordinates of all atoms, pairwise mixed LJ parameter arrays (precomputed), cutoff length
+    OUTPUT: LJ forces acting on all particles, total LJ potential over all particles, both considering cutoff
+    '''
     diff,dist = distAtomsPBC(x)
     atomPairs = np.where(np.multiply(dist < LJcutoff, np.triu(notInSameMolecule)) == True) #tuple of arrays; sort of adjacency list. triu to avoid duplicates
     distReciprocal = np.power(dist[atomPairs[0],atomPairs[1]], -1)
@@ -275,7 +291,7 @@ def computeLJForces(x, sigma, epsilon, LJcutoff):
     return(LJforces, pLJ, atomPairs)
 
 def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon, LJcutoff):
-    """Caltulate forces in one go with help of topology file."""
+    """Calculates all forces acting on all particles using force functions and parameters from topology file."""
     forces = np.zeros((len(types),3), dtype = float)
     potentials = np.zeros(4, dtype = float)
     
@@ -312,12 +328,18 @@ def computeForces(x, bonds, bondConstants, angles, angleConstants, dihedrals, di
     
     return(forces, potentials)
 
-sizesSmall = {'Water': 31.08, 'Ethanol': 32.22, 'Mixture': 32.29}
-sizesLarge = {'Water': 49.72, 'Ethanol': 50.61, 'Mixture': 51.65}
+
+### PARAMETERS ###
+sizesSmall = {'Water': 31.08, 'Ethanol': 32.22, 'Mixture': 32.29} #Angstrom
+sizesLarge = {'Water': 49.72, 'Ethanol': 50.61, 'Mixture': 51.65} #Angstrom
 # boxsizes are chosen so that all grid positions are filled
                 
-### PARAMETERS ###
 def setSimulation(substance, small = True, therm = True):
+    '''Sets parameters for different simulations
+    
+    INPUT: substance (water/ethanol/mixture), box size (small/large), whether to use a thermostat (false/true)
+    OUTPUT: None; global variables set: boxsize for PBC, names of input files, name for output file, boolean 'thermostat'
+    '''
     global inputTimeStep, inputFileName, topologyFileName, outputFileName, thermostat
     
     if small:
@@ -342,8 +364,7 @@ setSimulation('Ethanol') # choose 'Water", 'Ethanol' or 'Mixture'
 ### SIMULATION ###
 types, x, m = readXYZfile(inputFileName, inputTimeStep)
 molecules, notInSameMolecule, bonds, bondConstants, angles, angleConstants, dihedrals, dihedralConstants, sigma, epsilon = readTopologyFile(topologyFileName)
-LJcutoff = 2.5*np.max(sigma) # advised in literature: 2.5*sigma
-# LJcutoff = 1000
+LJcutoff = 2.5*np.max(sigma) #Angstrom; advised in literature: 2.5*sigma
 
 time = 0 # ps
 endTime = 1 # ps; should be 1ns = 1000ps in final simulation or 0.1ns = 100ps 
@@ -355,7 +376,7 @@ v = 0.01*u # A/ps
 
 # For Gaussian Thermostat:
 temperatureDesired = 298.15 # Kelvin 
-kB = 0.8314459727525677 # = 1.38064852  * 6.02214076 * 10 **(-23 + 20 - 24 + 26) [A^2 AMU] / [ps^2 K]
+kB = 0.8314459727525677 #[A^2 AMU] / [ps^2 K]; from regular kB via 1.38064852  * 6.02214076 * 10 **(-23 + 20 - 24 + 26) 
 Nf = 3*len(x) # 3*, as atoms have 3D velocity vector and only translational freedom matters
 c = 1/( kB * Nf) 
     
@@ -374,6 +395,7 @@ a = f_init / m[:,np.newaxis]
 temperatureSystem = np.sum(m * np.linalg.norm(v, axis = 1)**2) / (Nf * kB)
 v = v * np.sqrt(temperatureDesired/temperatureSystem) 
 
+#Simulation loop:
 with open(outputFileName + 'Output.xyz', "w") as outputFile: # clear file
     outputFile.write("") 
 with open(outputFileName + 'Measurables.txt', "w") as outputFileMeas: # clear file
@@ -385,19 +407,19 @@ with open(outputFileName + 'Output.xyz', "a") as outputFile:
     
         while (time < endTime) : 
             print(time, " out of ", endTime)
-            if (time % (30*dt) < dt): #to print every nth frame. '==0' does not work, as floats are not exact. add 'or True' to print all
+            if (time % (30*dt) < dt): #to print every 30th frame. '==0' does not work, as floats are not exact. add 'or True' to print all
                 outputFile.write(f"{len(types)}\n")
                 outputFile.write(f"This is a comment and the time is {time:5.4f}\n")
                 for i, atom in enumerate(x):
                     outputFile.write(f"{types[i]} {x[i,0]:10.5f} {x[i,1]:10.5f} {x[i,2]:10.5f}\n")  
             
             
-            x, v, a, potentials = integratorVerlocity(x, v, a)
-            x = projectMolecules(x)
+            x, v, a, potentials = integratorVerlocity(x, v, a) #integration
+            x = projectMolecules(x) #projection
             time += dt
             
             temperatureSystem = np.sum(m * np.linalg.norm(v, axis = 1)**2) / (Nf * kB)
-            if thermostat: 
+            if thermostat: #velocity rescaling
                 v = v * np.sqrt(temperatureDesired/temperatureSystem) 
             
             # measurables
@@ -411,18 +433,3 @@ with open(outputFileName + 'Output.xyz', "a") as outputFile:
         
 duration = timer.time() - simStartTime
 print("Simulation duration was ", int(duration/3600), 'hours, ', int((duration%3600)/60), " minutes and ", int(duration%60), "seconds")  
-
-### PLOT ENERGY ###
-EpotTotal = np.sum(Epot, axis = 1)
-plt.clf() # Clears current figure
-t = np.arange(0,nrSteps*dt, dt)
-Etot = np.array(Ekin) + np.array(EpotTotal)
-plt.plot(t, Ekin, label = 'Kinetic energy')
-plt.plot(t, EpotTotal, label = 'Potential energy')
-plt.plot(t, Etot, label = 'Total energy')
-plt.title('Energy in the system')
-plt.xlabel('Time (ps)')
-plt.ylabel('Energy (AMU Å² / ps²)')
-plt.legend()
-plt.show()
-plt.savefig(outputFileName + ".pdf")

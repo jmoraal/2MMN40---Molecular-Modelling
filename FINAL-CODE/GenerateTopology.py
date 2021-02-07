@@ -281,7 +281,7 @@ def writeMixtureXYZ(nrOfMolecules, boxSize):
 
 
 def writeConfig(type, boxSize):
-    ''' Writes topology & initial xyz for given box size (in Angstrom)
+    ''' Writes topology file & initial xyz for given box size (in Angstrom)
     
     Number of molecules is based on densities at T = 298.15K '''
     if (type == 'water'): 
@@ -320,8 +320,7 @@ def findSize(approxSize, substance):
 
 #print(findSize(50,'mixture'))
 
-# writeConfig('water', 31.08)
-# writeConfig('ethanol', 32.22)
-# writeConfig('mixture', 51.65)
+writeConfig('water', 31.08)
+writeConfig('ethanol', 32.22)
 writeConfig('mixture', 32.29)
 

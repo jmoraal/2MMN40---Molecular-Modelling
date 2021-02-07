@@ -85,9 +85,26 @@ def distAtomsPBC(x):
     
     return(dist) 
 
-def plotHist(*data, sizexAxis, nrBins):
+def plotHist(x, nrOfTimeSteps, sizexAxis, nrBins):
     global binSize, bins, ballVolumes, binVolumes, histo, normalizedHisto
-    fig = plt.figure(figsize =(10, 7)) 
+    plt.clf()
+    OwOw = []
+    OeOe = [] 
+    OeOw = [] 
+    OwHw = [] 
+    OeHe = [] 
+    OeHw = []
+    for i in range(0,nrOfTimeSteps):
+        print(i, " out of ", nrOfTimeSteps)
+        rOwaterOwater, rOethanolOethanol, rOethanolOwater, rOwaterHwater, rOethanolHethanol, rOethanolHwater = RDFPerTimeStep(x, i, sizexAxis, nrBins)
+        OwOw.append(rOwaterOwater.flatten())
+        OeOe.append(rOethanolOethanol.flatten())
+        OeOw.append(rOethanolOwater.flatten())
+        OwHw.append(rOwaterHwater.flatten())
+        OeHe.append(rOethanolHethanol.flatten())
+        OeHw.append(rOethanolHwater.flatten())
+    
+    #fig = plt.figure(figsize =(10, 7)) 
     binSize = sizexAxis/nrBins
     bins = np.arange(0, sizexAxis, binSize)
     ballVolumes = (4/3.0)*np.pi*bins**3
@@ -96,11 +113,12 @@ def plotHist(*data, sizexAxis, nrBins):
     # Alternatively:
     # dr = bins[1] - bins[0]
     # binVolumes = 4*np.pi*bins[1:]**2 * dr
-    # print(bins)
-    # print(binVolumes)
-    # print(binVolumes*rho)
     
-    for i in range(0, len(data)):
+    # data = [OwOw,OwHw,OeOe,OeHe,OeOw,OeHw]
+    data = [OeOe,OeHe]
+    labels = ["O-O", "O-H"] #when not plotting mixture
+    # labels = ["O-O water", "O-H water", "O-O ethanol", "O-H ethanol", "O-O ethanol-water", "O-H ethanol-water",]
+    for i in range(len(data)):
         #originally:
         # histo = np.histogram(data[i], bins = bins, density=False)
         # normalizedHisto = histo[0]/(binVolumes*rho*np.sum(histo[0])*nrOfTimeSteps*sizexAxis)  #nrOfMolecules) # normalize for volume of shell and average density. Also, avg over number of timesteps
@@ -113,22 +131,19 @@ def plotHist(*data, sizexAxis, nrBins):
         normalizedHisto = histo/(nrOfTimeSteps)#(bins[1]-bins[0])*np.sum(histo[0])*sizexAxis/nrBins)
             
         # Volume/density compensation:
-        nAvg = binVolumes * (len(types)/distAtomsPBC.boxSize**3) #or should this be atom-specific density?
+        nAvg = binVolumes * (len(types)/distAtomsPBC.boxSize**3) #or should this be atom-specific density? Yes! Now fixed by additional factor in RDFPerTimeStep
         normalizedHisto = normalizedHisto/(nAvg)
         
-        print(np.average(normalizedHisto[-20:]))
-        # print(normalizedHisto)
-        # labels = ["O-O", "O-H"]
-        labels = ["O-O water", "O-H water", "O-O ethanol", "O-H ethanol", "O-O ethanol-water", "O-H ethanol-water",]
         plt.plot(bins[0:len(bins)-1], normalizedHisto, label=labels[i])
     plt.xlabel("r $(\AA)$")
     plt.ylabel("g(r)")
     plt.legend()#prop={'size': 16})
     plt.savefig(name + "RDF.pdf", bbox_inches = 'tight')
     
+    
 def RDFPerTimeStep(x, timeStep, sizeAxis, nrBins):
     global OwaterInd, HwaterInd, rOwaterHwater, dist
-    dist = distAtomsPBC(x[i,:,:])
+    dist = distAtomsPBC(x[timeStep,:,:])
     dist[np.where(notInSameMolecule == False)] = 0
     
     OwaterInd = np.array(np.where((types == 0) & (molecule == 0))).flatten()
@@ -147,36 +162,7 @@ def RDFPerTimeStep(x, timeStep, sizeAxis, nrBins):
     rOwaterHwater = rOwater[:,HwaterInd] 
     rOethanolHethanol = rOethanol[:,HethanolInd]
     rOethanolHwater = rOethanol[:,HwaterInd]
-    
-    # split = np.floor(len(types)/2)
-    # OwaterInd = np.array(np.where((types == 0) & (molecule == 0))).flatten()
-    # OwaterIndA = OwaterInd[OwaterInd <= split]
-    # OwaterIndB = OwaterInd[OwaterInd > split]
-    # HwaterInd = np.array(np.where((types == 1) & (molecule == 0))).flatten()
-    # HwaterIndB = HwaterInd[HwaterInd > split]
-    # OethanolInd = np.array(np.where((types == 0) & (molecule == 1))).flatten()
-    # OethanolIndA = OethanolInd[OethanolInd <= split]
-    # OethanolIndB = OethanolInd[OethanolInd > split]
-    # HethanolInd = np.array(np.where((types == 1) & (molecule == 1))).flatten()
-    # HethanolIndB = HethanolInd[HethanolInd >= split]
-    
-    # rOwater = dist[OwaterIndA,:]
-    # rOethanol = dist[OethanolIndA,:]
-    
-    # rOwaterOwater = rOwater[:,OwaterIndB] 
-    # rOethanolOethanol = rOethanol[:,OethanolIndB]
-    # rOethanolOwater = rOethanol[:,OwaterIndB]
-    # rOwaterHwater = rOwater[:,HwaterIndB]
-    # rOethanolHethanol = rOethanol[:,HethanolIndB]
-    # rOethanolHwater = rOethanol[:,HwaterIndB]
-    
-    # rOwaterOwater = rOwaterOwater[np.nonzero(rOwaterOwater)]
-    # rOethanolOethanol = rOethanolOethanol[np.nonzero(rOethanolOethanol)]
-    # rOethanolOwater = rOethanolOwater[np.nonzero(rOethanolOwater)]
-    # rOwaterHwater = rOwaterHwater[np.nonzero(rOwaterHwater)]
-    # rOethanolHethanol = rOethanolHethanol[np.nonzero(rOethanolHethanol)]
-    # rOethanolHwater = rOethanolHwater[np.nonzero(rOethanolHwater)]
-    
+        
     binSize = sizexAxis/nrBins
     bins = np.arange(0, sizexAxis, binSize)
     
@@ -192,34 +178,24 @@ def RDFPerTimeStep(x, timeStep, sizeAxis, nrBins):
     return(rOwaterOwaterCount, rOethanolOethanolCount, rOethanolOwaterCount, rOwaterHwaterCount, rOethanolHethanolCount, rOethanolHwaterCount)
 
 
-# name = "Water31.08Thermostat2fs"
+# name = "Water31.08Thermostat"
 # topologyFileName = "Water31.08Topology.txt"
 # distAtomsPBC.boxSize = 31.08
-# # rho = 0.033308645 # molecules per Anstrom^3 (0.0999 atoms per Angstrom^3)
-# nrOfTimeSteps = 10
+# nrOfTimeSteps = 100
 
 # name = "Ethanol32.22Thermostat"
 # topologyFileName = "Ethanol32.22Topology.txt"
 # distAtomsPBC.boxSize = 32.22
-# rho = 0.0102546 # particles per Anstrom^3
-# nrOfTimeSteps = 10
-
-# name = "MixedMolecules"
-# topologyFileName = "MixedMoleculesTopology.txt"
-# distAtomsPBC.boxSize = 31.08
-# rho = 0.032592 # particles per Anstrom^3
-# nrOfTimeSteps = 1
+# nrOfTimeSteps = 1000
 
 name = "Mixture32.29Thermostat"
 topologyFileName = "Mixture32.29Topology.txt"
 distAtomsPBC.boxSize = 32.29
-rho = 0.0297 # molecules per Anstrom^3
-nrOfTimeSteps = 20
+nrOfTimeSteps = 500
 
 # name = "Water150"
 # topologyFileName = "Water150Topology.txt"
 # distAtomsPBC.boxSize = 20
-# rho = 0.032592 # particles per Anstrom^3 3.345
 # nrOfTimeSteps = 10
 
 
@@ -230,142 +206,13 @@ nrOfMolecules, molecule, notInSameMolecule = readTopologyFile(topologyFileName)
 nrBins = 100
 sizexAxis = 10
 
-OwOw = []
-OeOe = [] 
-OeOw = [] 
-OwHw = [] 
-OeHe = [] 
-OeHw = []
-for i in range(0,nrOfTimeSteps):
-    rOwaterOwater, rOethanolOethanol, rOethanolOwater, rOwaterHwater, rOethanolHethanol, rOethanolHwater = RDFPerTimeStep(x, i, sizexAxis, nrBins)
-    OwOw.append(rOwaterOwater.flatten())
-    OeOe.append(rOethanolOethanol.flatten())
-    OeOw.append(rOethanolOwater.flatten())
-    OwHw.append(rOwaterHwater.flatten())
-    OeHe.append(rOethanolHethanol.flatten())
-    OeHw.append(rOethanolHwater.flatten())
+
 
 
 # plotHist(OwOw, OwHw, sizexAxis = sizexAxis, nrBins = nrBins) #OwHw
 
-plotHist(OwOw, OwHw, OeOe, OeOw, OeHe, OeHw, sizexAxis = sizexAxis, nrBins = nrBins)
+# plotHist(OwOw, OwHw, OeOe, OeOw, OeHe, OeHw, sizexAxis = sizexAxis, nrBins = nrBins)
 
 # plotHist(OeOe, OeHe, sizexAxis = sizexAxis, nrBins = nrBins)
 
-
-    
-    
-    
-### Hieronder de vorige versie, aub nog even niet wissen ###
-    
-# def distAtomsPBC(x, x2):
-#     """ Computes distances between all atoms in closest copies, taking boundaries into account"""   
-#     global dist, diff
-#     diff = x - x2[:,np.newaxis]
-#     diff = diff - np.floor(0.5 + diff/distAtomsPBC.boxSize)*distAtomsPBC.boxSize 
-#     dist = np.linalg.norm(diff,axis = 2)
-    
-#     return(dist.tolist()) 
-# def plotDensity(*data):
-#     fig = plt.figure(figsize =(10, 7)) 
-#     labels = ["O-O", "O-H"]
-#     for i in range(0, len(data)):
-#         sns.distplot(data[i], hist = False, kde = True, label = labels[i])
-#     plt.legend(prop={'size': 16})
-#     plt.title("Radial Distribution Density")
-#     plt.xlabel("r $(\AA)$")
-#     plt.ylabel("Density")
-    
-    
-# outputFileName = "Water31.08ThermostatOutput.xyz"
-# topologyFileName = "Water31.08Topology.txt"
-# distAtomsPBC.boxSize = 31.08
-# rho = 0.32592 # particles per Anstrom^3
-
-# nrOfTimeSteps = 3
-# # timeStep = 1 # in range [0,nrOfTimeSteps - 1]
-
-# types, x = readXYZOutput(outputFileName, nrOfTimeSteps)
-# molecule, notInSameMolecule = readTopologyFile(topologyFileName)
-
-# xOwater = x[:,np.where((types == 0) & (molecule == 0)),:]
-# xOethanol = x[:,np.where((types == 0) & (molecule == 1)),:]
-# xHwater = x[:,np.where((types == 1) & (molecule == 0)),:]
-# xHethanol = x[:,np.where((types == 1) & (molecule == 1)),:]
-
-# nrOwater = np.shape(xOwater)[2]
-# nrOethanol = np.shape(xOethanol)[2]
-# nrHwater = np.shape(xHwater)[2]
-# nrHethanol = np.shape(xHethanol)[2]
-
-# rOwaterOwater = []
-# rOethanolOethanol = []
-# rOwaterOethanol = []
-# rOwaterHwater = []
-# rOethanolHethanol = []
-# rOethanolHwater = []
-
-# for i in range(0,nrOfTimeSteps):
-#     xOwaterAtTimei = xOwater[i,:,:,:].reshape(nrOwater,3)
-#     xOethanolAtTimei = xOethanol[i,:,:,:].reshape(nrOethanol,3)
-#     xHwaterAtTimei = xHwater[i,:,:,:].reshape(nrHwater,3)
-#     xHethanolAtTimei = xHethanol[i,:,:,:].reshape(nrHethanol,3)
-    
-#     rOwaterOwater.append(distAtomsPBC(xOwaterAtTimei, xOwaterAtTimei))
-#     rOethanolOethanol.append(distAtomsPBC(xOethanolAtTimei, xOethanolAtTimei))
-#     rOwaterOethanol.append(distAtomsPBC(xOwaterAtTimei, xOethanolAtTimei))
-#     rOwaterHwater.append(distAtomsPBC(xOwaterAtTimei, xHwaterAtTimei))
-#     rOethanolHethanol.append(distAtomsPBC(xOethanolAtTimei, xHethanolAtTimei))
-#     rOethanolHwater.append(distAtomsPBC(xOethanolAtTimei, xHwaterAtTimei))
-
-# rOwaterOwater = np.asarray(rOwaterOwater).flatten()
-# rOethanolOethanol = np.asarray(rOethanolOethanol).flatten()
-# rOwaterOethanol = np.asarray(rOwaterOethanol).flatten()
-# rOwaterHwater = np.asarray(rOwaterHwater).flatten()
-# rOethanolHethanol = np.asarray(rOethanolHethanol).flatten()
-# rOethanolHwater = np.asarray(rOethanolHwater).flatten()
-
-
-# plotHist(rOwaterOwater, binSize)
-# plotHist(rHwaterHawter, binSize)
-# nrBins = 200
-# sizexAxis = 6
-# labels = ["O-O", "O-H"]
-# plotHist(rOwaterOwater, rOwaterHwater, sizexAxis = sizexAxis, nrBins = nrBins, labels = labels)
-# plotHist(rOwaterOwater, sizexAxis = sizexAxis, nrBins = nrBins)
-
-# plt.hist(rOwaterHwater, bins = 'auto')
-
-# print(np.max(rOwaterOwater) <= np.sqrt(2*(distAtomsPBC.boxSize/2)**2 + (distAtomsPBC.boxSize/2)**2)) 
-
-# plotDensity(rOwaterOwater, rOwaterHwater, rHwaterHwater)
-# plotDensity(rHwaterHwater)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+plotHist(x,nrOfTimeSteps, sizexAxis, nrBins)

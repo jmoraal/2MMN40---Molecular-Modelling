@@ -30,7 +30,21 @@ def readMeasurables(fileName):
     #IMPORTANT: for older runs, return MINUS dihedralPot! Original code contained wrong sign
     return(kinetic,  bondPot, anglePot, dihedralPot, LJpot, tempBefore, tempAfter)
     
-#kinetic, bondPot, anglePot, dihedralPot, LJpot, tempBefore, tempAfter = readMeasurables("Ethanol32.22ThermostatMeasurables.txt")
+kinetice, bondPote, anglePote, dihedralPote, LJpote, tempBeforee, tempAftere = readMeasurables("Ethanol32.22ThermostatMeasurables.txt")
+kineticw, bondPotw, anglePotw, dihedralPotw, LJpotw, tempBeforew, tempAfterw = readMeasurables("Water31.08ThermostatMeasurables.txt")
+kineticm, bondPotm, anglePotm, dihedralPotm, LJpotm, tempBeforem, tempAfterm = readMeasurables("Mixture32.29ThermostatMeasurables.txt")
+
+def summary(data):
+    data = data[-int(len(data)/10):] # only looks at last 10% of data to avoid warmup period
+    print('Avg: ',np.average(data))
+    print('St. dev.: ',np.std(data))
+    print('Max: ', np.max(data))
+    print('Min: ', np.min(data))
+
+
+summary(kineticw)
+summary(kinetice)
+summary(kineticm)
 
 
 ### PLOT ENERGY ###
@@ -62,12 +76,12 @@ def plotPotentials(fileName, dt):
     plt.clf() # Clears current figure
     plt.rcParams.update({'font.size': 12})
     t = np.arange(0,len(Epot)*dt, dt)
-    # plt.plot(t, Epot[:,0], t, Epot[:,1], t, Epot[:,3]) #for water, which does not have dihedral potential
-    plt.plot(t, Epot)
+    # plt.plot(t, Epot)
+    plt.plot(t, Epot[:,0], 'C0', t, Epot[:,1], 'C1', t, Epot[:,3], 'C3') #for water, which does not have dihedral potential
     plt.xlabel('Time (ps)')
     plt.ylabel('Energy (AMU Å² / ps²)')
-    # plt.legend( ('Bonds', 'Angles', 'Lennard-Jones'), loc = 'best') #for water
-    plt.legend( ('Bonds', 'Angles', 'Dihedrals', 'Lennard-Jones'), loc = 'best', bbox_to_anchor=(0.5, 0., 0.5, 0.5))
+    plt.legend( ('Bonds', 'Angles', 'Lennard-Jones'), loc = 'best') #for water
+    # plt.legend( ('Bonds', 'Angles', 'Dihedrals', 'Lennard-Jones'), loc = 'best', bbox_to_anchor=(0.5, 0., 0.5, 0.5))
     plt.show()
     plt.savefig(fileName + "Potentials.pdf", bbox_inches = 'tight')
     

@@ -34,17 +34,32 @@ kinetice, bondPote, anglePote, dihedralPote, LJpote, tempBeforee, tempAftere = r
 kineticw, bondPotw, anglePotw, dihedralPotw, LJpotw, tempBeforew, tempAfterw = readMeasurables("Water31.08ThermostatMeasurables.txt")
 kineticm, bondPotm, anglePotm, dihedralPotm, LJpotm, tempBeforem, tempAfterm = readMeasurables("Mixture32.29ThermostatMeasurables.txt")
 
+Epotw = bondPotw+ anglePotw+ dihedralPotw+ LJpotw
+Etotw = Epotw + kineticw
+Epote = bondPote+ anglePote+ dihedralPote+ LJpote
+Etote = Epote + kinetice
+Epotm = bondPotm+ anglePotm+ dihedralPotm+ LJpotm
+Etotm = Epotm + kineticm
+
+
+
 def summary(data):
     data = data[-int(len(data)/10):] # only looks at last 10% of data to avoid warmup period
-    print('Avg: ',np.average(data))
-    print('St. dev.: ',np.std(data))
-    print('Max: ', np.max(data))
-    print('Min: ', np.min(data))
+    # print('Avg: ',np.average(data))
+    # print('St. dev.: ',np.std(data))
+    # print('Max: ', np.max(data))
+    # print('Min: ', np.min(data))
+    return np.average(data)
 
-
-summary(kineticw)
-summary(kinetice)
-summary(kineticm)
+# wat = summary(Epotw)/summary(Etotw)
+# eth = summary(Epote)/summary(Etote)
+# print(wat, eth)
+# print(summary(Etote) / (32.22**3))
+# print(summary(Etotw) / (31.08**3))
+# print(summary(Etotm) / (32.29**3))
+print(summary(Etote) / (3089))
+print(summary(Etotw) / (3000))
+print(summary(Etotm) / (939*3 + 61*9))
 
 
 ### PLOT ENERGY ###
